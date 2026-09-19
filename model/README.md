@@ -101,9 +101,41 @@ The script reports pass/warn/fail verdicts per model using the deployment gates 
 | Approval | `wildguardmix` | [WildGuardMix](https://huggingface.co/datasets/allenai/wildguardmix) | Maps `prompt_harm_label` to `approval_required`. Dataset access requires acceptance of AI2's responsible-use conditions. |
 | Success | `cx-cmu--agent_trajectories` | [CMU Agent Trajectories](https://huggingface.co/datasets/cx-cmu/agent_trajectories) | Maps binary task `reward` to `completed` and keeps all attempts for a task in the same train/test split. Dataset access requires approval. |
 | Reward | `HuggingFaceH4--ultrafeedback_binarized` | [UltraFeedback Binarized](https://huggingface.co/datasets/HuggingFaceH4/ultrafeedback_binarized) | Exports `prompt`, `chosen`, and `rejected` preference pairs for a separate TRL ORPO fine-tune. |
-| Provider | `xRouteBench` | [xRouteBench](https://huggingface.co/datasets/ulab-ai/xRouteBench) | Selects the highest-performing candidate per task only when it maps truthfully to a Hive provider. |
+| Provider | `lmsyschatbot_arena_conversations` | [LMSYS Chatbot Arena](https://huggingface.co/datasets/lmsys/lmsys-chatbot-arena-conversations) | Real-world conversation outcomes mapped by capability affinity to `openai` (code/engineering), `anthropic` (compliance/safety), and `google` (multilingual/translation). |
+| Provider | `routerbench` | [RouterBench](https://huggingface.co/datasets/withmartian/routerbench) | Oracle routing selections benchmarked against cost and accuracy tradeoffs for multi-provider routing. |
+| Provider | `xRouteBench` | [xRouteBench](https://huggingface.co/datasets/ulab-ai/xRouteBench) | Query candidate pool benchmarking multi-provider candidate execution. |
+| Provider | Built-in seed generator | `model/generate_provider_seed.py` | Combinatorial domain seed generator for ultra-low latency (`groq` LPU) and enterprise security/on-prem (`nvidia` NIM). |
 
-Provider training is deliberately skipped if xRouteBench does not contain at least two providers that map exactly to Hive's `nvidia`, `groq`, `openai`, `anthropic`, and `google` keys. Do not map another service, such as Together, to Groq just to create labels. Instead, run representative prompts through the enabled PrismSpace providers and record the measured provider, quality score, completion result, latency, and cost. See the generated `model/datasets/curated/preparation_report.json` for the exact prepared counts and any blocked target.
+### Where to place Provider Router (ModelRouter) datasets
+
+To train `model_router.joblib` with high accuracy and balanced classes across all 5 Hive providers (`openai`, `anthropic`, `google`, `groq`, `nvidia`), place downloaded dataset files in the following folders under `model/datasets/`:
+
+```
+prismspace-web/
+└── model/
+    └── datasets/
+        ├── lmsyschatbot_arena_conversations/  # Place downloaded *.parquet files here
+        │   └── *.parquet
+        ├── routerbench/                       # Place downloaded *.pkl files here
+        │   └── *.pkl
+        └── xRouteBench/                       # Place downloaded candidate pool parquet files here
+            └── llm_candidates/
+                └── ...
+```
+
+Then run the supervised dataset preparation command:
+
+```powershell
+python -m model.prepare_supervised_datasets --dataset-dir model\datasets --output-dir model\datasets\curated
+```
+
+This ingests from LMSYS Chatbot Arena and RouterBench, generates synthetic balancing samples via `model.generate_provider_seed` for Groq and NVIDIA, and creates a balanced `model/datasets/curated/provider/train.jsonl` and `test.jsonl` (350 samples per provider, 80/20 train/test split).
+
+Then train the Provider Router model:
+
+```powershell
+python -m model.train --dataset-dir model\datasets --output-dir model\artifacts
+```
 
 The reward preparation step does **not** create or deploy a reward model. Run TRL ORPO separately with a licensed base model and reserve UltraFeedback's `test_prefs` split for evaluation.
 

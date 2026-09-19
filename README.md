@@ -140,12 +140,15 @@ PrismSpace trains its ML subsystem across the following benchmarks and preferenc
 | **OpenAssistant OASST1** | [HuggingFace: OpenAssistant/oasst1](https://huggingface.co/datasets/OpenAssistant/oasst1) | Multi-turn conversational preference trees and quality ranking. |
 | **Tau-Bench** | [GitHub: sierra-research/tau-bench](https://github.com/sierra-research/tau-bench) | Dynamic user-agent tool environment trajectories. |
 | **BEIR** | [GitHub: beir-cellar/beir](https://github.com/beir-cellar/beir) | Information retrieval benchmark for dense & sparse vector search evaluation. |
+| **LMSYS Chatbot Arena** | [HuggingFace: lmsys/lmsys-chatbot-arena-conversations](https://huggingface.co/datasets/lmsys/lmsys-chatbot-arena-conversations) | Real-world dialogues for provider routing (`openai`, `anthropic`, `google`) by task capability. |
+| **RouterBench** | [HuggingFace: withmartian/routerbench](https://huggingface.co/datasets/withmartian/routerbench) | LLM routing benchmark for multi-provider performance and cost optimization. |
+| **xRouteBench** | [HuggingFace: ulab-ai/xRouteBench](https://huggingface.co/datasets/ulab-ai/xRouteBench) | Multi-candidate execution benchmarks across diverse LLM tasks. |
 
 ---
 
 ## 📁 Dataset Directory Structure & Ingestion
 
-All training records are ingested by `model/dataset_loader.py`. Place dataset files in subfolders under `model/datasets/`:
+All training records are ingested by `model/dataset_loader.py` and curated by `model/prepare_supervised_datasets.py`. Place dataset files in subfolders under `model/datasets/`:
 
 ```
 prismspace-web/
@@ -162,7 +165,10 @@ prismspace-web/
 │   │   ├── beir/                                # Retrieval corpora
 │   │   ├── hh-rlhf/                             # Pairwise preference datasets (.jsonl.gz / .jsonl)
 │   │   ├── oasst1/                              # Conversational assistant trees
-│   │   └── tau-bench-trajectories/              # Interactive environment logs
+│   │   ├── tau-bench-trajectories/              # Interactive environment logs
+│   │   ├── lmsyschatbot_arena_conversations/    # *.parquet from LMSYS Arena for Provider Router
+│   │   ├── routerbench/                         # *.pkl files from RouterBench for Provider Router
+│   │   └── xRouteBench/                         # llm_candidates/ & query Parquet files
 ```
 
 ### Supported File Formats & Normalization
