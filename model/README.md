@@ -66,7 +66,35 @@ python -m model.evaluate --output-dir model\artifacts
 python -m model.evaluate_holdout --dataset-dir model\datasets\test_datasets --artifacts-dir model\artifacts --output-dir model\artifacts\holdout_evaluation
 python -m unittest model.test_pipeline
 python backend\test_model_inference.py
+
+# Comprehensive model evaluation with rich CLI output.
+python -m model.evaluate_models --artifacts-dir model\artifacts --curated-dir model\datasets\curated
 ```
+
+## Comprehensive model evaluation
+
+`model.evaluate_models` inspects every trained artifact — tabular classifiers, regressors, the anomaly detector, ORPO reward adapters, the FAISS retrieval index, and workflow template clusters — then reports accuracy, F1, precision, recall, ROC-AUC, ECE, Brier score, R², MAE, RMSE, confusion matrices, per-class breakdowns, calibration diagnostics, and a final colour-coded scoreboard.
+
+Classifiers and regressors are re-evaluated against their curated held-out `test.jsonl` splits when available, so scores reflect true generalisation rather than cached training metrics.
+
+```powershell
+# Full evaluation of all artifacts with coloured CLI output.
+python -m model.evaluate_models
+
+# Evaluate only specific models (by artifact stem name).
+python -m model.evaluate_models --models intent_classifier approval_predictor cost_predictor
+
+# Export the machine-readable report to a custom path.
+python -m model.evaluate_models --export model\artifacts\my_evaluation.json
+
+# Disable colour output (useful for piping to files or CI).
+python -m model.evaluate_models --no-colour
+
+# Custom artifact and curated directories.
+python -m model.evaluate_models --artifacts-dir model\artifacts --curated-dir model\datasets\curated
+```
+
+The script reports pass/warn/fail verdicts per model using the deployment gates documented below. Models that fall below the minimum threshold show a yellow WARN badge; models with load errors show a red ERROR badge. The final scoreboard summarises all results. A JSON report is always written to `evaluation_report_full.json` in the artifacts directory (or at the path given by `--export`).
 
 | Target | Local source folder | Dataset / direct link | Conversion result |
 | --- | --- | --- | --- |
