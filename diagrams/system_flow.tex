@@ -1,0 +1,108 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=0.8in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc}
+\usepackage{times}
+
+\pagestyle{empty}
+
+\begin{document}
+
+\begin{center}
+{\LARGE \textbf{4.4\quad Overall end-to-end System flow}}\\[1.5em]
+{\huge \textbf{PrismSpace Architecture}}\\[1.6em]
+
+\begin{tikzpicture}[
+    auto,
+    node distance = 0.62cm,
+    block/.style = {
+        rectangle,
+        draw=black!80,
+        line width=0.7pt,
+        fill=black!4,
+        rounded corners=2pt,
+        text width=8.6cm,
+        minimum height=0.75cm,
+        text centered,
+        font=\small
+    },
+    shaded_block/.style = {
+        rectangle,
+        draw=black!85,
+        line width=0.8pt,
+        fill=black!16,
+        rounded corners=3pt,
+        text width=8.6cm,
+        minimum height=1.65cm,
+        align=center,
+        font=\small
+    },
+    arrow/.style = {
+        -{Stealth[scale=1.0]},
+        line width=0.75pt,
+        draw=black!85
+    }
+]
+
+    % Node Definitions
+    \node [block] (input) {\textbf{User Objective \& Context Input}};
+    
+    \node [block, below=of input] (prep) {Data Preprocessing \& Normalization};
+    
+    \node [block, below=of prep] (feat) {Feature Extraction (TF-IDF \& Numeric Metrics)};
+    
+    \node [block, below=of feat] (impute) {Missing Value Imputation \& Standardization};
+    
+    \node [block, below=of impute] (anomaly) {Anomaly Detection \& Outlier Filtering (IsolationForest)};
+    
+    \node [shaded_block, below=of anomaly] (ml_engine) {
+        \textbf{Multi-Model Intelligence Engine $\mathcal{M}_{\text{prism}}$}\\[0.35em]
+        \parbox{8.2cm}{\small
+        $\bullet$ \textbf{12-Class Intent Classifier} (TF-IDF + Calibrated Head)\\
+        $\bullet$ \textbf{Multi-Provider Router} (NVIDIA, Groq, OpenAI, Anthropic)\\
+        $\bullet$ \textbf{Agent Swarm Dispatcher} (Multi-Label Classifier)\\
+        $\bullet$ \textbf{Safety \& Approval Gate} (Threshold-Tuned Predictor)}
+    };
+    
+    \node [block, below=of ml_engine] (graph_const) {
+        \textbf{DAG Workflow Construction $\mathcal{L}_{\text{plan}}$}\\
+        \footnotesize Compute Sub-task Dependency Graph $\mathcal{G}(V, E)$
+    };
+    
+    \node [block, below=of graph_const] (react_loop) {
+        \textbf{ReAct Agent Execution \& MCP Tool Loop}\\
+        \footnotesize Observation $\longrightarrow$ Thought $\longrightarrow$ Action Matrix $\mathbf{A}_{i,j}$
+    };
+    
+    \node [block, below=of react_loop] (stream) {Real-time SSE Token \& Telemetry Streaming};
+    
+    \node [block, below=of stream] (eval_layer) {
+        \textbf{Evaluation \& Verification Layer}\\
+        \footnotesize ORPO Preference Reward Scoring \& Telemetry Logging
+    };
+    
+    \node [shaded_block, below=of eval_layer, minimum height=0.9cm] (persist) {
+        \textbf{Local IndexedDB Persistence (\texttt{PrismDB})}\\
+        \footnotesize Reactive Client Updates via \texttt{useLiveQuery()}
+    };
+
+    % Arrows connecting nodes
+    \draw [arrow] (input) -- (prep);
+    \draw [arrow] (prep) -- (feat);
+    \draw [arrow] (feat) -- (impute);
+    \draw [arrow] (impute) -- (anomaly);
+    \draw [arrow] (anomaly) -- (ml_engine);
+    \draw [arrow] (ml_engine) -- (graph_const);
+    \draw [arrow] (graph_const) -- (react_loop);
+    \draw [arrow] (react_loop) -- (stream);
+    \draw [arrow] (stream) -- (eval_layer);
+    \draw [arrow] (eval_layer) -- (persist);
+
+\end{tikzpicture}
+
+\vspace{2.0em}
+{\Large \textbf{Figure 4.3: System flow}}
+\end{center}
+
+\end{document}
