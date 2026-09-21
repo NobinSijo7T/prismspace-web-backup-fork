@@ -11,7 +11,6 @@ import { PanelManager, usePanelManager } from '@/components/PanelManager';
 
 export default function Home() {
   const [showSettings, setShowSettings] = useState(false);
-  const [showMatrix, setShowMatrix] = useState(true);
   const { activePanel, openPanel, closePanel } = usePanelManager();
 
   // Open Agent Swarm panel from SearchBar custom event
@@ -20,12 +19,6 @@ export default function Home() {
     window.addEventListener('prism:open-agent-swarm', handler);
     return () => window.removeEventListener('prism:open-agent-swarm', handler);
   }, [openPanel]);
-
-  useEffect(() => {
-    // Check if matrix display should be shown
-    const savedMatrixDisplay = localStorage.getItem('matrixDisplay') !== 'false';
-    setShowMatrix(savedMatrixDisplay);
-  }, []);
 
   const handleToolAction = (action: string) => {
     // Handle system stats specially
@@ -62,7 +55,6 @@ Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
       <QuickActions
         onSettingsClick={() => setShowSettings(true)}
         onNotepadClick={() => openPanel('notepad')}
-        showMatrix={showMatrix}
       />
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />

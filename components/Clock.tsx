@@ -1,17 +1,18 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 
 export type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-light' | 
   'serif-condensed' | 'bitcount' | 'corpta' | 'fenotype' | 'nclkemgor' | 
   'westiva' | 'ammonite' | 'crude' | 'zombiess' | 'xolonium' | 'nemoy';
 
 export const clockStyleClasses: Record<ClockStyle, string> = {
-  default: 'font-montserrat font-black',
+  default: 'font-sans font-black tracking-[-0.05em]',
   minimal: 'font-sans font-light tracking-[0.1em]',
   serif: 'font-serif font-normal tracking-tight',
   handwritten: 'font-permanentMarker font-normal rotate-[-1deg] tracking-wide',
-  'minimal-light': 'font-permanentMarker font-normal text-white/95 tracking-[0.1em]',
+  'minimal-light': 'font-permanentMarker font-normal tracking-[0.1em]',
   'serif-condensed': 'font-gennaro font-normal tracking-tight',
   bitcount: 'font-bitcount font-medium tracking-[0.2em]',
   corpta: 'font-corpta font-normal tracking-wide',
@@ -69,12 +70,21 @@ export function Clock() {
   const styleClass = clockStyleClasses[clockStyle];
 
   return (
-    <div 
-      className={`text-[12rem] cursor-pointer transition-all duration-300 leading-none tracking-tight
-                  text-shadow-md hover:scale-105 hover:text-shadow-lg ${styleClass}`}
-      style={{ color: clockColor }}
+    <motion.div 
+      className={`text-[12rem] cursor-pointer transition-colors duration-300 leading-none
+                  hover:scale-[1.02] ${styleClass}`}
+      style={{ 
+        color: clockColor,
+        textShadow: clockColor === '#000000' 
+          ? '0 4px 30px rgba(255, 255, 255, 0.2)' 
+          : '0 4px 25px rgba(0, 0, 0, 0.7), 0 0 50px rgba(0, 0, 0, 0.4)',
+        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease',
+      }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
     >
       {time || '00:00'}
-    </div>
+    </motion.div>
   );
 }

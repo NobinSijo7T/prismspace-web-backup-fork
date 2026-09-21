@@ -102,7 +102,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [customMediaType, setCustomMediaType] = useState<BackgroundMediaType>('image');
   const [dynamicGreetings, setDynamicGreetings] = useState(true);
   const [showGreetings, setShowGreetings] = useState(true);
-  const [matrixDisplay, setMatrixDisplay] = useState(true);
   const [customCursor, setCustomCursor] = useState(true);
   const [dynamicIsland, setDynamicIsland] = useState(true);
   const [dynamicIslandSeconds, setDynamicIslandSeconds] = useState(false);
@@ -135,7 +134,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     const savedHistory = JSON.parse(localStorage.getItem('colorHistory') || '[]');
     const savedDynamicGreetings = localStorage.getItem('dynamicGreetings') !== 'false';
     const savedShowGreetings = localStorage.getItem('showGreetings') !== 'false';
-    const savedMatrixDisplay = localStorage.getItem('matrixDisplay') !== 'false';
     const savedCustomCursor = localStorage.getItem('customCursor') !== 'false';
     
     setClockFormat(savedFormat);
@@ -144,7 +142,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     setColorHistory(savedHistory);
     setDynamicGreetings(savedDynamicGreetings);
     setShowGreetings(savedShowGreetings);
-    setMatrixDisplay(savedMatrixDisplay);
     setCustomCursor(savedCustomCursor);
     setDynamicIsland(localStorage.getItem('dynamicIsland') !== 'false');
     setDynamicIslandSeconds(localStorage.getItem('dynamicIslandSeconds') === 'true');
@@ -282,6 +279,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
       : toSelectedBackground(bgPath);
 
     setSelectedBg(getSelectionId(setting));
+    localStorage.setItem('selectedBackground', bgPath);
     await db.settings.put({
       key: BACKGROUND_SETTING_KEY,
       value: JSON.stringify(setting),
@@ -300,6 +298,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     };
 
     setSelectedBg('custom');
+    localStorage.setItem('selectedBackground', 'custom');
     setCustomMediaType(setting.mediaType);
     await db.settings.put({
       key: BACKGROUND_SETTING_KEY,
@@ -337,6 +336,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           } satisfies StoredBackgroundSetting),
         });
 
+        localStorage.setItem('selectedBackground', 'custom');
         if (customPreviewUrl) URL.revokeObjectURL(customPreviewUrl);
         setCustomPreviewUrl(URL.createObjectURL(file));
         setCustomMediaType(getMediaTypeFromMime(file.type));
@@ -597,26 +597,26 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                       onClick={handleCustomBackgroundSelect}
                       className={`group relative aspect-video rounded-xl overflow-hidden border-2 transition-all ${
                         selectedBg === 'custom'
-                          ? 'border-pink-500'
+                          ? 'border-[#00df81] shadow-[0_0_15px_rgba(0,223,129,0.4)]'
                           : 'border-white/20 hover:border-white/40'
                       }`}
                       title="Custom wallpaper"
                     >
                       {customMediaType === 'video' ? (
-                        <video
-                          src={customPreviewUrl}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          className="w-full h-full object-cover"
-                        />
+                         <video
+                           src={customPreviewUrl}
+                           autoPlay
+                           muted
+                           loop
+                           playsInline
+                           className="w-full h-full object-cover"
+                         />
                       ) : (
-                        <img
-                          src={customPreviewUrl}
-                          alt="Custom wallpaper"
-                          className="w-full h-full object-cover"
-                        />
+                         <img
+                           src={customPreviewUrl}
+                           alt="Custom wallpaper"
+                           className="w-full h-full object-cover"
+                         />
                       )}
                       <span className="absolute left-2 top-2 rounded bg-black/60 px-2 py-1 text-[11px] font-medium text-white">
                         Custom
@@ -629,7 +629,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                       onClick={() => handleBackgroundChange(bg.path)}
                       className={`aspect-video rounded-xl overflow-hidden border-2 transition-all ${
                         selectedBg === bg.path
-                          ? 'border-pink-500'
+                          ? 'border-[#00df81] shadow-[0_0_15px_rgba(0,223,129,0.4)]'
                           : 'border-white/20 hover:border-white/40'
                       }`}
                       title={bg.name}
@@ -660,7 +660,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                       <h3 className="text-base font-semibold text-white">Wallpaper Transparency / Exposure</h3>
                       <p className="text-xs text-white/60">Drag ticker to adjust background transparency live</p>
                     </div>
-                    <span className="text-sm font-mono font-semibold px-3 py-1 bg-white/10 rounded-lg text-pink-400">
+                    <span className="text-sm font-mono font-semibold px-3 py-1 bg-black/40 border border-[#00df81]/40 rounded-lg text-[#00df81]">
                       {wallpaperOpacity}%
                     </span>
                   </div>
@@ -768,24 +768,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 />
               </div>
 
-              <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                <div>
-                  <div className="font-medium mb-1">Matrix Display</div>
-                  <div className="text-sm text-white/60">Show animated matrix display in bottom corner. Click to cycle animations.</div>
-                </div>
-                <AppleSwitch
-                  checked={matrixDisplay}
-                  onCheckedChange={(checked) => {
-                    setMatrixDisplay(checked);
-                    localStorage.setItem('matrixDisplay', checked.toString());
-                    window.location.reload();
-                  }}
-                  size="sm"
-                  aria-label="Matrix Display"
-                />
-              </div>
-
-              <div className="mt-6">
+              <div>
                 <h3 className="text-base font-semibold mb-4 text-white/70 uppercase tracking-widest text-xs">Dynamic Island</h3>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl">

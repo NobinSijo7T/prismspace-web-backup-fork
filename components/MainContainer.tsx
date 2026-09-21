@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Clock } from './Clock';
 import { SearchBar } from './SearchBar';
 
@@ -17,6 +18,29 @@ const fallbackQuotes: Record<string, DailyQuotes> = {
   thursday:  { primary: "Push through with power, PRISM",  secondary: "User, Thriving Thursday!" },
   friday:    { primary: "Celebrate your success, PRISM",   secondary: "User, Happy Friday!" },
   saturday:  { primary: "Enjoy your achievements, PRISM",  secondary: "User, Spectacular Saturday!" },
+};
+
+const staggerContainer = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
+  },
 };
 
 export function MainContainer() {
@@ -54,23 +78,36 @@ export function MainContainer() {
     <div
       className="h-screen flex flex-col items-center justify-center text-center sticky top-0 z-[1]"
     >
-      <div className="flex flex-col items-center gap-[20px] animate-fadeInUp w-full px-6">
+      <motion.div
+        className="flex flex-col items-center gap-[20px] w-full px-6"
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+      >
         {showGreetings && (
-          <div className="text-center mb-2">
-            <h1 className="font-sans text-[2.2rem] font-medium text-white mb-2.5 tracking-tight leading-tight">
+          <motion.div className="text-center mb-2" variants={staggerItem}>
+            <h1
+              className="font-sans text-[2.4rem] font-[900] tracking-[-0.04em] leading-[1.05] lowercase mb-3 text-white drop-shadow-[0_2px_15px_rgba(0,0,0,0.6)]"
+            >
               {quotes.primary}
             </h1>
-            <h2 className="font-sans text-[2.2rem] font-medium text-white tracking-tight leading-tight">
-              {quotes.secondary}
-            </h2>
-          </div>
+            <div className="cutout-box">
+              <h2 className="cutout-text text-[2rem]">
+                {quotes.secondary}
+              </h2>
+            </div>
+          </motion.div>
         )}
 
-        <Clock />
+        <motion.div variants={staggerItem}>
+          <Clock />
+        </motion.div>
 
         {/* Search bar placed directly below the clock */}
-        <SearchBar onAgentSubmit={handleAgentSubmit} />
-      </div>
+        <motion.div variants={staggerItem} className="w-full flex justify-center">
+          <SearchBar onAgentSubmit={handleAgentSubmit} />
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

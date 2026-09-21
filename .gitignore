@@ -61,3 +61,7 @@ model/artifacts*/
 *.fls
 *.fdb_latexmk
 *.synctex.gz
+
+# brag launch artifacts
+brag-output/
+

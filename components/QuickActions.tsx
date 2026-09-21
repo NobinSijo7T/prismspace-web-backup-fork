@@ -1,19 +1,17 @@
 'use client';
 
-import { MatrixDisplay } from '@/components/MatrixDisplay';
+import { motion } from 'framer-motion';
 import ProfileDropdown from '@/components/kokonutui/profile-dropdown';
 import { useUserProfile } from '@/lib/hooks/useUserProfile';
 
 interface QuickActionsProps {
   onSettingsClick?: () => void;
   onNotepadClick?: () => void;
-  showMatrix?: boolean;
 }
 
 export function QuickActions({
   onSettingsClick,
   onNotepadClick,
-  showMatrix = true,
 }: QuickActionsProps) {
   const { profile } = useUserProfile();
 
@@ -25,25 +23,33 @@ export function QuickActions({
     }
   };
 
-  const btnClass =
-    'bg-black/70 border border-white/20 rounded-xl p-3 text-white ' +
-    'cursor-pointer transition-all duration-300 text-[1.3rem] ' +
-    'flex items-center justify-center w-12 h-12 ' +
-    'hover:bg-white/15 hover:scale-110 hover:border-white/30';
-
   return (
     <>
-      {/* ── Bottom-left: Notepad | MatrixDisplay | Music ── */}
-      <div className="fixed bottom-[30px] left-[30px] flex gap-3 items-center z-[100]">
-        <button onClick={onNotepadClick} className={btnClass} title="Notepad">
+      {/* ── Bottom-left: Notepad ── */}
+      <motion.div
+        className="fixed bottom-[30px] left-[30px] flex gap-3 items-center z-[100]"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <motion.button
+          onClick={onNotepadClick}
+          className="prism-btn flex items-center justify-center w-12 h-12 text-[1.3rem]"
+          title="Notepad"
+          whileHover={{ scale: 1.08, borderColor: '#00df81' }}
+          whileTap={{ scale: 0.95 }}
+        >
           📝
-        </button>
-
-        {showMatrix && <MatrixDisplay />}
-      </div>
+        </motion.button>
+      </motion.div>
 
       {/* ── Bottom-right: Profile | Fullscreen ── */}
-      <div className="fixed bottom-[30px] right-[30px] flex gap-3 items-center z-[100]">
+      <motion.div
+        className="fixed bottom-[30px] right-[30px] flex gap-3 items-center z-[100]"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, delay: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      >
         <ProfileDropdown
           data={{
             name: profile?.username || 'User',
@@ -52,10 +58,16 @@ export function QuickActions({
           onSettingsClick={onSettingsClick}
         />
 
-        <button onClick={toggleFullscreen} className={btnClass} title="Toggle Fullscreen">
+        <motion.button
+          onClick={toggleFullscreen}
+          className="prism-btn flex items-center justify-center w-12 h-12 text-[1.3rem]"
+          title="Toggle Fullscreen"
+          whileHover={{ scale: 1.08, borderColor: '#00df81' }}
+          whileTap={{ scale: 0.95 }}
+        >
           ⛶
-        </button>
-      </div>
+        </motion.button>
+      </motion.div>
     </>
   );
 }

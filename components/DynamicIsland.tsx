@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { AgentOrb } from '@/components/AgentOrb';
 
 interface IslandEvent {
@@ -127,175 +128,165 @@ export function DynamicIsland() {
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 900,
-        // Prevent layout shift
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
       }}
       aria-label="Dynamic Island"
     >
-      <div
+      <motion.div
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
+        className="hud-capsule relative overflow-hidden"
+        animate={{
+          width: isExpanded ? (showEvent ? 340 : 300) : 130,
+          height: isExpanded ? 72 : 34,
+          borderRadius: isExpanded ? 24 : 9999,
+        }}
+        transition={{
+          type: 'spring',
+          stiffness: 400,
+          damping: 28,
+          mass: 0.8,
+        }}
         style={{
-          background: 'rgba(0, 0, 0, 0.88)',
-          backdropFilter: 'blur(20px) saturate(1.8)',
-          WebkitBackdropFilter: 'blur(20px) saturate(1.8)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          borderRadius: isExpanded ? '24px' : '999px',
-          boxShadow: isExpanded
-            ? '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08)'
-            : '0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
-          width: isExpanded ? (showEvent ? '340px' : '300px') : '130px',
-          height: isExpanded ? '72px' : '34px',
-          overflow: 'hidden',
-          transition: 'width 0.45s cubic-bezier(0.34,1.56,0.64,1), height 0.45s cubic-bezier(0.34,1.56,0.64,1), border-radius 0.45s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease',
           cursor: 'default',
-          position: 'relative',
         }}
       >
         {/* Collapsed: time only */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            opacity: isExpanded ? 0 : 1,
-            transform: isExpanded ? 'scale(0.85)' : 'scale(1)',
-            transition: 'opacity 0.25s ease, transform 0.25s ease',
-            pointerEvents: isExpanded ? 'none' : 'auto',
-          }}
-        >
-          <span
-            style={{
-              fontFamily: 'var(--font-sans, system-ui)',
-              fontSize: '13px',
-              fontWeight: 600,
-              color: 'rgba(255,255,255,0.92)',
-              letterSpacing: '0.02em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {timeStr}
-          </span>
-        </div>
-
-        {/* Expanded: time + date / event */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '0 18px',
-            opacity: isExpanded ? 1 : 0,
-            transform: isExpanded ? 'scale(1)' : 'scale(0.92)',
-            transition: 'opacity 0.3s ease 0.1s, transform 0.3s ease 0.1s',
-            pointerEvents: isExpanded ? 'auto' : 'none',
-          }}
-        >
-          {showEvent ? (
-            // Event notification layout
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {event.icon && (
-                  <span style={{ fontSize: '22px', lineHeight: 1 }}>{event.icon}</span>
-                )}
-                <div>
-                  <div
-                    style={{
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      color: 'rgba(255,255,255,0.95)',
-                      lineHeight: 1.2,
-                    }}
-                  >
-                    {event.title}
-                  </div>
-                  {event.subtitle && (
-                    <div
-                      style={{
-                        fontSize: '11px',
-                        color: 'rgba(255,255,255,0.5)',
-                        marginTop: '2px',
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {event.subtitle}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div
-                  style={{
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    color: 'rgba(255,255,255,0.9)',
-                    letterSpacing: '0.01em',
-                  }}
-                >
-                  {timeStr}
-                </div>
-              </div>
-            </>
-          ) : (
-            // Default expanded: time + date + status
-            <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                <span
-                  style={{
-                    fontSize: '22px',
-                    fontWeight: 700,
-                    color: 'rgba(255,255,255,0.95)',
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1,
-                    fontVariantNumeric: 'tabular-nums',
-                  }}
-                >
-                  {timeStr}
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: 'rgba(255,255,255,0.45)',
-                    letterSpacing: '0.02em',
-                  }}
-                >
-                  {dateStr}
-                </span>
-              </div>
-
-              {/* Status pill */}
-              <div
+        <AnimatePresence>
+          {!isExpanded && (
+            <motion.div
+              key="collapsed"
+              className="absolute inset-0 flex items-center justify-center"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.85 }}
+              transition={{ duration: 0.2 }}
+            >
+              <span
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  borderRadius: '999px',
-                  padding: '4px 10px 4px 6px',
+                  fontFamily: "'JetBrains Mono', monospace",
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  color: 'rgba(255, 255, 255, 0.92)',
+                  letterSpacing: '0.02em',
+                  whiteSpace: 'nowrap',
                 }}
               >
-                <AgentOrb size="18px" provider="groq" />
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 500,
-                    color: 'rgba(255,255,255,0.7)',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  Agent Active
-                </span>
-              </div>
-            </>
+                {timeStr}
+              </span>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
+
+        {/* Expanded: time + date / event */}
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div
+              key="expanded"
+              className="absolute inset-0 flex items-center justify-between px-[18px]"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.92 }}
+              transition={{ duration: 0.25, delay: 0.05 }}
+            >
+              {showEvent ? (
+                // Event notification layout
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {event.icon && (
+                      <span style={{ fontSize: '22px', lineHeight: 1 }}>{event.icon}</span>
+                    )}
+                    <div>
+                      <div
+                        style={{
+                          fontFamily: "'Space Grotesk', sans-serif",
+                          fontSize: '13px',
+                          fontWeight: 700,
+                          color: 'rgba(255, 255, 255, 0.95)',
+                          lineHeight: 1.2,
+                        }}
+                      >
+                        {event.title}
+                      </div>
+                      {event.subtitle && (
+                        <div
+                          style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            fontSize: '11px',
+                            color: '#94a3b8',
+                            marginTop: '2px',
+                            lineHeight: 1.2,
+                          }}
+                        >
+                          {event.subtitle}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: '14px',
+                        fontWeight: 700,
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        letterSpacing: '0.01em',
+                      }}
+                    >
+                      {timeStr}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Default expanded: time + date + status
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: '22px',
+                        fontWeight: 700,
+                        color: 'rgba(255, 255, 255, 0.95)',
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1,
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {timeStr}
+                    </span>
+                    <span
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        color: '#94a3b8',
+                        letterSpacing: '0.02em',
+                      }}
+                    >
+                      {dateStr}
+                    </span>
+                  </div>
+
+                  {/* Status pill — live-status-badge pattern */}
+                  <div className="live-status-badge">
+                    <AgentOrb size="18px" provider="groq" />
+                    <span
+                      style={{
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      AGENT ACTIVE
+                    </span>
+                  </div>
+                </>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Subtle inner shine */}
         <div
@@ -305,12 +296,12 @@ export function DynamicIsland() {
             left: 0,
             right: 0,
             height: '50%',
-            background: 'linear-gradient(to bottom, rgba(255,255,255,0.06), transparent)',
+            background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.04), transparent)',
             borderRadius: 'inherit',
             pointerEvents: 'none',
           }}
         />
-      </div>
+      </motion.div>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { SmoothCursor } from "@/components/ui/smooth-cursor";
 import { DynamicIsland } from "@/components/DynamicIsland";
 
 export const metadata: Metadata = {
-  title: "Prism Dev Browser",
+  title: "PrismSpace",
   description: "AI-Powered Developer Dashboard and Browser",
 };
 
@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans")}> 
+    <html lang="en" className={cn("font-sans")}>
       <body>
         <SmoothCursor />
         <DynamicIsland />

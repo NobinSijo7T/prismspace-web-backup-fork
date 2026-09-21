@@ -28,6 +28,26 @@ export default {
         nemoy: ['Nemoy', 'sans-serif'],
       },
       colors: {
+        /* PrismSpace Design System */
+        mint: {
+          DEFAULT: '#00df81',
+          glow: 'rgba(0, 223, 129, 0.25)',
+          dark: '#06190e',
+          light: 'rgba(0, 223, 129, 0.08)',
+        },
+        obsidian: {
+          DEFAULT: '#090c12',
+          light: 'rgba(9, 12, 18, 0.92)',
+        },
+        ink: {
+          DEFAULT: '#06190e',
+          strong: '#000000',
+        },
+        slate: {
+          code: '#cbd5e1',
+          muted: '#94a3b8',
+        },
+        /* Legacy tokens (shadcn/ui compat) */
         background: "var(--background)",
         foreground: "var(--foreground)",
         border: "var(--border)",

@@ -27,13 +27,17 @@ Every project. Never skip.
 
 ### Reflex-reject list
 
-Training-data defaults. Ban list. Look further:
+Training-data defaults. Ban list for greenfield work (Note: Space Grotesk and JetBrains Mono are canonical foundations under the [PrismSpace Design System](../DESIGN.md)):
 
-Fraunces · Newsreader · Lora · Crimson · Crimson Pro · Crimson Text · Playfair Display · Cormorant · Cormorant Garamond · Syne · IBM Plex Mono · IBM Plex Sans · IBM Plex Serif · Space Mono · Space Grotesk · Inter · DM Sans · DM Serif Display · DM Serif Text · Outfit · Plus Jakarta Sans · Instrument Sans · Instrument Serif
+Fraunces · Newsreader · Lora · Crimson · Crimson Pro · Crimson Text · Playfair Display · Cormorant · Cormorant Garamond · Syne · IBM Plex Mono · IBM Plex Sans · IBM Plex Serif · Inter · DM Sans · DM Serif Display · DM Serif Text · Outfit · Plus Jakarta Sans · Instrument Sans · Instrument Serif
+
+### Approved & Recommended Aesthetic Lanes
+
+- **High-Voltage Autonomous Developer OS (Canonical):** Saturated electric mint canvas (`#00df81`) paired with an obsidian telemetry console (`#090c12`), bold lowercase `Space Grotesk` headers with inverted solid black cutout boxes, and high-density `JetBrains Mono` telemetry/specs. Fully specified in [DESIGN.md](../DESIGN.md).
 
 ### Reflex-reject aesthetic lanes
 
-Parallel to the font list. Currently saturated aesthetic families that have flooded brand surfaces. If a brief lands in one of these lanes without a register reason that *requires* it (a literal magazine, a literal terminal, a literal industrial signage system), it's the second-order training reflex: the trap one tier deeper than picking a Fraunces font. Look further.
+Parallel to the font list. Currently saturated aesthetic families that have flooded brand surfaces without deliberate voice:
 
 - **Editorial-typographic.** Display serif (often italic) + small mono labels + ruled separators + monochromatic restraint. Klim-influenced, magazine-cover affectation. By 2026, every Stripe-adjacent and Notion-adjacent brand has landed here. The fingerprint: three rule-separated columns, an italic Fraunces / Recoleta / Newsreader headline, lowercase track-spaced metadata, no imagery.
 
@@ -89,7 +93,7 @@ Brand surfaces lean on imagery. A restaurant, hotel, magazine, or product landin
 
 ## Brand bans (on top of the shared absolute bans)
 
-- Monospace as lazy shorthand for "technical / developer." If the brand isn't technical, mono reads as costume.
+- Monospace as lazy shorthand for "technical / developer" on non-technical brands. (If the brand is a developer OS, swarm orchestrator, or telemetry console, JetBrains Mono is the primary system language per the design system).
 - Large rounded-corner icons above every heading. Screams template.
 - Single-family pages that picked the family by reflex, not voice. (A single family chosen deliberately is fine.)
 - All-caps body copy. Reserve caps for short labels and headings.

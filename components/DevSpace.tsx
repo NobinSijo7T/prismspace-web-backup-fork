@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import CardFlip from './kokonutui/card-flip';
 
 interface Tool {
@@ -116,6 +117,30 @@ interface DevSpaceProps {
   onToolAction?: (action: string) => void;
 }
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+      delayChildren: 0.15,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.95 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.5,
+      ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+    },
+  },
+};
+
 export function DevSpace({ onToolAction }: DevSpaceProps) {
   const [opacity, setOpacity] = useState(100);
 
@@ -144,24 +169,44 @@ export function DevSpace({ onToolAction }: DevSpaceProps) {
   return (
     <div className="min-h-screen py-[60px] px-[40px] flex flex-col items-center justify-start relative z-[2] transition-all duration-300"
       style={{
-        background: `linear-gradient(180deg, rgba(0, 0, 0, ${0.4 * alpha}) 0%, rgba(0, 0, 0, ${0.6 * alpha}) 50%, rgba(0, 0, 0, ${0.4 * alpha}) 100%)`,
+        background: `linear-gradient(180deg, rgba(9, 12, 18, ${0.85 * alpha}) 0%, rgba(9, 12, 18, ${0.95 * alpha}) 50%, rgba(9, 12, 18, ${0.85 * alpha}) 100%)`,
         backdropFilter: alpha < 0.99 ? `blur(${Math.round(12 * alpha)}px)` : undefined,
         marginTop: '-100vh',
         transform: 'translateY(100vh)'
       }}>
-      <div className="mb-[30px] text-center animate-fadeInUp flex-shrink-0">
-        <h2 className="font-sans text-[2.5rem] font-semibold text-white m-0 tracking-tight text-shadow-sm">
-          Dev Space
-        </h2>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-[1400px] w-full mx-auto 
-                      animate-fadeInUp flex-1 content-start">
+      {/* Section header with cutout box */}
+      <motion.div
+        className="mb-[30px] text-center flex-shrink-0 flex flex-col items-center gap-3"
+        initial={{ opacity: 0, y: -20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      >
+        <div className="cutout-box">
+          <span className="cutout-text text-[2.5rem]">
+            dev space.
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Tool cards grid with staggered entrance */}
+      <motion.div
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-[1400px] w-full mx-auto flex-1 content-start"
+        variants={containerVariants}
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, margin: "-100px" }}
+      >
         {tools.map((tool, index) => (
-          <div
+          <motion.div
             key={index}
             onClick={() => handleCardClick(tool)}
             className="cursor-pointer w-full flex justify-center"
+            variants={cardVariants}
+            layout
+            whileHover={{ y: -4 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
             <CardFlip
               icon={tool.icon}
@@ -175,9 +220,9 @@ export function DevSpace({ onToolAction }: DevSpaceProps) {
                 'Feature 4'
               ]}
             />
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
     </div>
   );
 }

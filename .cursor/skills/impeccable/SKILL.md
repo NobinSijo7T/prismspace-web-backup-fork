@@ -19,80 +19,102 @@ You MUST do these steps before proceeding:
 
 ## Design guidance
 
-Produce ready-to-ship, production-grade code, not prototypes or starting points. Take no shortcuts unless the user asks for them (when in doubt, ask). Don't stop until arriving at a complete implementation (beautiful, responsive, fast, precise, bug-free, on brand). You take attention to detail seriously: every page, section or component crafted is battle tested using the tools available to you (browser screenshotting, computer use, etc). the model is capable of extraordinary work. Don't hold back.
+Produce ready-to-ship, production-grade code, not prototypes or starting points. Take no shortcuts unless the user asks for them (when in doubt, ask). Don't stop until arriving at a complete implementation (beautiful, responsive, fast, precise, bug-free, on brand). You take attention to detail seriously: every page, section or component crafted is battle tested using the tools available to you.
 
-### General rules
+The core visual design system for Impeccable is the **PrismSpace High-Voltage Developer OS & Autonomous Swarm Design System** (documented in full specification at [DESIGN.md](DESIGN.md)).
 
-#### Color
+### Core Design System Principles
 
-- **Verify contrast.** Body text must hit ≥4.5:1 against its background; large text (≥18px or bold ≥14px) needs ≥3:1. Placeholder text needs the same 4.5:1, not the muted-gray default. The most common failure: muted gray body text on a tinted near-white. If the contrast is even close, bump the body color toward the ink end of the ramp; light gray "for elegance" is the single biggest reason AI designs feel hard to read.
-- Gray text on a colored background looks washed out. Use a darker shade of the background's own hue, or a transparency of the text color.
+#### Color & Surfaces
+- **Drenched Electric Mint Canvas**: The primary background anchor is saturated electric mint / neon green (`#00df81` / `oklch(0.78 0.22 153.5)`). It delivers unapologetic visual voltage, eliminating generic white or muted-gray SaaS monotony.
+- **Obsidian Hardware Board**: Deep slate obsidian (`#090c12`) creates the foundation for architecture monitors, telemetry boards, and technical consoles.
+- **Solid Black Cutouts & Accents**: Pure `#000000` is used for inverted title cutout boxes, editorial kicker badges, and terminal command pills.
+- **Ink Contrast**: On the electric mint canvas, body prose uses Deep Mint Ink (`#06190e` / `#000000`, font-weight 600) with inline highlight spans backed by `rgba(255, 255, 255, 0.4)`. Contrast exceeds 10:1.
+- **Console Typography**: Pure white (`#ffffff`) for titles, slate (`#cbd5e1`) for technical specifications, muted gray (`#94a3b8`) for uppercase telemetry labels, and electric mint (`#00df81`) for live metrics and prompt characters.
+- **Telemetry Glow**: `rgba(0, 223, 129, 0.25)` neon halos for active layers, pulsing status LEDs, and traveling energy beams.
 
-#### Typography
+#### Typography & Hierarchy
+- **Pairing**: `Space Grotesk` (Google Fonts) for editorial display and body prose + `JetBrains Mono` (Google Fonts) for technical instrumentation, telemetry, code, and system badges.
+- **Display Headings**:
+  - `Space Grotesk`, weight 900, line-height `0.92`, letter-spacing `-0.05em`.
+  - All-lowercase phrasing for bold conversational titles (`you code it.`, `raw prompt in.`, `four models.`).
+- **Signature Cutout Box (`.cutout-box`)**:
+  - Inverted display container: background `#000000`, padding `3px 18px 7px 18px`, radius `4px`, drop shadow `0 10px 25px rgba(0, 0, 0, 0.25)`.
+  - Display text inside: `Space Grotesk` 900, lowercase, `#00df81` text color.
+- **Technical Monospace Hierarchy**:
+  - Section Kickers / Badges: `JetBrains Mono` 800, `11px`, `letter-spacing: 0.08em`, uppercase, black background with mint text.
+  - Architecture Board Header: `JetBrains Mono` 800, `11px`, `letter-spacing: 0.10em`, uppercase, `#00df81`.
+  - Layer Tags: `JetBrains Mono` 800, `9px`, `letter-spacing: 0.08em`, uppercase, `#00df81`.
+  - Layer Specifications: `JetBrains Mono` 500/700, `11px`, line-height `1.35`, `#cbd5e1` with `#00df81` highlights.
+  - Live Metrics: `JetBrains Mono` 700, `12px`, `#00df81` with `9px` uppercase label in `#94a3b8`.
+  - CLI Commands: `JetBrains Mono` 500, `12px`, white text with green prompt char `---
+name: impeccable
+description: Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
+version: 3.9.1
+license: Apache 2.0
+---
 
-- Cap body line length at 65–75ch.
-- Don't pair fonts that are similar but not identical (two geometric sans-serifs, two humanist sans-serifs). Pair on a contrast axis (serif + sans, geometric + humanist) or use one family in multiple weights.
-- Hero / display heading ceiling: clamp() max ≤ 6rem (~96px). Above that the page is shouting, not designing.
-- Display heading letter-spacing floor: ≥ -0.04em. Anything tighter and letters touch; cramped, not "designed".
-- Use `text-wrap: balance` on h1–h3 for even line lengths; `text-wrap: pretty` on long prose to reduce orphans.
+Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
 
-#### Layout
+## Setup
 
-- Vary spacing for rhythm.
-- Cards are the lazy answer. Use them only when they're truly the best affordance. Nested cards are always wrong.
-- Flexbox for 1D, Grid for 2D. Don't default to Grid when `flex-wrap` would be simpler.
-- For responsive grids without breakpoints: `repeat(auto-fit, minmax(280px, 1fr))`.
-- Build a semantic z-index scale (dropdown → sticky → modal-backdrop → modal → toast → tooltip). Never arbitrary values like 999 or 9999.
+You MUST do these steps before proceeding:
 
-#### Motion
-- Motion should be intentional, and not be an afterthought. consider it as part of the build.
-- Don't animate CSS layout properties unless truly needed.
-- Ease out with exponential curves (ease-out-quart / quint / expo). No bounce, no elastic.
-- Use libraries for more advanced motion needs (e.g. motion, gsap, anime.js, lenis etc)
-- Reduced motion is not optional. Every animation needs a `@media (prefers-reduced-motion: reduce)` alternative: typically a crossfade or instant transition.
-- Staggering the items within one list is legitimate. The tell is the uniform reflex (one identical entrance applied to every section), not motion itself; each reveal should fit what it reveals. Suppressing the reflex is never a reason to ship a page with no motion at all.
-- Reveal animations must enhance an already-visible default. Don't gate content visibility on a class-triggered transition; transitions pause on hidden tabs and headless renderers, so the reveal never fires and the section ships blank.
-- Premium motion materials are not just transform/opacity. Blur, backdrop-filter, clip-path, mask, and shadow/glow are part of the palette when they materially improve the effect and stay smooth.
+1. Run `node .cursor/skills/impeccable/scripts/context.mjs` once per session; if the runtime shows this skill's loaded base directory, run `node <skill-base-dir>/scripts/context.mjs` instead. Keep cwd/workdir at the user's project, not the skill directory. If the request names or implies a file, route, or app inside a monorepo, infer the concrete path and append `--target <path>` to the same command. If you've already seen its output in this conversation, do not re-run it. The script either prints the project's PRODUCT.md (and DESIGN.md when present) as a markdown block, or tells you it's missing. Follow whatever it prints. **If it reports `NO_PRODUCT_MD`:** divert into `reference/init.md` first when the user invoked `init`, `teach`, `craft`, or `shape`, or when their wording clearly maps to one of those from-scratch build flows (for example: "build/create/make a landing page", "design a new app", or "shape a feature"). Captured product context is the point of those flows. For any other command, a scoped evaluate / refine / enhance / fix / iterate request against existing code, do **not** divert into init. The existing code is the context: proceed with the requested command, infer the register from the surface in focus (step 4), and offer `/impeccable init` once as a suggestion the user can take later. A missing PRODUCT.md must never block a scoped request. If the output ends with an `UPDATE_AVAILABLE` directive, follow it (ask the user once about updating, then continue). It never blocks the current task.
+2. If the user invoked a sub-command (`craft`, `shape`, `audit`, `polish`, ...), you MUST read `reference/<command>.md` next. Non-optional. The reference defines the command's flow; without it you will skip steps the user expects.
+3. Familiarize yourself with any existing design system, conventions, and components in the code. Read at least one project file (CSS / tokens / theme / a representative component or page). **Required even when you've loaded a sub-command reference in step 2.** Don't reinvent the wheel; use what's there when it works, branch out when the UX wins.
+4. Read the matching register reference. **This is non-optional; skipping it produces generic output.** If the project is marketing, a landing page, a campaign, long-form content, or a portfolio (design IS the product), read `reference/brand.md`. If it is app UI, admin, a dashboard, or a tool (design SERVES the product), read `reference/product.md`. Pick by first match: (1) task cue ("landing page" vs "dashboard"); (2) surface in focus (the page, file, or route being worked on); (3) `register` field in PRODUCT.md.
+5. **If the project is brand-new (no existing CSS tokens / theme / committed brand colors found in step 3)**, run `node .cursor/skills/impeccable/scripts/palette.mjs` to receive a brand seed color and composition guidance. This is the anchor for your primary brand color. Compose the rest of the palette (bg, surface, ink, accent, muted) around it per the script's instructions. Use OKLCH throughout. **Skip this step only if step 3 found committed brand colors in existing tokens; in that case identity-preservation wins.**
 
-#### Interaction
+.
 
-- Dropdowns rendered with `position: absolute` inside an `overflow: hidden` or `overflow: auto` container will be clipped. Use the native `<dialog>` / popover API, `position: fixed`, or a portal to escape the stacking context.
+#### Layout & Staging
+- **Asymmetric Split Canvas**:
+  - **Editorial Column** (left, e.g. ~460px): Monospace kicker badge -> Punchy lowercase grotesque headline -> Inverted black cutout box -> Explanatory paragraph with highlight tags -> Terminal command pill at bottom.
+  - **Architecture Telemetry Board** (right, e.g. ~730px): Deep obsidian slate card (`#090c12`, 20px radius, dual borders) displaying multi-layer processing pipelines with live metrics and real-time execution states.
+- **Precision Hardware Micro-Grid**: 24px x 24px grid overlay built from `linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px)` gives tactile hardware texture to console surfaces.
+- **Connected Flow Rail**: Vertical data rail (`rgba(255, 255, 255, 0.08)`) with glowing traveling gradient energy beam (`.flow-beam`) connecting pipeline layers.
 
-### New projects only (when no prior work exists)
+#### Motion & Micro-Interactions
+- **Live Status Pulse (`status-dot-pulse`)**: 1.4s infinite pulsing emerald beacon with scale and opacity respiration.
+- **Flow Beam Animation**: Traveling gradient light packet down the vertical flow rail.
+- **Layer State Transitions**: Hover and active transitions using crisp exponential curves (`cubic-bezier(0.16, 1, 0.3, 1)`), illuminating active rows with an emerald halo (`0 0 20px rgba(0, 223, 129, 0.25)`).
+- **Reduced Motion**: Provide instant transition and non-animating glowing indicator fallbacks under `@media (prefers-reduced-motion: reduce)`.
 
-#### Color & Theme
+### Component Vocabulary
+1. **Cutout Display Box (`.cutout-box`)**: High-impact black highlight box for lowercase display titles.
+2. **Editorial Monospace Badge (`.editorial-badge`)**: High-contrast black pill with mint text for phase and category labels.
+3. **Terminal Command Pill (`.terminal-pill`)**: CLI invocation capsule with green prompt (`---
+name: impeccable
+description: Use when the user wants to design, redesign, shape, critique, audit, polish, clarify, distill, harden, optimize, adapt, animate, colorize, extract, or otherwise improve a frontend interface. Covers websites, landing pages, dashboards, product UI, app shells, components, forms, settings, onboarding, and empty states. Handles UX review, visual hierarchy, information architecture, cognitive load, accessibility, performance, responsive behavior, theming, anti-patterns, typography, fonts, spacing, layout, alignment, color, motion, micro-interactions, UX copy, error states, edge cases, i18n, and reusable design systems or tokens. Also use for bland designs that need to become bolder or more delightful, loud designs that should become quieter, live browser iteration on UI elements, or ambitious visual effects that should feel technically extraordinary. Not for backend-only or non-UI tasks.
+version: 3.9.1
+license: Apache 2.0
+---
 
-- Use OKLCH.
-- **The cream / sand / beige body bg is the saturated AI default of 2026.** The whole warm-neutral band (OKLCH L 0.84-0.97, C < 0.06, hue 40-100) reads as cream/sand/paper/parchment regardless of what you call it. Token names like `--paper`, `--cream`, `--sand`, `--bone`, `--flour`, `--linen`, `--parchment`, `--wheat`, `--biscuit`, `--ivory` are tells in themselves. If the brief is "warm, traditional, family-coastal-Italian" or "magazine-warm" or "editorial-restraint", DO NOT translate that into a near-white warm-tinted bg; that's the AI move. Pick: (a) a saturated brand color as the body (terracotta, oxblood, deep ochre, near-black), (b) a true off-white at chroma 0 (or chroma toward the brand's own hue, not toward warmth-by-default), or (c) a darker mid-tone tinted neutral that's clearly the brand's own. "Warmth" in the brand is carried by accent + typography + imagery, not by body bg.
-- Tinted neutrals: add 0.005–0.015 chroma toward the brand's hue. Don't default-tint toward warm or cool "because the brand feels that way"; that's the cross-project monoculture move.
-- When picking a theme: Dark vs. light is never a default. Not dark "because tools look cool dark." Not light "to be safe.".Before choosing, write one sentence of physical scene: who uses this, where, under what ambient light, in what mood. If the sentence doesn't force the answer, it's not concrete enough. Add detail until it does.
-- Pick a **color strategy** before picking colors. Four steps on the commitment axis:
-  - **Restrained**: tinted neutrals + one accent ≤10%. Product default; brand minimalism.
-  - **Committed**: one saturated color carries 30–60% of the surface. Brand default for identity-driven pages.
-  - **Full palette**: 3–4 named roles, each used deliberately. Brand campaigns; product data viz.
-  - **Drenched**: the surface IS the color. Brand heroes, campaign pages.
+Designs and iterates production-grade frontend interfaces. Real working code, committed design choices, exceptional craft.
 
-### Absolute bans
+## Setup
 
-Match-and-refuse. If you're about to write any of these, rewrite the element with different structure.
+You MUST do these steps before proceeding:
 
-- **Side-stripe borders.** `border-left` or `border-right` greater than 1px as a colored accent on cards, list items, callouts, or alerts. Never intentional. Rewrite with full borders, background tints, leading numbers/icons, or nothing.
-- **Gradient text.** `background-clip: text` combined with a gradient background. Decorative, never meaningful. Use a single solid color. Emphasis via weight or size.
-- **Glassmorphism as default.** Blurs and glass cards used decoratively. Rare and purposeful, or nothing.
-- **The hero-metric template.** Big number, small label, supporting stats, gradient accent. SaaS cliché.
-- **Identical card grids.** Same-sized cards with icon + heading + text, repeated endlessly.
-- **Tiny uppercase tracked eyebrow above every section.** The 2023-era kicker (small all-caps text with wide tracking, "ABOUT" "PROCESS" "PRICING" above each heading) is now the saturated AI scaffold; it appears on 55-95% of generations regardless of brief, which is the definition of a tell. One named kicker as a deliberate brand system is voice; an eyebrow on every section is AI grammar. Choose a different cadence.
-- **Numbered section markers as default scaffolding (01 / 02 / 03).** Putting `01 · About / 02 · Process / 03 · Pricing` above every section is the eyebrow trope one tier deeper: reach for it because "landing pages do this" and you're scaffolding by reflex. Numbers earn their place when the section actually IS a sequence (a real 3-step process, an ordered flow, a typed timeline) and the order carries information the reader needs. One deliberate numbered sequence on one page is voice; numbered eyebrows on every section across the site is AI grammar.
-- **Text that overflows its container.** Long heading words plus large clamp scales plus narrow grids cause headline overflow on tablet/mobile. Test the heading copy at every breakpoint; if it overflows, reduce the clamp max or rewrite the copy. The viewport is part of the design.
+1. Run `node .cursor/skills/impeccable/scripts/context.mjs` once per session; if the runtime shows this skill's loaded base directory, run `node <skill-base-dir>/scripts/context.mjs` instead. Keep cwd/workdir at the user's project, not the skill directory. If the request names or implies a file, route, or app inside a monorepo, infer the concrete path and append `--target <path>` to the same command. If you've already seen its output in this conversation, do not re-run it. The script either prints the project's PRODUCT.md (and DESIGN.md when present) as a markdown block, or tells you it's missing. Follow whatever it prints. **If it reports `NO_PRODUCT_MD`:** divert into `reference/init.md` first when the user invoked `init`, `teach`, `craft`, or `shape`, or when their wording clearly maps to one of those from-scratch build flows (for example: "build/create/make a landing page", "design a new app", or "shape a feature"). Captured product context is the point of those flows. For any other command, a scoped evaluate / refine / enhance / fix / iterate request against existing code, do **not** divert into init. The existing code is the context: proceed with the requested command, infer the register from the surface in focus (step 4), and offer `/impeccable init` once as a suggestion the user can take later. A missing PRODUCT.md must never block a scoped request. If the output ends with an `UPDATE_AVAILABLE` directive, follow it (ask the user once about updating, then continue). It never blocks the current task.
+2. If the user invoked a sub-command (`craft`, `shape`, `audit`, `polish`, ...), you MUST read `reference/<command>.md` next. Non-optional. The reference defines the command's flow; without it you will skip steps the user expects.
+3. Familiarize yourself with any existing design system, conventions, and components in the code. Read at least one project file (CSS / tokens / theme / a representative component or page). **Required even when you've loaded a sub-command reference in step 2.** Don't reinvent the wheel; use what's there when it works, branch out when the UX wins.
+4. Read the matching register reference. **This is non-optional; skipping it produces generic output.** If the project is marketing, a landing page, a campaign, long-form content, or a portfolio (design IS the product), read `reference/brand.md`. If it is app UI, admin, a dashboard, or a tool (design SERVES the product), read `reference/product.md`. Pick by first match: (1) task cue ("landing page" vs "dashboard"); (2) surface in focus (the page, file, or route being worked on); (3) `register` field in PRODUCT.md.
+5. **If the project is brand-new (no existing CSS tokens / theme / committed brand colors found in step 3)**, run `node .cursor/skills/impeccable/scripts/palette.mjs` to receive a brand seed color and composition guidance. This is the anchor for your primary brand color. Compose the rest of the palette (bg, surface, ink, accent, muted) around it per the script's instructions. Use OKLCH throughout. **Skip this step only if step 3 found committed brand colors in existing tokens; in that case identity-preservation wins.**
 
-### The AI slop test
+), code string, and translucent copy button.
+4. **Architecture Telemetry Board (`.architecture-board`)**: 20px-radius obsidian hardware chassis with micro-grid overlay and live status radar badge.
+5. **3-Column Layer Row (`.layer-row`)**: Structured data card with layer identity, technical specs, and right-aligned metrics.
+6. **Flow Rail & Energy Beam (`.flow-rail`, `.flow-beam`)**: Vertical telemetry conduit with traveling photon beam.
+7. **Live Status Radar Badge (`.live-status-badge`)**: Pill badge with pulsing emerald dot and active status text.
+8. **Floating HUD Capsule (`.subtitle-overlay`)**: Floating black glass capsule with emerald border and CC status pill.
 
-If someone could look at this interface and say "AI made that" without doubt, it's failed. Cross-register failures are the absolute bans above. Register-specific failures live in each reference.
-
-**Category-reflex check.** Run at two altitudes; the second one catches what the first one misses.
-
-- **First-order:** if someone could guess the theme + palette from the category alone, it's the first training-data reflex. Rework the scene sentence and color strategy until the answer isn't obvious from the domain.
-- **Second-order:** if someone could guess the aesthetic family from category-plus-anti-references ("AI workflow tool that's not SaaS-cream → editorial-typographic", "fintech that's not navy-and-gold → terminal-native dark mode"), it's the trap one tier deeper. The first reflex was avoided; the second wasn't. Rework until both answers are not obvious. The brand register's [reflex-reject aesthetic lanes](reference/brand.md) list catches the currently-saturated families.
+### Absolute Quality Standards
+- **Contrast**: Body text on mint canvas must hit ≥10:1 (`#06190e` or `#000000`). Console text must maintain ≥4.5:1 against `#090c12`.
+- **Typographic Discipline**: Keep letter-spacing at `-0.05em` for large lowercase Space Grotesk display headings; never apply negative tracking to small body text or monospace code.
+- **No Generic AI Slop**: Refuse desaturated pastel cards, generic warm-cream paper backgrounds, and cookie-cutter SaaS layouts.
+- **No Broken Layouts**: Responsive grids with graceful wrapping; test that large display headers do not overflow narrow containers.
 
 ## Commands
 

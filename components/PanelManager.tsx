@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { NotepadPanel } from './tools/NotepadPanel';
 import { ColorGenerator } from './tools/ColorGenerator';
 import { WebScraperTool } from './tools/WebScraperTool';
@@ -119,6 +120,37 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
   },
 };
 
+// Animation variants for panel positions
+const panelVariants = {
+  left: {
+    initial: { x: '-100%', opacity: 0.8 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '-100%', opacity: 0 },
+  },
+  right: {
+    initial: { x: '100%', opacity: 0.8 },
+    animate: { x: 0, opacity: 1 },
+    exit: { x: '100%', opacity: 0 },
+  },
+  full: {
+    initial: { scale: 0.92, opacity: 0 },
+    animate: { scale: 1, opacity: 1 },
+    exit: { scale: 0.95, opacity: 0 },
+  },
+};
+
+const springTransition = {
+  type: 'spring' as const,
+  stiffness: 300,
+  damping: 30,
+  mass: 0.8,
+};
+
+const exitTransition = {
+  duration: 0.22,
+  ease: [0.4, 0, 1, 1] as [number, number, number, number],
+};
+
 interface PanelManagerProps {
   activePanel: PanelType | null;
   onClose: () => void;
@@ -139,70 +171,121 @@ export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
     return () => window.removeEventListener('prism:devtools-opacity-change', loadOpacity);
   }, []);
 
-  if (!activePanel) return null;
+  const config = activePanel ? panelConfigs[activePanel] : null;
 
-  const config = panelConfigs[activePanel];
-  const Component = config.component;
-
-  const positionClasses = {
+  const positionClasses: Record<string, string> = {
     left: 'left-0',
     right: 'right-0',
     full: 'inset-0',
   };
 
-  const animationClasses = {
-    left: activePanel ? 'translate-x-0' : '-translate-x-full',
-    right: activePanel ? 'translate-x-0' : 'translate-x-full',
-    full: activePanel ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
-  };
-
   return (
-    <>
-      {/* Overlay */}
-      <div
-        className="fixed inset-0 z-[1000] transition-all duration-300"
-        style={{
-          backgroundColor: `rgba(0, 0, 0, ${0.5 * (opacity / 100)})`,
-          backdropFilter: opacity < 100 ? `blur(${Math.round(4 * (opacity / 100))}px)` : undefined,
-        }}
-        onClick={onClose}
-      />
+    <AnimatePresence mode="wait">
+      {activePanel && config && (() => {
+        const Component = config.component;
+        const variants = panelVariants[config.position];
 
-      {/* Panel */}
-      <div
-        className={`fixed top-0 h-screen border-white/15 z-[1001] 
-                    shadow-[4px_0_30px_rgba(0,0,0,0.8)] transition-all duration-300
-                    ${positionClasses[config.position]}
-                    ${animationClasses[config.position]}
-                    ${config.position === 'left' ? 'border-r' : ''}
-                    ${config.position === 'right' ? 'border-l' : ''}
-                    ${config.position === 'full' ? 'border' : ''}`}
-        style={{
-          width: config.position === 'full' ? '100%' : config.width,
-          maxWidth: config.position === 'full' ? '90vw' : undefined,
-          overflowX: 'hidden',
-          backgroundColor: `rgba(10, 10, 10, ${opacity / 100})`,
-          backdropFilter: `blur(${Math.round(16 * (opacity / 100))}px)`,
-          opacity: Math.max(0.1, opacity / 100),
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {Component ? (
-          <Component onClose={onClose} />
-        ) : config.iframeSrc ? (
-          <iframe
-            src={config.iframeSrc}
-            className="w-full h-full border-0 block"
-            title={config.title}
-          />
-        ) : (
-          <div className="p-8 text-white">
-            <h2 className="text-2xl font-semibold mb-4">{config.title}</h2>
-            <p className="text-white/60">Loading...</p>
-          </div>
-        )}
-      </div>
-    </>
+        return (
+          <>
+            {/* Overlay with mint tint */}
+            <motion.div
+              key="panel-overlay"
+              className="fixed inset-0 z-[1000]"
+              style={{
+                backgroundColor: `rgba(0, 0, 0, ${0.6 * (opacity / 100)})`,
+                backdropFilter: `blur(${Math.round(8 * (opacity / 100))}px)`,
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              onClick={onClose}
+            />
+
+            {/* Panel */}
+            <motion.div
+              key={`panel-${activePanel}`}
+              className={`fixed top-0 h-screen z-[1001] ${positionClasses[config.position]}
+                         ${config.position === 'left' ? 'border-r' : ''}
+                         ${config.position === 'right' ? 'border-l' : ''}
+                         ${config.position === 'full' ? '' : ''}`}
+              style={{
+                width: config.position === 'full' ? '100%' : config.width,
+                maxWidth: config.position === 'full' ? '90vw' : undefined,
+                overflowX: 'hidden',
+                background: `rgba(9, 12, 18, ${opacity / 100})`,
+                backdropFilter: `blur(${Math.round(20 * (opacity / 100))}px) saturate(1.4)`,
+                WebkitBackdropFilter: `blur(${Math.round(20 * (opacity / 100))}px) saturate(1.4)`,
+                opacity: Math.max(0.1, opacity / 100),
+                borderColor: 'rgba(255, 255, 255, 0.06)',
+                boxShadow: '0 0 80px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.04)',
+              }}
+              initial={variants.initial}
+              animate={variants.animate}
+              exit={variants.exit}
+              transition={springTransition}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Panel header with editorial badge */}
+              <div
+                className="flex items-center justify-between px-6 py-4"
+                style={{
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="editorial-badge">
+                    {config.title.toUpperCase()}
+                  </div>
+                  <div className="live-status-badge">
+                    <div className="status-dot-pulse" />
+                    <span>ACTIVE</span>
+                  </div>
+                </div>
+                <motion.button
+                  onClick={onClose}
+                  className="flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.04)',
+                    border: '1px solid rgba(255, 255, 255, 0.06)',
+                    color: '#94a3b8',
+                  }}
+                  whileHover={{
+                    backgroundColor: 'rgba(0, 223, 129, 0.1)',
+                    borderColor: 'rgba(0, 223, 129, 0.3)',
+                    color: '#00df81',
+                  }}
+                  whileTap={{ scale: 0.93 }}
+                >
+                  <svg viewBox="0 0 14 14" width="14" height="14" fill="none">
+                    <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                </motion.button>
+              </div>
+
+              {/* Panel content */}
+              <div className="h-[calc(100%-57px)] overflow-auto">
+                {Component ? (
+                  <Component onClose={onClose} />
+                ) : config.iframeSrc ? (
+                  <iframe
+                    src={config.iframeSrc}
+                    className="w-full h-full border-0 block"
+                    title={config.title}
+                  />
+                ) : (
+                  <div className="p-8">
+                    <h2 className="text-2xl font-sans font-[700] text-white mb-4 tracking-[-0.02em]">{config.title}</h2>
+                    <p className="font-mono text-[12px]" style={{ color: '#94a3b8' }}>Loading...</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        );
+      })()}
+    </AnimatePresence>
   );
 }
 
