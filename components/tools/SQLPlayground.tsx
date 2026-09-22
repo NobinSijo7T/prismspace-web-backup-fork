@@ -535,13 +535,8 @@ export function SQLPlayground({ onClose }: SQLPlaygroundProps) {
           </div>
 
           <div className="sql-title-group">
-            <span className="sql-title-main"><span className="sql-title-word">SQL</span> <span className="sql-title-accent">Playground</span></span>
             <div className="sql-badge-group">
               <span className="sql-tag-sqlite">SQLite {sqliteVersion || 'WASM'}</span>
-              <span className="sql-tag-status">
-                <span className="sql-mini-dot" />
-                <span className="sql-tag-status-text">IN-MEMORY</span>
-              </span>
             </div>
           </div>
         </div>

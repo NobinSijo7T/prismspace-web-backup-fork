@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Note {
   id: number;
@@ -80,6 +81,7 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
   const [saved, setSaved] = useState(true);
+  const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Load from localStorage
@@ -196,23 +198,68 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
-        background: 'linear-gradient(160deg, #0d0d0f 0%, #0a0a0c 100%)',
+        background: '#090c12',
         color: '#fff',
         fontFamily: "'Space Grotesk', system-ui, sans-serif",
         position: 'relative',
         overflow: 'hidden',
       }}
     >
-      {/* Top accent line */}
+      <style>{`
+        @keyframes notepad-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.7; transform: scale(0.95); }
+        }
+
+        @keyframes notepad-glow-pulse {
+          0%, 100% { box-shadow: 0 0 6px rgba(0, 223, 129, 0.4); }
+          50% { box-shadow: 0 0 12px rgba(0, 223, 129, 0.7); }
+        }
+
+        .notepad-textarea::placeholder {
+          color: rgba(255, 255, 255, 0.15);
+          letter-spacing: 0.01em;
+        }
+
+        .notepad-textarea::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .notepad-textarea::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .notepad-textarea::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.08);
+          border-radius: 4px;
+        }
+
+        .notepad-textarea::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 223, 129, 0.2);
+        }
+
+        .notepad-btn {
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .notepad-btn:active {
+          transform: scale(0.96);
+        }
+
+        .notepad-tab {
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+      `}</style>
+
+      {/* Top electric mint energy rail */}
       <div
         style={{
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: '2px',
-          background: 'linear-gradient(90deg, transparent 0%, #00ff88 40%, #00ccff 100%)',
-          opacity: 0.9,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent 0%, rgba(0, 223, 129, 0.4) 50%, transparent 100%)',
           zIndex: 10,
         }}
       />
@@ -223,80 +270,118 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          padding: '18px 20px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.07)',
+          padding: '16px 20px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+          background: 'rgba(0, 0, 0, 0.2)',
         }}
       >
-        {/* Left: icon + title */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Prism-green notepad glyph */}
+        {/* Left: Title group */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Notepad icon with glow */}
           <div
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'rgba(0,255,136,0.1)',
-              border: '1px solid rgba(0,255,136,0.25)',
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: 'rgba(0, 223, 129, 0.08)',
+              border: '1px solid rgba(0, 223, 129, 0.2)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
+              position: 'relative',
             }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00ff88" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#00df81" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
               <polyline points="14 2 14 8 20 8"/>
               <line x1="16" y1="13" x2="8" y2="13"/>
               <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
             </svg>
+            {/* Status pulse dot */}
+            <div
+              style={{
+                position: 'absolute',
+                top: -2,
+                right: -2,
+                width: 6,
+                height: 6,
+                borderRadius: '50%',
+                background: '#00df81',
+                animation: saved ? 'notepad-glow-pulse 2s infinite ease-in-out' : 'none',
+              }}
+            />
           </div>
+
+          {/* Title and subtitle */}
           <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: '#fff', letterSpacing: '-0.01em' }}>
+            <div style={{ 
+              fontSize: 15, 
+              fontWeight: 700, 
+              color: '#ffffff',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2,
+            }}>
               Notepad
             </div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              PrismSpace
+            <div style={{ 
+              fontSize: 10, 
+              color: 'rgba(0, 223, 129, 0.5)', 
+              letterSpacing: '0.10em',
+              textTransform: 'uppercase',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 600,
+              marginTop: 2,
+            }}>
+              Writing Console
             </div>
           </div>
         </div>
 
-        {/* Right: stats + actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          {/* Word / char stats */}
-          <div
-            style={{
-              display: 'flex',
-              gap: 10,
-              fontSize: 11,
-              color: 'rgba(255,255,255,0.4)',
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 8,
-              padding: '5px 10px',
-              letterSpacing: '0.01em',
-            }}
-          >
-            <span>
-              <span style={{ color: '#00ff88', fontWeight: 600 }}>{wordCount}</span>{' '}
-              <span>words</span>
-            </span>
-            <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
-            <span>
-              <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>{charCount}</span>{' '}
-              <span>chars</span>
-            </span>
-          </div>
-
-          {/* Auto-save indicator */}
+        {/* Right: Stats + Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Stats panel */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
+              gap: 12,
+              padding: '6px 12px',
+              borderRadius: 8,
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px solid rgba(255, 255, 255, 0.05)',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: 11,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: '#00df81', fontWeight: 700 }}>{wordCount}</span>
+              <span style={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 10 }}>words</span>
+            </div>
+            <div style={{ width: 1, height: 12, background: 'rgba(255, 255, 255, 0.08)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ color: 'rgba(255, 255, 255, 0.6)', fontWeight: 700 }}>{charCount}</span>
+              <span style={{ color: 'rgba(255, 255, 255, 0.3)', fontSize: 10 }}>chars</span>
+            </div>
+          </div>
+
+          {/* Save status */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
               gap: 5,
+              padding: '6px 10px',
+              borderRadius: 7,
+              background: saved ? 'rgba(0, 223, 129, 0.06)' : 'rgba(255, 255, 255, 0.02)',
+              border: `1px solid ${saved ? 'rgba(0, 223, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)'}`,
               fontSize: 10,
-              color: saved ? '#00ff88' : 'rgba(255,255,255,0.3)',
-              transition: 'color 0.4s ease',
+              fontFamily: "'JetBrains Mono', monospace",
+              fontWeight: 600,
+              color: saved ? '#00df81' : 'rgba(255, 255, 255, 0.3)',
+              letterSpacing: '0.05em',
             }}
           >
             <div
@@ -304,73 +389,72 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
                 width: 5,
                 height: 5,
                 borderRadius: '50%',
-                background: saved ? '#00ff88' : 'rgba(255,255,255,0.25)',
-                transition: 'background 0.4s ease',
-                boxShadow: saved ? '0 0 6px #00ff88' : 'none',
+                background: saved ? '#00df81' : 'rgba(255, 255, 255, 0.2)',
+                animation: saved ? 'none' : 'notepad-pulse 1.2s infinite',
               }}
             />
-            {saved ? 'Saved' : 'Saving…'}
-          </div>
+            {saved ? 'SAVED' : 'SAVING'}
+          </motion.div>
 
-          {/* Download */}
+          {/* Download button */}
           <button
             onClick={downloadNote}
             title="Download note"
+            className="notepad-btn"
             style={{
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               borderRadius: 8,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: 'rgba(255,255,255,0.6)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              color: 'rgba(255, 255, 255, 0.5)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,255,136,0.12)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,255,136,0.3)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#00ff88';
+              e.currentTarget.style.background = 'rgba(0, 223, 129, 0.1)';
+              e.currentTarget.style.borderColor = 'rgba(0, 223, 129, 0.3)';
+              e.currentTarget.style.color = '#00df81';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.6)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
             }}
           >
             <DownloadIcon />
           </button>
 
-          {/* Close */}
+          {/* Close button */}
           <button
             onClick={onClose}
-            title="Close"
+            title="Close notepad"
+            className="notepad-btn"
             style={{
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               borderRadius: 8,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: 'rgba(255,255,255,0.5)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              color: 'rgba(255, 255, 255, 0.4)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              transition: 'all 0.2s ease',
               flexShrink: 0,
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,80,80,0.15)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,80,80,0.35)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#ff6b6b';
+              e.currentTarget.style.background = 'rgba(255, 60, 60, 0.12)';
+              e.currentTarget.style.borderColor = 'rgba(255, 60, 60, 0.3)';
+              e.currentTarget.style.color = '#ff6b6b';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.1)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.4)';
             }}
           >
             <CloseIcon />
@@ -383,12 +467,13 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          padding: '8px 20px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
-          background: 'rgba(255,255,255,0.015)',
+          gap: 6,
+          padding: '10px 20px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
+          background: 'rgba(0, 0, 0, 0.15)',
         }}
       >
+        {/* Format buttons */}
         {(
           [
             { key: 'bold', label: 'Bold', icon: <BoldIcon /> },
@@ -401,32 +486,33 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
             key={key}
             onClick={() => formatText(key)}
             title={label}
+            className="notepad-btn"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 6,
-              height: 30,
-              padding: '0 10px',
+              gap: 7,
+              height: 32,
+              padding: '0 11px',
               borderRadius: 7,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              color: 'rgba(255,255,255,0.55)',
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.06)',
+              color: 'rgba(255, 255, 255, 0.5)',
               fontSize: 11,
-              fontWeight: 500,
+              fontWeight: 600,
               cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              fontFamily: 'inherit',
+              fontFamily: "'Space Grotesk', sans-serif",
+              letterSpacing: '-0.01em',
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,255,136,0.1)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(0,255,136,0.25)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#00ff88';
+              e.currentTarget.style.background = 'rgba(0, 223, 129, 0.08)';
+              e.currentTarget.style.borderColor = 'rgba(0, 223, 129, 0.25)';
+              e.currentTarget.style.color = '#00df81';
             }}
             onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.05)';
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.08)';
-              (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.55)';
+              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
             }}
           >
             {icon}
@@ -434,13 +520,20 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
           </button>
         ))}
 
-        {/* Separator */}
         <div style={{ flex: 1 }} />
 
-        {/* Character limit hint */}
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: '0.04em' }}>
-          Markdown supported
-        </span>
+        {/* Markdown hint */}
+        <div
+          style={{
+            fontSize: 10,
+            fontFamily: "'JetBrains Mono', monospace",
+            color: 'rgba(0, 223, 129, 0.3)',
+            letterSpacing: '0.04em',
+            fontWeight: 500,
+          }}
+        >
+          MARKDOWN SUPPORTED
+        </div>
       </div>
 
       {/* ── Tabs ── */}
@@ -448,135 +541,139 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 4,
-          padding: '8px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          gap: 6,
+          padding: '10px 18px',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.04)',
           overflowX: 'auto',
           scrollbarWidth: 'none',
+          background: 'rgba(0, 0, 0, 0.1)',
         }}
       >
-        {notes.map((note, idx) => {
-          const isActive = idx === currentTab;
-          return (
-            <button
-              key={note.id}
-              onClick={() => switchTab(idx)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '5px 12px',
-                borderRadius: 7,
-                border: isActive
-                  ? '1px solid rgba(0,255,136,0.3)'
-                  : '1px solid rgba(255,255,255,0.07)',
-                background: isActive
-                  ? 'rgba(0,255,136,0.08)'
-                  : 'rgba(255,255,255,0.03)',
-                color: isActive ? '#00ff88' : 'rgba(255,255,255,0.55)',
-                fontSize: 12,
-                fontWeight: isActive ? 600 : 400,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease',
-                fontFamily: 'inherit',
-                flexShrink: 0,
-                letterSpacing: '-0.01em',
-              }}
-              onMouseEnter={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(255,255,255,0.06)';
-                  (e.currentTarget as HTMLButtonElement).style.color =
-                    'rgba(255,255,255,0.8)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isActive) {
-                  (e.currentTarget as HTMLButtonElement).style.background =
-                    'rgba(255,255,255,0.03)';
-                  (e.currentTarget as HTMLButtonElement).style.color =
-                    'rgba(255,255,255,0.55)';
-                }
-              }}
-            >
-              {/* Active dot */}
-              {isActive && (
-                <span
-                  style={{
-                    width: 5,
-                    height: 5,
-                    borderRadius: '50%',
-                    background: '#00ff88',
-                    boxShadow: '0 0 6px #00ff88',
-                    flexShrink: 0,
-                  }}
-                />
-              )}
-              <span>{note.title}</span>
-              {notes.length > 1 && (
-                <span
-                  role="button"
-                  onClick={(e) => deleteTab(idx, e)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: 14,
-                    height: 14,
-                    borderRadius: '50%',
-                    color: 'rgba(255,255,255,0.3)',
-                    cursor: 'pointer',
-                    transition: 'color 0.15s ease',
-                    marginLeft: 2,
-                  }}
-                  onMouseEnter={(e) =>
-                    ((e.currentTarget as HTMLSpanElement).style.color = '#ff6b6b')
+        <AnimatePresence mode="popLayout">
+          {notes.map((note, idx) => {
+            const isActive = idx === currentTab;
+            return (
+              <motion.button
+                key={note.id}
+                layout
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                onClick={() => switchTab(idx)}
+                className="notepad-tab"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 7,
+                  padding: '7px 13px',
+                  borderRadius: 8,
+                  border: isActive
+                    ? '1px solid rgba(0, 223, 129, 0.25)'
+                    : '1px solid rgba(255, 255, 255, 0.06)',
+                  background: isActive
+                    ? 'rgba(0, 223, 129, 0.08)'
+                    : 'rgba(255, 255, 255, 0.02)',
+                  color: isActive ? '#00df81' : 'rgba(255, 255, 255, 0.45)',
+                  fontSize: 12,
+                  fontWeight: isActive ? 700 : 500,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  flexShrink: 0,
+                  letterSpacing: '-0.01em',
+                  position: 'relative',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
                   }
-                  onMouseLeave={(e) =>
-                    ((e.currentTarget as HTMLSpanElement).style.color =
-                      'rgba(255,255,255,0.3)')
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+                    e.currentTarget.style.color = 'rgba(255, 255, 255, 0.45)';
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
                   }
-                >
-                  <CloseIcon />
-                </span>
-              )}
-            </button>
-          );
-        })}
+                }}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabIndicator"
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: 8,
+                      background: 'rgba(0, 223, 129, 0.08)',
+                      border: '1px solid rgba(0, 223, 129, 0.25)',
+                      zIndex: -1,
+                    }}
+                    transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  />
+                )}
+                <span>{note.title}</span>
+                {notes.length > 1 && (
+                  <span
+                    role="button"
+                    onClick={(e) => deleteTab(idx, e)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: 16,
+                      height: 16,
+                      borderRadius: '50%',
+                      color: 'rgba(255, 255, 255, 0.25)',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
+                      marginLeft: 2,
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.color = '#ff6b6b';
+                      e.currentTarget.style.background = 'rgba(255, 60, 60, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.color = 'rgba(255, 255, 255, 0.25)';
+                      e.currentTarget.style.background = 'transparent';
+                    }}
+                  >
+                    <CloseIcon />
+                  </span>
+                )}
+              </motion.button>
+            );
+          })}
+        </AnimatePresence>
 
-        {/* Add tab */}
+        {/* Add new tab */}
         <button
           onClick={addNewTab}
           title="New note"
+          className="notepad-btn"
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 7,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
-            color: 'rgba(255,255,255,0.4)',
+            width: 32,
+            height: 32,
+            borderRadius: 8,
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            color: 'rgba(255, 255, 255, 0.35)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
-            transition: 'all 0.2s ease',
             flexShrink: 0,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              'rgba(0,255,136,0.1)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor =
-              'rgba(0,255,136,0.3)';
-            (e.currentTarget as HTMLButtonElement).style.color = '#00ff88';
+            e.currentTarget.style.background = 'rgba(0, 223, 129, 0.1)';
+            e.currentTarget.style.borderColor = 'rgba(0, 223, 129, 0.3)';
+            e.currentTarget.style.color = '#00df81';
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background =
-              'rgba(255,255,255,0.04)';
-            (e.currentTarget as HTMLButtonElement).style.borderColor =
-              'rgba(255,255,255,0.08)';
-            (e.currentTarget as HTMLButtonElement).style.color =
-              'rgba(255,255,255,0.4)';
+            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
+            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.35)';
           }}
         >
           <PlusIcon />
@@ -589,57 +686,70 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          padding: '20px',
-          gap: 0,
+          padding: '18px',
           overflow: 'hidden',
         }}
       >
-        <textarea
-          ref={textareaRef}
-          id="noteEditor"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Start writing…"
+        <motion.div
+          animate={{
+            boxShadow: isFocused 
+              ? '0 0 0 1px rgba(0, 223, 129, 0.2), 0 8px 32px rgba(0, 0, 0, 0.4)'
+              : '0 0 0 1px rgba(255, 255, 255, 0.05), 0 4px 16px rgba(0, 0, 0, 0.2)',
+          }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           style={{
             flex: 1,
-            width: '100%',
-            background: 'rgba(255,255,255,0.025)',
-            border: '1px solid rgba(255,255,255,0.07)',
+            display: 'flex',
             borderRadius: 12,
-            padding: '20px 22px',
-            color: 'rgba(255,255,255,0.88)',
-            fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-            fontSize: 14,
-            lineHeight: 1.75,
-            resize: 'none',
-            outline: 'none',
-            caretColor: '#00ff88',
-            transition: 'border-color 0.2s ease, background 0.2s ease',
-            scrollbarWidth: 'thin',
-            scrollbarColor: 'rgba(255,255,255,0.1) transparent',
+            overflow: 'hidden',
+            background: 'rgba(0, 0, 0, 0.3)',
           }}
-          onFocus={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(0,255,136,0.2)';
-            e.currentTarget.style.background = 'rgba(255,255,255,0.035)';
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.borderColor = 'rgba(255,255,255,0.07)';
-            e.currentTarget.style.background = 'rgba(255,255,255,0.025)';
-          }}
-        />
+        >
+          <textarea
+            ref={textareaRef}
+            id="noteEditor"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            placeholder="Start writing your thoughts..."
+            className="notepad-textarea"
+            style={{
+              flex: 1,
+              width: '100%',
+              background: 'transparent',
+              border: 'none',
+              padding: '22px 24px',
+              color: 'rgba(255, 255, 255, 0.92)',
+              fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+              fontSize: 14,
+              lineHeight: 1.8,
+              resize: 'none',
+              outline: 'none',
+              caretColor: '#00df81',
+            }}
+          />
+        </motion.div>
 
-        {/* Footer: line count */}
+        {/* Footer stats */}
         <div
           style={{
             display: 'flex',
-            justifyContent: 'flex-end',
-            paddingTop: 8,
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingTop: 10,
             fontSize: 10,
-            color: 'rgba(255,255,255,0.2)',
+            fontFamily: "'JetBrains Mono', monospace",
+            color: 'rgba(255, 255, 255, 0.2)',
             letterSpacing: '0.04em',
           }}
         >
-          {content.split('\n').length} line{content.split('\n').length !== 1 ? 's' : ''}
+          <span>
+            {content.split('\n').length} {content.split('\n').length === 1 ? 'LINE' : 'LINES'}
+          </span>
+          <span style={{ color: 'rgba(0, 223, 129, 0.3)' }}>
+            AUTO-SAVE ENABLED
+          </span>
         </div>
       </div>
     </div>

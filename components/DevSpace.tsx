@@ -13,19 +13,6 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    icon: '🐙',
-    title: 'Git Reference',
-    desc: 'Cheat sheet, builder, scenarios',
-    action: 'git-reference',
-    uses: [
-      'Quick command reference',
-      'Build complex git commands',
-      'Learn common scenarios',
-      'Master git workflows'
-    ]
-  },
-
-  {
     icon: '🎨',
     title: 'Color Gen',
     desc: 'Interactive color palette generator',
@@ -35,18 +22,6 @@ const tools: Tool[] = [
       'Pick colors interactively',
       'Export in multiple formats',
       'Create harmonious schemes'
-    ]
-  },
-  {
-    icon: '📱',
-    title: 'QR Code Generator',
-    desc: 'Create custom QR codes for URLs, WiFi, vCards, and more',
-    action: 'qr-generator',
-    uses: [
-      'Generate QR codes',
-      'WiFi network sharing',
-      'Contact cards (vCard)',
-      'Customize colors & size'
     ]
   },
   {

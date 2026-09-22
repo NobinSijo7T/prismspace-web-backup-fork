@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown, Settings, User } from "lucide-react";
+import { ChevronDown, Settings } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -127,29 +127,6 @@ export default function ProfileDropdown({
           >
             <Settings className="h-4 w-4" style={{ color: '#94a3b8' }} />
             <span>settings</span>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem
-            nativeButton
-            render={
-              <button
-                type="button"
-                onClick={onSettingsClick}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px] font-mono font-[500] transition-colors"
-                style={{ color: '#94a3b8' }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(0, 223, 129, 0.06)';
-                  e.currentTarget.style.color = '#00df81';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.color = '#94a3b8';
-                }}
-              />
-            }
-          >
-            <User className="h-4 w-4" style={{ color: '#94a3b8' }} />
-            <span>edit profile</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

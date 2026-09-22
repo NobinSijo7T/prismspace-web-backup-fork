@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ClockStyle } from './Clock';
 import { ClockPreview } from './ClockPreview';
 import { AvatarPicker } from './AvatarPicker';
@@ -119,6 +120,24 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [cardHandle, setCardHandle] = useState('');
   const [cardTitle, setCardTitle] = useState('PrismSpace User');
   const [cardAvatarUrl, setCardAvatarUrl] = useState('');
+
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (contentRef.current) {
+      contentRef.current.scrollTop = 0;
+    }
+  }, [activeSection]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isEditingUsername) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, isEditingUsername]);
 
   useEffect(() => {
     return () => {
@@ -359,7 +378,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   ];
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(20px)' }}>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(16px)' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <style>{`
         /* ── PrismSpace Settings Modal Design System ── */
         .sm-root {
@@ -433,6 +458,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         }
 
         .sm-nav-btn {
+          position: relative;
           width: 100%;
           display: flex;
           align-items: center;
@@ -442,23 +468,31 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           border: 1px solid transparent;
           background: transparent;
           cursor: pointer;
-          transition: all 0.15s ease;
           text-align: left;
           font-family: 'Space Grotesk', sans-serif;
           margin-bottom: 2px;
+          outline: none;
         }
 
-        .sm-nav-btn:hover {
+        .sm-nav-btn:hover:not(.active) {
           background: rgba(255,255,255,0.04);
           border-color: rgba(255,255,255,0.06);
         }
 
-        .sm-nav-btn.active {
+        .sm-nav-pill {
+          position: absolute;
+          inset: 0;
+          border-radius: 8px;
           background: rgba(0,223,129,0.08);
-          border-color: rgba(0,223,129,0.25);
+          border: 1px solid rgba(0,223,129,0.25);
+          pointer-events: none;
+          z-index: 0;
+          box-shadow: 0 0 16px rgba(0, 223, 129, 0.08);
         }
 
         .sm-nav-icon {
+          position: relative;
+          z-index: 1;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -469,7 +503,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           border: 1px solid rgba(255,255,255,0.06);
           flex-shrink: 0;
           color: #64748b;
-          transition: all 0.15s ease;
+          transition: all 0.2s ease;
         }
 
         .sm-nav-btn.active .sm-nav-icon {
@@ -479,21 +513,25 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         }
 
         .sm-nav-label {
+          position: relative;
+          z-index: 1;
           font-size: 13px;
           font-weight: 600;
           color: #64748b;
-          transition: color 0.15s;
+          transition: color 0.2s ease;
         }
 
         .sm-nav-btn.active .sm-nav-label {
           color: #f1f5f9;
         }
 
-        .sm-nav-btn:hover .sm-nav-label {
+        .sm-nav-btn:hover:not(.active) .sm-nav-label {
           color: #cbd5e1;
         }
 
         .sm-nav-indicator {
+          position: relative;
+          z-index: 1;
           width: 4px;
           height: 4px;
           border-radius: 50%;
@@ -908,6 +946,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           position: absolute;
           top: 24px;
           right: 28px;
+          z-index: 20;
           width: 32px;
           height: 32px;
           border-radius: 8px;
@@ -1123,7 +1162,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         }
       `}</style>
 
-      <div className="sm-root">
+      <motion.div
+        className="sm-root"
+        initial={{ opacity: 0, scale: 0.96, y: 10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.96, y: 10 }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Sidebar */}
         <div className="sm-sidebar">
           <div className="sm-logo-wrap">
@@ -1136,36 +1182,58 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
           <div className="sm-nav-section-label">System Config</div>
           <nav>
-            {navItems.map(item => (
-              <button
-                key={item.id}
-                onClick={() => setActiveSection(item.id)}
-                className={`sm-nav-btn${activeSection === item.id ? ' active' : ''}`}
-              >
-                <span className="sm-nav-icon">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    {item.id === 'clock' && <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>}
-                    {item.id === 'themes' && <><circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 0 1 0 20" /><path d="M2 12h10" /></>}
-                    {item.id === 'stats' && <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>}
-                    {item.id === 'quotes' && <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></>}
-                    {item.id === 'extras' && <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></>}
-                    {item.id === 'profile' && <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>}
-                  </svg>
-                </span>
-                <span className="sm-nav-label">{item.label}</span>
-                {activeSection === item.id && <span className="sm-nav-indicator" />}
-              </button>
-            ))}
+            {navItems.map(item => {
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  className={`sm-nav-btn${isActive ? ' active' : ''}`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeSettingsNavPill"
+                      className="sm-nav-pill"
+                      transition={{
+                        type: 'spring',
+                        stiffness: 500,
+                        damping: 38,
+                      }}
+                    />
+                  )}
+                  <span className="sm-nav-icon">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                      {item.id === 'clock' && <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>}
+                      {item.id === 'themes' && <><circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 0 1 0 20" /><path d="M2 12h10" /></>}
+                      {item.id === 'stats' && <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>}
+                      {item.id === 'quotes' && <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></>}
+                      {item.id === 'extras' && <><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></>}
+                      {item.id === 'profile' && <><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></>}
+                    </svg>
+                  </span>
+                  <span className="sm-nav-label">{item.label}</span>
+                  {isActive && <span className="sm-nav-indicator" />}
+                </button>
+              );
+            })}
           </nav>
         </div>
 
         {/* Content */}
-        <div className="sm-content">
+        <div className="sm-content" ref={contentRef}>
           <button onClick={onClose} className="sm-close-btn" title="Close settings">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </button>
+
+          <motion.div
+            key={activeSection}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
+            style={{ minHeight: '100%', willChange: 'opacity, transform' }}
+          >
 
           {/* Clock Section */}
           {activeSection === 'clock' && (
@@ -1550,8 +1618,9 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               </div>
             </div>
           )}
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

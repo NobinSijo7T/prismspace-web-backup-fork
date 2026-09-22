@@ -1,13 +1,15 @@
-'use client';
+﻿'use client';
 
 /**
  * components/AgentSwarm.tsx
  * ──────────────────────────
- * Full-panel Agent Swarm orchestration dashboard.
+ * Centered dialog Agent Swarm orchestration dashboard.
+ * Redesigned with PrismSpace High-Voltage design system.
  * Shows live agent status, log streaming, HITL controls, and a task launcher.
  */
 
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,
@@ -17,13 +19,13 @@ import {
   Clipboard,
   GitBranch,
   KeyRound,
-  LayoutDashboard,
   ListTree,
   MessageSquare,
   Plus,
   Radio,
   RefreshCw,
   Send,
+  Settings,
   Sparkles,
   TerminalSquare,
   Trash2,
@@ -45,7 +47,19 @@ function StyledSelect({ value, onChange, options, className = '' }: StyledSelect
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full appearance-none rounded-lg border border-white/10 bg-[#11141a] px-3 py-2.5 pr-9 text-sm text-white outline-none transition-colors hover:border-white/20 focus:border-emerald-400/70"
+        style={{
+          width: '100%',
+          appearance: 'none',
+          borderRadius: 'var(--prism-radius-lg)',
+          border: '1px solid var(--prism-border-card)',
+          background: 'var(--prism-board)',
+          padding: '10px 36px 10px 12px',
+          fontSize: '0.8125rem',
+          color: '#fff',
+          outline: 'none',
+          transition: 'border-color 0.2s',
+          fontFamily: "'JetBrains Mono', monospace",
+        }}
       >
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -125,7 +139,7 @@ function MarkdownRenderer({ content }: { content: string }) {
       const qLines: string[] = [];
       while (i < lines.length && lines[i].startsWith('> ')) { qLines.push(lines[i].slice(2)); i++; }
       elements.push(
-        <blockquote key={`bq-${i}`} style={{ borderLeft: '3px solid rgba(0,255,136,0.4)', paddingLeft: '12px', margin: '8px 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', fontStyle: 'italic' }}>
+        <blockquote key={`bq-${i}`} style={{ borderLeft: '3px solid rgba(0,223,129,0.4)', paddingLeft: '12px', margin: '8px 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.82rem', fontStyle: 'italic' }}>
           {qLines.map((ql, qi) => <span key={qi}>{inlineMarkdown(ql)}<br /></span>)}
         </blockquote>
       );
@@ -155,7 +169,7 @@ function inlineMarkdown(text: string): ReactNode {
     if (part.startsWith('*') && part.endsWith('*'))
       return <em key={idx} style={{ color: 'rgba(255,255,255,0.8)' }}>{part.slice(1, -1)}</em>;
     if (part.startsWith('`') && part.endsWith('`'))
-      return <code key={idx} style={{ background: 'rgba(0,255,136,0.1)', color: '#a5f3c0', padding: '1px 5px', borderRadius: '4px', fontSize: '0.78rem', fontFamily: 'monospace' }}>{part.slice(1, -1)}</code>;
+      return <code key={idx} style={{ background: 'rgba(0,223,129,0.1)', color: '#00df81', padding: '1px 5px', borderRadius: '4px', fontSize: '0.78rem', fontFamily: "'JetBrains Mono', monospace" }}>{part.slice(1, -1)}</code>;
     return part;
   });
 }
@@ -217,6 +231,24 @@ function formatChatTime(timestamp: number) {
   }).format(new Date(timestamp));
 }
 
+// ── View types ──────────────────────────────────────────────────────────────
+type SwarmView = 'launch' | 'runs' | 'settings';
+type InspectorTab = 'dag' | 'logs' | 'output';
+
+const VIEW_TABS: { id: SwarmView; label: string; icon: typeof Send }[] = [
+  { id: 'launch', label: 'Launch', icon: Send },
+  { id: 'runs', label: 'Runs', icon: Radio },
+  { id: 'settings', label: 'Settings', icon: Settings },
+];
+
+// ── Motion presets ──────────────────────────────────────────────────────────
+const viewTransition = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
+  exit: { opacity: 0, y: -8 },
+  transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const },
+};
+
 export function AgentSwarm({ onClose }: AgentSwarmProps) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [backendOnline, setBackendOnline] = useState<boolean | null>(null);
@@ -242,6 +274,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   const [maxAgents, setMaxAgents] = useState(3);
   const [hitl, setHitl] = useState(true);
   const [launching, setLaunching] = useState(false);
+  const [runsSubTab, setRunsSubTab] = useState<'agents' | 'chat'>('agents');
 
   // Per-user Gmail MCP
   const [gmailEmail, setGmailEmail] = useState<string | null>(
@@ -275,9 +308,9 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Tab navigation
-  const [sidebarTab, setSidebarTab] = useState<'launch' | 'chats' | 'mcp'>('launch');
-  const [workspaceTab, setWorkspaceTab] = useState<'dag' | 'logs' | 'output'>('dag');
+  // View navigation
+  const [activeView, setActiveView] = useState<SwarmView>('launch');
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>('dag');
 
   const logsEndRef = useRef<HTMLDivElement>(null);
   const cleanupLogStream = useRef<(() => void) | null>(null);
@@ -321,11 +354,9 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
     if (!confirmed) return;
 
     try {
-      // Delete messages for session, then the session
       await db.agent_chat_messages.where('sessionId').equals(sessionId).delete();
       await db.agent_chat_sessions.delete(sessionId);
 
-      // Clear active session if it was the deleted one
       if (activeSessionId === sessionId) {
         localStorage.removeItem(ACTIVE_SWARM_CHAT_KEY);
         setActiveSessionId(null);
@@ -527,6 +558,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
       });
       setObjective('');
       setSelectedId(agent.id);
+      setActiveView('runs');
       await refresh();
     } catch (error) {
       console.error('Failed to launch swarm:', error);
@@ -632,754 +664,1099 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
         : `${selectedAgent.provider} / ${selectedAgent.model}`
       : '';
 
-  const tabButtonClass =
-    'flex h-9 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg px-2 text-xs font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400/70';
+  // ── Shared styles ─────────────────────────────────────────────────────────
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    marginBottom: '8px',
+    fontSize: '11px',
+    fontWeight: 800,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+    color: 'var(--prism-muted)',
+    fontFamily: "'JetBrains Mono', monospace",
+  };
 
-  const controlLabelClass = 'mb-2 block text-[11px] font-semibold uppercase tracking-[0.12em] text-white/50';
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    borderRadius: 'var(--prism-radius-lg)',
+    border: '1px solid var(--prism-border-card)',
+    background: 'var(--prism-board)',
+    padding: '10px 12px',
+    fontSize: '0.8125rem',
+    color: '#fff',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    fontFamily: "'JetBrains Mono', monospace",
+  };
 
-  const chatHistoryPanel = (
-    <section className="flex min-h-0 flex-1 flex-col border-t border-white/10 bg-[#0d1015]">
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-sm font-semibold text-white">
-            <MessageSquare className="size-4 text-sky-300" />
-            Conversation
-          </div>
-          <p className="mt-0.5 truncate text-xs text-white/45">
-            {currentSession?.title ?? 'New chat'}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => createNewChat()}
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2.5 text-xs font-semibold text-emerald-300 transition-colors hover:bg-emerald-400/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400/70"
-        >
-          <Plus className="size-3.5" />
-          New
-        </button>
-      </div>
-
-      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-        {!currentSessionMessages?.length && (
-          <div className="rounded-lg border border-dashed border-white/12 bg-white/[0.03] px-3 py-4 text-sm text-white/45">
-            Launch a swarm to start this conversation.
-          </div>
-        )}
-        {currentSessionMessages?.map((message) => (
-          <div
-            key={message.id}
-            className={`rounded-lg border px-3 py-2.5 text-xs ${
-              message.role === 'user'
-                ? 'border-emerald-400/18 bg-emerald-400/[0.07]'
-                : 'border-white/10 bg-white/[0.045]'
-            }`}
-          >
-            <div className="mb-1.5 flex items-center justify-between gap-2">
-              <span className={message.role === 'user' ? 'font-semibold text-emerald-300' : 'font-semibold text-sky-300'}>
-                {message.role === 'user' ? 'You' : 'Swarm'}
-              </span>
-              <span className="font-mono text-[10px] text-white/35">
-                {message.status === 'pending' ? 'running' : formatChatTime(message.createdAt)}
-              </span>
-            </div>
-            <p className="line-clamp-4 whitespace-pre-wrap leading-relaxed text-white/72">
-              {message.content}
-            </p>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div
-      className="flex h-full min-h-0 flex-col overflow-hidden bg-[#07090d] text-white"
-      style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+      className="flex h-full min-h-0 flex-col overflow-hidden"
+      style={{
+        fontFamily: "'Space Grotesk', sans-serif",
+        background: 'var(--prism-board)',
+        color: '#fff',
+      }}
     >
       <Toaster
         position="bottom-center"
         toastOptions={{
           style: {
-            background: '#11141a',
+            background: 'var(--prism-board)',
             color: 'white',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: '10px',
+            border: '1px solid var(--prism-border-card)',
+            borderRadius: 'var(--prism-radius-lg)',
           },
         }}
       />
 
-      <header className="relative flex flex-shrink-0 items-center justify-between border-b border-white/10 bg-[#0b0f14] px-5 py-4">
-        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-emerald-400/45 to-transparent" />
-        <div className="flex min-w-0 items-center gap-4">
-          <div className="grid size-11 place-items-center rounded-xl border border-emerald-400/25 bg-emerald-400/10">
-            <Bot className="size-5 text-emerald-300" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold leading-tight text-white">Agent Swarm</h2>
-              <span className="hidden rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] text-white/55 md:inline">
-                aden-hive/hive
-              </span>
-            </div>
-            <p className="mt-0.5 text-sm text-white/48">Launch, monitor, and inspect multi-agent runs.</p>
-          </div>
+      {/* ── Header with Integrated Tab Bar ─────────────────────────────── */}
+      <header
+        className="relative flex flex-shrink-0 items-center justify-between px-5 py-2"
+        style={{ borderBottom: '1px solid var(--prism-border-card)' }}
+      >
+        {/* Accent glow line */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-px"
+          style={{ background: 'linear-gradient(90deg, transparent, rgba(0,223,129,0.45), transparent)' }}
+        />
+
+        {/* Left: Branding & Status */}
+        <div className="flex min-w-0 items-center gap-3">
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="hidden items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 md:flex">
-            <span
-              className="size-2 rounded-full"
-              style={{
-                backgroundColor:
-                  backendOnline === null ? '#94a3b8' : backendOnline ? '#4ade80' : '#f87171',
-                boxShadow: backendOnline ? '0 0 10px rgba(74,222,128,0.65)' : undefined,
-              }}
-            />
-            <span className="font-mono text-xs text-white/58">
-              {backendOnline === null ? 'checking backend' : backendOnline ? 'backend online' : 'backend offline'}
-            </span>
-          </div>
-          <button
+        {/* Center: Tabs Switcher */}
+        <div
+          className="flex gap-1 p-1 rounded-xl"
+          style={{
+            background: 'rgba(0,0,0,0.35)',
+            border: '1px solid var(--prism-border-card)',
+            borderRadius: 'var(--prism-radius-lg)',
+          }}
+        >
+          {VIEW_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeView === tab.id;
+            const count = tab.id === 'runs' ? agents.length : tab.id === 'settings' ? mcpTokens.length : undefined;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveView(tab.id)}
+                className="relative flex h-8 min-w-[95px] items-center justify-center gap-1.5 px-3 text-xs font-semibold transition-colors"
+                style={{
+                  color: isActive ? '#000' : 'var(--prism-muted)',
+                  borderRadius: 'var(--prism-radius-md)',
+                }}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="swarm-tab-pill"
+                    className="absolute inset-0"
+                    style={{ background: 'var(--prism-primary)', borderRadius: 'var(--prism-radius-md)' }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center gap-1.5">
+                  <Icon className="size-3.5" />
+                  {tab.label}
+                  {count !== undefined && count > 0 && (
+                    <span
+                      className="rounded-full px-1.5 py-0.2 text-[9px] font-bold"
+                      style={{
+                        background: isActive ? 'rgba(0,0,0,0.2)' : 'var(--prism-card)',
+                        color: isActive ? '#000' : 'var(--prism-primary)',
+                      }}
+                    >
+                      {count}
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-2">
+          <motion.button
             type="button"
             onClick={() => createNewChat()}
-            className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-400 px-3.5 text-sm font-semibold text-[#06100b] transition-colors hover:bg-emerald-300 disabled:opacity-50"
+            className="inline-flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-semibold"
+            style={{
+              background: 'rgba(0,223,129,0.1)',
+              border: '1px solid rgba(0,223,129,0.25)',
+              color: 'var(--prism-primary)',
+              borderRadius: 'var(--prism-radius-md)',
+            }}
+            whileHover={{ background: 'var(--prism-primary)', color: '#000' }}
+            whileTap={{ scale: 0.97 }}
           >
-            <Plus className="size-4" />
+            <Plus className="size-3.5" />
             New Chat
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={onClose}
-            className="grid size-10 place-items-center rounded-lg border border-white/10 bg-white/[0.03] text-white/55 transition-colors hover:bg-white/10 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-400/70"
-            aria-label="Close Agent Swarm"
+            className="grid size-8 place-items-center rounded-lg"
+            style={{
+              border: '1px solid var(--prism-border-card)',
+              background: 'var(--prism-card)',
+              color: 'var(--prism-muted)',
+            }}
+            whileHover={{
+              backgroundColor: 'rgba(0,223,129,0.1)',
+              borderColor: 'rgba(0,223,129,0.3)',
+              color: '#00df81',
+            }}
+            whileTap={{ scale: 0.93 }}
           >
-            <X className="size-5" />
-          </button>
+            <X className="size-4" />
+          </motion.button>
         </div>
       </header>
 
+      {/* ── Backend offline banner ──────────────────────────────────────── */}
       {backendOnline === false && (
-        <div className="flex flex-shrink-0 items-start gap-3 border-b border-red-400/25 bg-red-500/10 px-5 py-3 text-sm">
-          <Activity className="mt-0.5 size-4 flex-shrink-0 text-red-300" />
+        <div
+          className="flex flex-shrink-0 items-start gap-3 px-5 py-2.5 text-sm"
+          style={{
+            borderBottom: '1px solid rgba(248,113,113,0.25)',
+            background: 'rgba(248,113,113,0.06)',
+          }}
+        >
+          <Activity className="mt-0.5 size-4 flex-shrink-0" style={{ color: '#f87171' }} />
           <div>
-            <p className="font-semibold text-red-200">Agent Swarm backend is not running</p>
-            <p className="mt-0.5 text-xs text-red-200/72">
-              Start it with <code className="rounded bg-black/30 px-1 font-mono">.\backend\start.ps1</code>. The
-              dashboard will reconnect automatically.
+            <p style={{ fontWeight: 600, color: '#fca5a5', fontSize: '13px' }}>Agent Swarm backend is offline</p>
+            <p className="mt-0.5" style={{ fontSize: '0.72rem', color: 'rgba(252,165,165,0.7)' }}>
+              Start with{' '}
+              <code className="terminal-pill" style={{ display: 'inline', padding: '1px 6px', fontSize: '0.68rem' }}>
+                <span className="terminal-prompt-char">$</span> .\backend\start.ps1
+              </code>
             </p>
           </div>
         </div>
       )}
 
-      <main className="grid min-h-0 flex-1 grid-cols-[350px_minmax(360px,430px)_minmax(520px,1fr)] overflow-hidden xl:grid-cols-[360px_430px_minmax(540px,1fr)]">
-        <aside className="flex min-h-0 flex-col border-r border-white/10 bg-[#0b0d12]">
-          <div className="border-b border-white/10 p-3">
-            <div className="grid grid-cols-3 gap-1 rounded-xl border border-white/10 bg-black/30 p-1">
-              <button
-                type="button"
-                onClick={() => setSidebarTab('launch')}
-                className={`${tabButtonClass} ${
-                  sidebarTab === 'launch' ? 'bg-emerald-400 text-[#06100b]' : 'text-white/56 hover:bg-white/[0.06] hover:text-white'
-                }`}
-              >
-                <Send className="size-3.5" />
-                Launch
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarTab('chats')}
-                className={`${tabButtonClass} ${
-                  sidebarTab === 'chats' ? 'bg-sky-300 text-[#06100b]' : 'text-white/56 hover:bg-white/[0.06] hover:text-white'
-                }`}
-              >
-                <MessageSquare className="size-3.5" />
-                {chatSessions?.length ?? 0}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSidebarTab('mcp')}
-                className={`${tabButtonClass} ${
-                  sidebarTab === 'mcp' ? 'bg-violet-300 text-[#12091f]' : 'text-white/56 hover:bg-white/[0.06] hover:text-white'
-                }`}
-              >
-                <KeyRound className="size-3.5" />
-                {mcpTokens.length}
-              </button>
-            </div>
-          </div>
-
-          {sidebarTab === 'launch' && (
-            <form onSubmit={handleLaunch} className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-4">
-              <section className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.055] p-4">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <label className="text-sm font-semibold text-white" htmlFor="swarm-objective">
-                    Mission Brief
-                  </label>
-                  <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-0.5 font-mono text-[10px] text-emerald-200">
-                    {Math.min(3, Math.max(1, maxAgents))} workers
-                  </span>
-                </div>
-                <textarea
-                  id="swarm-objective"
-                  value={objective}
-                  onChange={(e) => setObjective(e.target.value)}
-                  placeholder="Describe the outcome you want the swarm to produce..."
-                  rows={7}
-                  className="min-h-44 w-full resize-none rounded-lg border border-white/10 bg-[#080b10] px-3 py-3 text-sm leading-relaxed text-white outline-none transition-colors placeholder:text-white/40 hover:border-white/18 focus:border-emerald-400/70"
-                />
-              </section>
-
-              <section>
-                <span className={controlLabelClass}>Model Routing</span>
-                <div className="grid gap-2">
-                  <StyledSelect
-                    value={provider}
-                    onChange={(val) => handleProviderChange(val as ModelProvider)}
-                    options={[
-                      { value: 'nvidia', label: 'NVIDIA NIM' },
-                      { value: 'groq', label: 'Groq' },
-                    ]}
-                  />
-                  <StyledSelect
-                    value={model}
-                    onChange={setModel}
-                    options={MODELS[provider].map((m) => ({
-                      value: m,
-                      label: m === 'nvidia/nemotron-3.5-lightning-30b-a3b' ? 'Lightning' : m,
-                    }))}
-                  />
-                </div>
-              </section>
-
-              <section className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
-                <span className={controlLabelClass}>Gmail MCP</span>
-                {gmailEmail ? (
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-xs text-emerald-300">✓ {gmailEmail}</span>
-                    <button
-                      type="button"
-                      className="rounded-lg border border-white/10 px-2 py-1 text-[11px] text-white/60 hover:text-white"
-                      onClick={() => {
-                        const uid = getGmailUserId();
-                        if (uid) {
-                          fetch('/api/auth/google/status', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ user_id: uid }),
-                          }).catch(() => {});
-                        }
-                        localStorage.removeItem('prism_gmail_user_id');
-                        localStorage.removeItem('prism_gmail_email');
-                        setGmailEmail(null);
-                      }}
-                    >
-                      Disconnect
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={gmailLoading}
-                    className="w-full rounded-lg bg-emerald-400/90 px-3 py-2 text-sm font-semibold text-[#06110b] disabled:opacity-50"
-                    onClick={async () => {
-                      setGmailLoading(true);
-                      try {
-                        await connectGmail();
-                      } catch (e) {
-                        console.error(e);
-                      } finally {
-                        setGmailLoading(false);
-                      }
+      {/* ── View Content ───────────────────────────────────────────────── */}
+      <div className="min-h-0 flex-1 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {/* ═══════ LAUNCH VIEW (2-COLUMN ZERO-SCROLL) ═══════ */}
+          {activeView === 'launch' && (
+            <motion.div key="launch" {...viewTransition} className="h-full min-h-0 overflow-y-auto lg:overflow-hidden p-4">
+              <form onSubmit={handleLaunch} className="grid h-full grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
+                {/* Left: Mission Brief & Action (lg:col-span-7) */}
+                <div className="lg:col-span-7 flex flex-col gap-2.5 min-h-0 h-full">
+                  <div
+                    className="flex-1 flex flex-col min-h-0 rounded-xl p-3"
+                    style={{
+                      border: '1px solid var(--prism-border-card)',
+                      background: 'var(--prism-card)',
                     }}
                   >
-                    {gmailLoading ? 'Connecting…' : 'Connect Gmail'}
-                  </button>
-                )}
-                <p className="mt-1.5 text-[11px] text-white/40">Agents use your inbox via per-user OAuth.</p>
-              </section>
-
-              <section className="rounded-xl border border-white/10 bg-white/[0.035] p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-white">Worker Mesh</p>
-                    <p className="mt-0.5 text-xs text-white/45">Balance breadth against coordination overhead.</p>
-                  </div>
-                  <span className="font-mono text-lg font-semibold text-emerald-300">{Math.min(3, Math.max(1, maxAgents))}</span>
-                </div>
-                <input
-                  type="range"
-                  min={1}
-                  max={3}
-                  step={1}
-                  value={Math.min(3, Math.max(1, maxAgents))}
-                  onChange={(e) => setMaxAgents(Number(e.target.value))}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-white/12 accent-emerald-400"
-                />
-                <label className="mt-4 flex cursor-pointer items-center justify-between rounded-lg border border-white/10 bg-[#10141b] px-3 py-3">
-                  <span>
-                    <span className="block text-sm font-semibold text-white">Human checkpoint</span>
-                    <span className="text-xs text-white/45">Require approval before final synthesis.</span>
-                  </span>
-                  <input
-                    type="checkbox"
-                    checked={hitl}
-                    onChange={(e) => setHitl(e.target.checked)}
-                    className="size-4 accent-emerald-400"
-                  />
-                </label>
-              </section>
-
-              <button
-                type="submit"
-                disabled={!objective.trim() || launching || !backendOnline}
-                className="mt-auto inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 text-sm font-semibold text-[#06100b] transition-colors hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35"
-              >
-                {launching ? (
-                  <>
-                    <GridLoader color="#06100b" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
-                    Launching
-                  </>
-                ) : (
-                  <>
-                    <Send className="size-4" />
-                    Launch Swarm
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          {sidebarTab === 'chats' && (
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3">
-              {chatSessions?.length === 0 && (
-                <div className="rounded-xl border border-dashed border-white/14 bg-white/[0.03] p-4 text-sm text-white/45">
-                  No saved conversations yet.
-                </div>
-              )}
-              {chatSessions?.map((session) => (
-                <div
-                  key={session.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    setActiveSessionId(session.id);
-                    localStorage.setItem(ACTIVE_SWARM_CHAT_KEY, session.id);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      setActiveSessionId(session.id);
-                      localStorage.setItem(ACTIVE_SWARM_CHAT_KEY, session.id);
-                    }
-                  }}
-                  className={`rounded-xl border p-3 transition-colors ${
-                    activeSessionId === session.id
-                      ? 'border-sky-300/35 bg-sky-300/[0.08]'
-                      : 'border-white/10 bg-white/[0.035] hover:bg-white/[0.055]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white/88">{session.title}</p>
-                      <p className="mt-1 font-mono text-[10px] text-white/38">{formatChatTime(session.updatedAt)}</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteChatSession(session.id);
-                      }}
-                      className="grid size-8 place-items-center rounded-lg text-white/38 transition-colors hover:bg-red-400/10 hover:text-red-300"
-                      aria-label="Delete chat"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {sidebarTab === 'mcp' && (
-            <form onSubmit={handleSaveMcpToken} className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-white">MCP Credentials</p>
-                  <p className="text-xs text-white/45">{mcpEnvFile ?? 'tools .env'}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={refreshMcpServers}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-2.5 text-xs text-white/65 transition-colors hover:bg-white/10 hover:text-white"
-                >
-                  <RefreshCw className="size-3.5" />
-                  Refresh
-                </button>
-              </div>
-
-              <div className="space-y-2">
-                {mcpTokens.length === 0 && (
-                  <div className="rounded-xl border border-dashed border-white/14 bg-white/[0.03] p-4 text-sm text-white/45">
-                    Add a token key below to connect tools like Figma or GitHub.
-                  </div>
-                )}
-                {mcpTokens.map((token) => {
-                  const active = token.key === mcpEnvKey;
-                  return (
-                    <div
-                      key={token.key}
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => handleSelectMcpToken(token)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleSelectMcpToken(token);
-                        }
-                      }}
-                      className={`rounded-xl border p-3 transition-colors ${
-                        active ? 'border-violet-300/35 bg-violet-300/[0.08]' : 'border-white/10 bg-white/[0.035] hover:bg-white/[0.055]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="min-w-0 flex-1 truncate font-mono text-xs font-semibold text-white/90">{token.key}</span>
-                        <span
-                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] ${
-                            token.configured
-                              ? 'bg-emerald-400/12 text-emerald-300'
-                              : 'bg-amber-300/12 text-amber-200'
-                          }`}
-                        >
-                          {token.configured ? 'set' : 'missing'}
+                    <div className="mb-2 flex items-center justify-between gap-3 flex-shrink-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold tracking-wider uppercase" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--prism-primary)' }}>
+                          Mission Brief
                         </span>
+                        <span className="text-[11px] text-white/40">· Swarm Objective</span>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-1 space-y-3 border-t border-white/10 pt-4">
-                <div>
-                  <label className={controlLabelClass}>Target Server</label>
-                  <StyledSelect
-                    value={selectedMcpServer}
-                    onChange={handleMcpServerChange}
-                    options={
-                      mcpServers.length
-                        ? mcpServers.map((s) => ({ value: s.name, label: s.name }))
-                        : [{ value: 'figma', label: 'figma' }]
-                    }
-                  />
-                </div>
-                <div>
-                  <label className={controlLabelClass}>Environment Key</label>
-                  <input
-                    type="text"
-                    value={mcpEnvKey}
-                    onChange={(e) => setMcpEnvKey(e.target.value.toUpperCase())}
-                    placeholder="e.g. FIGMA_API_TOKEN"
-                    className="w-full rounded-lg border border-white/10 bg-[#11141a] px-3 py-2.5 font-mono text-xs text-white outline-none transition-colors placeholder:text-white/35 focus:border-emerald-400/70"
-                  />
-                </div>
-                <div>
-                  <label className={controlLabelClass}>Secret Token</label>
-                  <input
-                    type="password"
-                    value={mcpToken}
-                    onChange={(e) => setMcpToken(e.target.value)}
-                    placeholder="Paste API token value..."
-                    className="w-full rounded-lg border border-white/10 bg-[#11141a] px-3 py-2.5 font-mono text-xs text-white outline-none transition-colors placeholder:text-white/35 focus:border-emerald-400/70"
-                  />
-                </div>
-                {mcpMessage && (
-                  <p className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-2 font-mono text-xs text-emerald-200">
-                    {mcpMessage}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()}
-                  className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-violet-300 px-3 text-sm font-semibold text-[#12091f] transition-colors hover:bg-violet-200 disabled:cursor-not-allowed disabled:bg-white/10 disabled:text-white/35"
-                >
-                  <KeyRound className="size-4" />
-                  {savingMcpToken ? 'Saving...' : 'Save Token'}
-                </button>
-              </div>
-            </form>
-          )}
-        </aside>
-
-        <section className="flex min-h-0 flex-col border-r border-white/10 bg-[#080b10]">
-          <div className="border-b border-white/10 p-4">
-            <div className="mb-4 grid grid-cols-3 gap-2">
-              <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-white/40">Runs</p>
-                <p className="mt-1 text-xl font-semibold text-white">{agents.length}</p>
-              </div>
-              <div className="rounded-xl border border-emerald-400/20 bg-emerald-400/[0.06] p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-emerald-200/65">Active</p>
-                <p className="mt-1 text-xl font-semibold text-emerald-200">{activeAgents}</p>
-              </div>
-              <div className="rounded-xl border border-sky-300/18 bg-sky-300/[0.055] p-3">
-                <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-sky-200/65">Done</p>
-                <p className="mt-1 text-xl font-semibold text-sky-200">{completedAgents}</p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Radio className="size-4 text-emerald-300" />
-                <h3 className="text-sm font-semibold text-white">Run Queue</h3>
-              </div>
-              <span className="font-mono text-[10px] text-white/38">polling / 3s</span>
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-[1.08] space-y-2 overflow-y-auto p-3">
-            {agents.length === 0 && (
-              <div className="rounded-xl border border-dashed border-white/14 bg-white/[0.03] p-5 text-sm text-white/45">
-                No swarms yet. Launch a mission brief to create the first run.
-              </div>
-            )}
-            {agents.map((agent) => (
-              <AgentCard
-                key={agent.id}
-                agent={agent}
-                isSelected={selectedId === agent.id}
-                onSelect={() => setSelectedId(agent.id)}
-                onRefresh={refresh}
-              />
-            ))}
-          </div>
-
-          {chatHistoryPanel}
-        </section>
-
-        <section className="flex min-h-0 flex-col bg-[#0a0d12]">
-          {!selectedAgent ? (
-            <div className="grid min-h-0 flex-1 place-items-center p-8">
-              <div className="max-w-sm text-center">
-                <div className="mx-auto mb-5 grid size-16 place-items-center rounded-2xl border border-white/10 bg-white/[0.04]">
-                  <ListTree className="size-7 text-white/45" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">Select a run to inspect it</h3>
-                <p className="mt-2 text-sm leading-relaxed text-white/45">
-                  The inspector shows the pipeline graph, live execution stream, approval controls, and final output.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <>
-              <div className="flex flex-shrink-0 items-start justify-between gap-4 border-b border-white/10 bg-[#0d1117] px-5 py-4">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <span
-                      className="rounded-full px-2.5 py-1 font-mono text-[11px] font-semibold"
-                      style={{
-                        background: `${STATUS_COLORS[selectedAgent.status]}22`,
-                        color: STATUS_COLORS[selectedAgent.status],
-                      }}
-                    >
-                      {STATUS_LABELS[selectedAgent.status]}
-                    </span>
-                    <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-mono text-[11px] text-white/55">
-                      {selectedAgent.max_agents} worker{selectedAgent.max_agents > 1 ? 's' : ''}
-                    </span>
-                    {selectedAgent.human_in_loop && (
-                      <span className="rounded-full bg-amber-300/12 px-2.5 py-1 font-mono text-[11px] text-amber-200">
-                        approval checkpoint
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-mono font-semibold"
+                        style={{
+                          border: '1px solid rgba(0,223,129,0.25)',
+                          background: 'rgba(0,223,129,0.08)',
+                          color: 'var(--prism-primary)',
+                        }}
+                      >
+                        {maxAgents} worker{maxAgents > 1 ? 's' : ''} assigned
                       </span>
-                    )}
-                  </div>
-                  <h3 className="truncate text-lg font-semibold text-white" title={selectedAgent.objective}>
-                    {selectedAgent.objective}
-                  </h3>
-                  <p className="mt-1 truncate font-mono text-xs text-white/42">{selectedAgentModelLabel}</p>
-                </div>
+                    </div>
 
-                <div className="flex flex-shrink-0 flex-col items-end gap-3">
-                  {selectedAgent.status === 'awaiting_approval' && (
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => approveAgent(selectedAgent.id, false).then(refresh)}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-red-300/25 bg-red-400/10 px-3 text-xs font-semibold text-red-200 transition-colors hover:bg-red-400/16"
-                      >
-                        <X className="size-3.5" />
-                        Reject
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => approveAgent(selectedAgent.id, true).then(refresh)}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-emerald-400 px-3 text-xs font-semibold text-[#06100b] transition-colors hover:bg-emerald-300"
-                      >
-                        <Check className="size-3.5" />
-                        Approve
-                      </button>
-                    </div>
-                  )}
-                  <div className="flex rounded-xl border border-white/10 bg-black/30 p-1">
-                    <button
-                      type="button"
-                      onClick={() => setWorkspaceTab('dag')}
-                      className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold transition-colors ${
-                        workspaceTab === 'dag' ? 'bg-white text-[#080b10]' : 'text-white/55 hover:bg-white/[0.07] hover:text-white'
-                      }`}
-                    >
-                      <GitBranch className="size-3.5" />
-                      Pipeline
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWorkspaceTab('logs')}
-                      className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold transition-colors ${
-                        workspaceTab === 'logs' ? 'bg-white text-[#080b10]' : 'text-white/55 hover:bg-white/[0.07] hover:text-white'
-                      }`}
-                    >
-                      <TerminalSquare className="size-3.5" />
-                      Logs
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setWorkspaceTab('output')}
-                      className={`relative inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold transition-colors ${
-                        workspaceTab === 'output' ? 'bg-white text-[#080b10]' : 'text-white/55 hover:bg-white/[0.07] hover:text-white'
-                      }`}
-                    >
-                      <Sparkles className="size-3.5" />
-                      Output
-                      {selectedAgent.result && <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-emerald-400" />}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="min-h-0 flex-1 overflow-hidden">
-                {workspaceTab === 'dag' && (
-                  <div className="grid h-full min-h-0 grid-rows-[minmax(260px,42%)_1fr]">
-                    <div className="border-b border-white/10 bg-[#07090d] p-4">
-                      <div className="mb-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                          <LayoutDashboard className="size-4 text-emerald-300" />
-                          Execution Map
-                        </div>
-                        <span className="font-mono text-[10px] text-white/38">{selectedAgent.id.slice(0, 8)}</span>
-                      </div>
-                      <SwarmDagGraph agent={selectedAgent} logLines={logLines} />
-                    </div>
-                    <div className="min-h-0 overflow-y-auto bg-[#080b10] p-4 font-mono text-xs">
-                      <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-                        <span className="text-white/42">Live log tail</span>
-                        <span className="text-emerald-300/80">{selectedAgent.status}</span>
-                      </div>
-                      {logLines.length === 0 && <p className="text-white/32">Waiting for log output...</p>}
-                      {logLines.map((line, i) => {
-                        const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
-                        const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
-                        const isWarning = line.includes('⏸️') || line.includes('checkpoint');
-                        return (
-                          <div
-                            key={i}
-                            className="border-b border-white/[0.03] py-1 leading-relaxed"
-                            style={{
-                              color: isError ? '#f87171' : isSuccess ? '#4ade80' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.72)',
-                            }}
-                          >
-                            {line}
-                          </div>
-                        );
-                      })}
-                      {!isTerminal(selectedAgent.status) && (
-                        <div className="mt-4 flex items-center gap-3 border-t border-white/10 pt-4">
-                          <GridLoader color="#00ff88" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
-                          <span className="text-emerald-300/80">Running tasks...</span>
-                        </div>
-                      )}
-                      <div ref={logsEndRef} />
-                    </div>
-                  </div>
-                )}
-
-                {workspaceTab === 'logs' && (
-                  <div className="h-full overflow-y-auto bg-[#07090d] p-5 font-mono text-xs">
-                    <div className="sticky top-0 z-10 mb-4 flex items-center justify-between border-b border-white/10 bg-[#07090d]/95 pb-3">
-                      <span className="text-white/45">Execution stream / {selectedAgent.id}</span>
-                      <span className="text-emerald-300">{selectedAgent.status}</span>
-                    </div>
-                    {logLines.length === 0 && <p className="text-white/32">Waiting for log output...</p>}
-                    {logLines.map((line, i) => {
-                      const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
-                      const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
-                      const isWarning = line.includes('⏸️') || line.includes('checkpoint');
-                      return (
-                        <div
-                          key={i}
-                          className="border-b border-white/[0.03] py-1.5 leading-relaxed"
+                    {/* Quick Template Chips */}
+                    <div className="mb-1.5 flex flex-wrap gap-1.5 flex-shrink-0">
+                      {[
+                        { label: 'Research & Map', text: 'Research latest advancements and synthesize an architectural breakdown.' },
+                        { label: 'Code Review & Audit', text: 'Audit recent commits, check for edge-case regressions, and formulate fixes.' },
+                        { label: 'Feature Spec', text: 'Draft a fullstack implementation spec with API models, components, and tests.' },
+                      ].map((tpl) => (
+                        <button
+                          key={tpl.label}
+                          type="button"
+                          onClick={() => setObjective(tpl.text)}
+                          className="rounded-md px-2 py-0.5 text-[11px] font-mono transition-all hover:border-[rgba(0,223,129,0.4)] hover:text-white"
                           style={{
-                            color: isError ? '#f87171' : isSuccess ? '#4ade80' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.82)',
+                            background: 'rgba(255,255,255,0.03)',
+                            border: '1px solid var(--prism-border-card)',
+                            color: 'var(--prism-muted)',
                           }}
                         >
-                          {line}
-                        </div>
-                      );
-                    })}
-                    {!isTerminal(selectedAgent.status) && (
-                      <div className="mt-5 flex items-center gap-3 border-t border-white/10 pt-5">
-                        <GridLoader color="#00ff88" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
-                        <span className="text-emerald-300/80">Live streaming execution logs...</span>
+                          + {tpl.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Textarea */}
+                    <textarea
+                      id="swarm-objective"
+                      value={objective}
+                      onChange={(e) => setObjective(e.target.value)}
+                      placeholder="Describe the outcome you want the swarm to produce... (e.g. build a data visualization pipeline, audit security, or synthesize documentation)"
+                      className="flex-1 min-h-[110px] w-full resize-none p-3 leading-relaxed rounded-xl text-sm"
+                      style={{
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        background: 'var(--prism-board)',
+                        color: '#fff',
+                        outline: 'none',
+                        fontFamily: "'Space Grotesk', sans-serif",
+                      }}
+                    />
+                  </div>
+
+                  {/* Launch CTA Button */}
+                  <motion.button
+                    type="submit"
+                    disabled={!objective.trim() || launching || !backendOnline}
+                    className="flex-shrink-0 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold tracking-wide transition-all disabled:cursor-not-allowed"
+                    style={{
+                      background: !objective.trim() || launching || !backendOnline
+                        ? 'var(--prism-card)'
+                        : 'var(--prism-primary)',
+                      color: !objective.trim() || launching || !backendOnline
+                        ? 'var(--prism-muted)'
+                        : '#000',
+                      borderRadius: 'var(--prism-radius-xl)',
+                      boxShadow: objective.trim() && !launching && backendOnline
+                        ? '0 0 24px rgba(0,223,129,0.35)'
+                        : 'none',
+                    }}
+                    whileHover={objective.trim() && !launching && backendOnline ? { scale: 1.008 } : {}}
+                    whileTap={objective.trim() && !launching && backendOnline ? { scale: 0.985 } : {}}
+                  >
+                    {launching ? (
+                      <>
+                        <GridLoader color="#000" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
+                        <span>Deploying Swarm Nodes...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="size-4" />
+                        <span>Launch Swarm Orchestration</span>
+                      </>
+                    )}
+                  </motion.button>
+                </div>
+
+                {/* Right: Controls (lg:col-span-5) */}
+                <div className="lg:col-span-5 flex flex-col gap-2 min-h-0 h-full justify-between">
+                  {/* Model Routing */}
+                  <div className="rounded-xl p-3" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span style={labelStyle} className="!mb-0">Model Routing</span>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(0,223,129,0.08)', color: 'var(--prism-primary)' }}>
+                        Low Latency
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-mono block mb-1 text-white/40">Provider</label>
+                        <StyledSelect
+                          value={provider}
+                          onChange={(val) => handleProviderChange(val as ModelProvider)}
+                          options={[
+                            { value: 'nvidia', label: 'NVIDIA NIM' },
+                            { value: 'groq', label: 'Groq' },
+                          ]}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-mono block mb-1 text-white/40">Model</label>
+                        <StyledSelect
+                          value={model}
+                          onChange={setModel}
+                          options={MODELS[provider].map((m) => ({
+                            value: m,
+                            label: m === 'nvidia/nemotron-3.5-lightning-30b-a3b' ? 'Nemotron 3.5' : m.length > 15 ? `${m.slice(0, 13)}…` : m,
+                          }))}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Worker Mesh & Checkpoint */}
+                  <div className="rounded-xl p-3" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-white">Worker Mesh Size</p>
+                        <p className="text-[10.5px]" style={{ color: 'var(--prism-muted)' }}>Concurrent sub-agent nodes</p>
+                      </div>
+                      <span className="text-sm font-bold font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(0,223,129,0.1)', color: 'var(--prism-primary)' }}>
+                        {maxAgents} Nodes
+                      </span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={3}
+                      step={1}
+                      value={maxAgents}
+                      onChange={(e) => setMaxAgents(Number(e.target.value))}
+                      className="h-1.5 w-full cursor-pointer appearance-none rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.12)', accentColor: '#00df81' }}
+                    />
+                    <label
+                      className="mt-2.5 flex cursor-pointer items-center justify-between rounded-lg p-2 transition-colors"
+                      style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}
+                    >
+                      <div>
+                        <span className="block text-xs font-semibold text-white">Human Checkpoint</span>
+                        <span className="text-[10.5px]" style={{ color: 'var(--prism-muted)' }}>Require approval before synthesis</span>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={hitl}
+                        onChange={(e) => setHitl(e.target.checked)}
+                        className="size-4"
+                        style={{ accentColor: '#00df81' }}
+                      />
+                    </label>
+                  </div>
+
+                  {/* Tool Integrations: Gmail MCP */}
+                  <div className="rounded-xl p-3" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <span style={labelStyle} className="!mb-0">Tool Integrations</span>
+                      <span className="text-[10px] font-mono text-white/40">OAuth 2.0</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg" style={{ background: 'var(--prism-board)', border: '1px solid var(--prism-border-card)' }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-white">Google Workspace / Gmail</p>
+                        <p className="text-[11px] truncate" style={{ color: gmailEmail ? 'var(--prism-primary)' : 'var(--prism-muted)' }}>
+                          {gmailEmail ? `Connected: ${gmailEmail}` : 'Inbox access for research & mail tools'}
+                        </p>
+                      </div>
+                      {gmailEmail ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const uid = getGmailUserId();
+                            if (uid) {
+                              fetch('/api/auth/google/status', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ user_id: uid }),
+                              }).catch(() => {});
+                            }
+                            localStorage.removeItem('prism_gmail_user_id');
+                            localStorage.removeItem('prism_gmail_email');
+                            setGmailEmail(null);
+                          }}
+                          className="rounded-lg px-2.5 py-1 text-[11px] font-mono text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          Disconnect
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={gmailLoading}
+                          onClick={async () => {
+                            setGmailLoading(true);
+                            try {
+                              await connectGmail();
+                            } catch (e) {
+                              console.error(e);
+                            } finally {
+                              setGmailLoading(false);
+                            }
+                          }}
+                          className="rounded-lg px-3 py-1.5 text-xs font-semibold"
+                          style={{ background: 'var(--prism-primary)', color: '#000' }}
+                        >
+                          {gmailLoading ? '...' : 'Connect'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Architecture spec footer */}
+                  <div className="p-2.5 rounded-xl flex items-center justify-between text-xs" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--prism-border-card)' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="size-2 rounded-full" style={{ background: backendOnline ? '#00df81' : '#f87171' }} />
+                      <span className="font-mono text-white/60 text-[11px]">
+                        {backendOnline ? 'Distributed Graph Engine Active' : 'Backend Engine Offline'}
+                      </span>
+                    </div>
+                    <span className="font-mono text-[10px] text-white/40">
+                      DAG v2.0
+                    </span>
+                  </div>
+                </div>
+              </form>
+            </motion.div>
+          )}
+
+          {/* ═══════ RUNS VIEW ═══════ */}
+          {activeView === 'runs' && (
+            <motion.div key="runs" {...viewTransition} className="flex h-full min-h-0">
+              {/* Left: Agent list / Chat switcher */}
+              <div
+                className="flex w-[360px] xl:w-[400px] flex-shrink-0 flex-col min-h-0"
+                style={{ borderRight: '1px solid var(--prism-border-card)' }}
+              >
+                {/* Stats bar */}
+                <div className="grid grid-cols-3 gap-1.5 p-2 flex-shrink-0" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
+                  <div className="layer-row !p-1.5 text-center">
+                    <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--prism-muted)' }}>Runs</p>
+                    <p className="text-base font-semibold text-white">{agents.length}</p>
+                  </div>
+                  <div className="layer-row !p-1.5 text-center" style={{ borderColor: 'rgba(0,223,129,0.2)', background: 'rgba(0,223,129,0.04)' }}>
+                    <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--prism-primary)' }}>Active</p>
+                    <p className="text-base font-semibold" style={{ color: 'var(--prism-primary)' }}>{activeAgents}</p>
+                  </div>
+                  <div className="layer-row !p-1.5 text-center">
+                    <p style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', letterSpacing: '0.08em', textTransform: 'uppercase' as const, color: 'var(--prism-muted)' }}>Done</p>
+                    <p className="text-base font-semibold text-white">{completedAgents}</p>
+                  </div>
+                </div>
+
+                {/* Left Pane Sub-Tabs: Swarms vs Chat History */}
+                <div className="flex p-1.5 border-b flex-shrink-0 gap-1" style={{ borderColor: 'var(--prism-border-card)', background: 'rgba(0,0,0,0.2)' }}>
+                  <button
+                    type="button"
+                    onClick={() => setRunsSubTab('agents')}
+                    className="flex-1 py-1 px-2 rounded-md text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5"
+                    style={{
+                      background: runsSubTab === 'agents' ? 'var(--prism-card)' : 'transparent',
+                      color: runsSubTab === 'agents' ? '#fff' : 'var(--prism-muted)',
+                      border: runsSubTab === 'agents' ? '1px solid var(--prism-border-card)' : '1px solid transparent',
+                    }}
+                  >
+                    <Radio className="size-3" style={{ color: runsSubTab === 'agents' ? 'var(--prism-primary)' : 'inherit' }} />
+                    Swarms ({agents.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRunsSubTab('chat')}
+                    className="flex-1 py-1 px-2 rounded-md text-[11px] font-semibold transition-all flex items-center justify-center gap-1.5"
+                    style={{
+                      background: runsSubTab === 'chat' ? 'var(--prism-card)' : 'transparent',
+                      color: runsSubTab === 'chat' ? '#fff' : 'var(--prism-muted)',
+                      border: runsSubTab === 'chat' ? '1px solid var(--prism-border-card)' : '1px solid transparent',
+                    }}
+                  >
+                    <MessageSquare className="size-3" style={{ color: runsSubTab === 'chat' ? 'var(--prism-primary)' : 'inherit' }} />
+                    Chat ({currentSessionMessages?.length || 0})
+                  </button>
+                </div>
+
+                {/* SubTab Content */}
+                {runsSubTab === 'agents' ? (
+                  /* Agent cards take 100% of left pane */
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
+                    {agents.length === 0 && (
+                      <div
+                        className="rounded-xl p-5 text-sm text-center"
+                        style={{
+                          border: '1px dashed var(--prism-border-card)',
+                          background: 'var(--prism-card)',
+                          color: 'var(--prism-muted)',
+                        }}
+                      >
+                        No swarms yet. Launch a mission to start.
                       </div>
                     )}
-                    <div ref={logsEndRef} />
+                    {agents.map((agent) => (
+                      <AgentCard
+                        key={agent.id}
+                        agent={agent}
+                        isSelected={selectedId === agent.id}
+                        onSelect={() => setSelectedId(agent.id)}
+                        onRefresh={refresh}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  /* Chat history takes 100% of left pane */
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    <div className="px-3 py-2 text-xs font-semibold text-white flex items-center justify-between border-b" style={{ borderColor: 'var(--prism-border-card)' }}>
+                      <span className="truncate">{currentSession?.title ?? 'New chat'}</span>
+                      <span className="text-[10px] font-mono text-white/40">{currentSessionMessages?.length ?? 0} msgs</span>
+                    </div>
+                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
+                      {!currentSessionMessages?.length && (
+                        <div className="rounded-lg p-3 text-xs" style={{ border: '1px dashed var(--prism-border-card)', background: 'var(--prism-card)', color: 'var(--prism-muted)' }}>
+                          Launch a swarm to start this conversation.
+                        </div>
+                      )}
+                      {currentSessionMessages?.map((message) => (
+                        <div
+                          key={message.id}
+                          className="rounded-lg px-3 py-2 text-xs"
+                          style={{
+                            border: `1px solid ${message.role === 'user' ? 'rgba(0,223,129,0.18)' : 'var(--prism-border-card)'}`,
+                            background: message.role === 'user' ? 'rgba(0,223,129,0.04)' : 'var(--prism-card)',
+                          }}
+                        >
+                          <div className="mb-1 flex items-center justify-between gap-2">
+                            <span className="font-semibold" style={{ color: message.role === 'user' ? 'var(--prism-primary)' : '#fff' }}>
+                              {message.role === 'user' ? 'You' : 'Swarm'}
+                            </span>
+                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: 'var(--prism-muted)' }}>
+                              {message.status === 'pending' ? 'running' : formatChatTime(message.createdAt)}
+                            </span>
+                          </div>
+                          <p className="whitespace-pre-wrap leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                            {message.content}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
+              </div>
 
-                {workspaceTab === 'output' && (
-                  <div className="h-full overflow-y-auto bg-[#080b10] p-6">
-                    <div className="mx-auto max-w-4xl">
-                      <div className="mb-5 flex items-center justify-between gap-3 border-b border-white/10 pb-4">
-                        <div className="flex items-center gap-2">
-                          <Sparkles className="size-4 text-emerald-300" />
-                          <h3 className="text-base font-semibold text-white">Final Output</h3>
+              {/* Right: Inspector */}
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                {!selectedAgent ? (
+                  <div className="grid min-h-0 flex-1 place-items-center p-8">
+                    <div className="max-w-sm text-center">
+                      <div
+                        className="mx-auto mb-5 grid size-16 place-items-center rounded-2xl"
+                        style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+                      >
+                        <ListTree className="size-7" style={{ color: 'var(--prism-muted)' }} />
+                      </div>
+                      <h3 className="text-lg font-semibold text-white">Select a run to inspect it</h3>
+                      <p className="mt-2 text-sm leading-relaxed" style={{ color: 'var(--prism-muted)' }}>
+                        The inspector shows the pipeline graph, live execution stream, approval controls, and final output.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {/* Inspector header */}
+                    <div
+                      className="flex flex-shrink-0 items-start justify-between gap-4 px-5 py-4"
+                      style={{ borderBottom: '1px solid var(--prism-border-card)' }}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-2 flex flex-wrap items-center gap-2">
+                          <span
+                            className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              background: `${STATUS_COLORS[selectedAgent.status]}22`,
+                              color: STATUS_COLORS[selectedAgent.status],
+                            }}
+                          >
+                            {STATUS_LABELS[selectedAgent.status]}
+                          </span>
+                          <span
+                            className="rounded-full px-2.5 py-1 text-[11px]"
+                            style={{
+                              fontFamily: "'JetBrains Mono', monospace",
+                              border: '1px solid var(--prism-border-card)',
+                              background: 'var(--prism-card)',
+                              color: 'var(--prism-muted)',
+                            }}
+                          >
+                            {selectedAgent.max_agents} worker{selectedAgent.max_agents > 1 ? 's' : ''}
+                          </span>
+                          {selectedAgent.human_in_loop && (
+                            <span
+                              className="rounded-full px-2.5 py-1 text-[11px]"
+                              style={{
+                                fontFamily: "'JetBrains Mono', monospace",
+                                background: 'rgba(251,191,36,0.1)',
+                                color: '#fbbf24',
+                              }}
+                            >
+                              approval checkpoint
+                            </span>
+                          )}
                         </div>
-                        {selectedAgent.result && (
+                        <h3 className="truncate text-base font-semibold text-white" title={selectedAgent.objective}>
+                          {selectedAgent.objective}
+                        </h3>
+                        <p className="mt-1 truncate text-xs" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--prism-muted)' }}>
+                          {selectedAgentModelLabel}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-shrink-0 flex-col items-end gap-3">
+                        {selectedAgent.status === 'awaiting_approval' && (
+                          <div className="flex gap-2">
+                            <motion.button
+                              type="button"
+                              onClick={() => approveAgent(selectedAgent.id, false).then(refresh)}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold"
+                              style={{ border: '1px solid rgba(248,113,113,0.25)', background: 'rgba(248,113,113,0.08)', color: '#fca5a5' }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <X className="size-3.5" />
+                              Reject
+                            </motion.button>
+                            <motion.button
+                              type="button"
+                              onClick={() => approveAgent(selectedAgent.id, true).then(refresh)}
+                              className="inline-flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold"
+                              style={{ background: 'var(--prism-primary)', color: '#000' }}
+                              whileTap={{ scale: 0.95 }}
+                            >
+                              <Check className="size-3.5" />
+                              Approve
+                            </motion.button>
+                          </div>
+                        )}
+                        {/* Inspector sub-tabs */}
+                        <div
+                          className="flex rounded-xl p-1"
+                          style={{ border: '1px solid var(--prism-border-card)', background: 'rgba(0,0,0,0.3)' }}
+                        >
+                          {([
+                            { id: 'dag' as InspectorTab, label: 'Pipeline', icon: GitBranch },
+                            { id: 'logs' as InspectorTab, label: 'Logs', icon: TerminalSquare },
+                            { id: 'output' as InspectorTab, label: 'Output', icon: Sparkles, dot: !!selectedAgent.result },
+                          ]).map((tab) => {
+                            const TabIcon = tab.icon;
+                            return (
+                              <button
+                                key={tab.id}
+                                type="button"
+                                onClick={() => setInspectorTab(tab.id)}
+                                className="relative inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors"
+                                style={{
+                                  background: inspectorTab === tab.id ? '#fff' : 'transparent',
+                                  color: inspectorTab === tab.id ? 'var(--prism-board)' : 'var(--prism-muted)',
+                                }}
+                              >
+                                <TabIcon className="size-3.5" />
+                                {tab.label}
+                                {tab.dot && (
+                                  <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full" style={{ background: 'var(--prism-primary)' }} />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Inspector content */}
+                    <div className="min-h-0 flex-1 overflow-hidden">
+                      <AnimatePresence mode="wait">
+                        {inspectorTab === 'dag' && (
+                          <motion.div key="dag" {...viewTransition} className="grid h-full min-h-0 grid-rows-[minmax(240px,42%)_1fr]">
+                            <div className="p-4" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
+                              <div className="mb-3 flex items-center justify-between">
+                                <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                                  <GitBranch className="size-4" style={{ color: 'var(--prism-primary)' }} />
+                                  Execution Map
+                                </div>
+                                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: 'var(--prism-muted)' }}>
+                                  {selectedAgent.id.slice(0, 8)}
+                                </span>
+                              </div>
+                              <SwarmDagGraph agent={selectedAgent} logLines={logLines} />
+                            </div>
+                            <div className="min-h-0 overflow-y-auto p-4" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
+                              <div className="mb-3 flex items-center justify-between pb-2" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
+                                <span style={{ color: 'var(--prism-muted)' }}>Live log tail</span>
+                                <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
+                              </div>
+                              {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
+                              {logLines.map((line, i) => {
+                                const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
+                                const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
+                                const isWarning = line.includes('⏸️') || line.includes('checkpoint');
+                                return (
+                                  <div
+                                    key={i}
+                                    className="py-1 leading-relaxed"
+                                    style={{
+                                      borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                      color: isError ? '#f87171' : isSuccess ? '#00df81' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.72)',
+                                    }}
+                                  >
+                                    {line}
+                                  </div>
+                                );
+                              })}
+                              {!isTerminal(selectedAgent.status) && (
+                                <div className="mt-4 flex items-center gap-3 pt-4" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
+                                  <GridLoader color="#00df81" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
+                                  <span style={{ color: 'rgba(0,223,129,0.8)' }}>Running tasks...</span>
+                                </div>
+                              )}
+                              <div ref={logsEndRef} />
+                            </div>
+                          </motion.div>
+                        )}
+
+                        {inspectorTab === 'logs' && (
+                          <motion.div key="logs" {...viewTransition} className="h-full overflow-y-auto p-5" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
+                            <div className="sticky top-0 z-10 mb-4 flex items-center justify-between pb-3" style={{ borderBottom: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}>
+                              <span style={{ color: 'var(--prism-muted)' }}>Execution stream / {selectedAgent.id}</span>
+                              <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
+                            </div>
+                            {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
+                            {logLines.map((line, i) => {
+                              const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
+                              const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
+                              const isWarning = line.includes('⏸️') || line.includes('checkpoint');
+                              return (
+                                <div
+                                  key={i}
+                                  className="py-1.5 leading-relaxed"
+                                  style={{
+                                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                    color: isError ? '#f87171' : isSuccess ? '#00df81' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.82)',
+                                  }}
+                                >
+                                  {line}
+                                </div>
+                              );
+                            })}
+                            {!isTerminal(selectedAgent.status) && (
+                              <div className="mt-5 flex items-center gap-3 pt-5" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
+                                <GridLoader color="#00df81" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
+                                <span style={{ color: 'rgba(0,223,129,0.8)' }}>Live streaming execution logs...</span>
+                              </div>
+                            )}
+                            <div ref={logsEndRef} />
+                          </motion.div>
+                        )}
+
+                        {inspectorTab === 'output' && (
+                          <motion.div key="output" {...viewTransition} className="h-full overflow-y-auto p-6">
+                            <div className="mx-auto max-w-3xl">
+                              <div className="mb-5 flex items-center justify-between gap-3 pb-4" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
+                                <div className="flex items-center gap-2">
+                                  <Sparkles className="size-4" style={{ color: 'var(--prism-primary)' }} />
+                                  <h3 className="text-base font-semibold text-white">Final Output</h3>
+                                </div>
+                                {selectedAgent.result && (
+                                  <motion.button
+                                    type="button"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(selectedAgent.result ?? '');
+                                      toast.success('Output copied to clipboard');
+                                    }}
+                                    className="inline-flex h-8 items-center gap-2 rounded-lg px-3 text-xs font-semibold"
+                                    style={{
+                                      border: '1px solid var(--prism-border-card)',
+                                      background: 'var(--prism-card)',
+                                      color: 'var(--prism-muted)',
+                                    }}
+                                    whileHover={{ borderColor: 'rgba(0,223,129,0.3)', color: '#fff' }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    <Clipboard className="size-3.5" />
+                                    Copy
+                                  </motion.button>
+                                )}
+                              </div>
+                              {selectedAgent.result ? (
+                                <article
+                                  className="rounded-xl p-6 text-sm leading-relaxed"
+                                  style={{
+                                    border: '1px solid var(--prism-border-card)',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    color: 'rgba(255,255,255,0.86)',
+                                  }}
+                                >
+                                  <MarkdownRenderer content={selectedAgent.result ?? ''} />
+                                </article>
+                              ) : (
+                                <div
+                                  className="rounded-xl p-12 text-center"
+                                  style={{
+                                    border: '1px dashed var(--prism-border-card)',
+                                    background: 'var(--prism-card)',
+                                  }}
+                                >
+                                  <Sparkles className="mx-auto mb-4 size-8" style={{ color: 'var(--prism-muted)' }} />
+                                  <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                    Output is being generated
+                                  </p>
+                                  <p className="mt-1 text-xs" style={{ color: 'var(--prism-muted)' }}>
+                                    The sub-agents are still processing this objective.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════ SETTINGS VIEW (2-COLUMN ZERO-SCROLL) ═══════ */}
+          {activeView === 'settings' && (
+            <motion.div key="settings" {...viewTransition} className="h-full min-h-0 overflow-y-auto lg:overflow-hidden p-4">
+              <div className="mx-auto grid h-full grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 max-w-none">
+                {/* Left Column: Active Tokens & Chat Sessions (7 cols) */}
+                <div className="lg:col-span-7 flex flex-col gap-2.5 min-h-0 h-full">
+                  <div
+                    className="flex-1 flex flex-col min-h-0 rounded-xl p-3"
+                    style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+                  >
+                    <div className="mb-2.5 flex items-center justify-between gap-3 flex-shrink-0">
+                      <div>
+                        <h3 className="text-sm font-semibold text-white">Active MCP Tokens</h3>
+                        <p className="mt-0.5 text-[11px]" style={{ color: 'var(--prism-muted)' }}>
+                          Configured in {mcpEnvFile ?? 'tools .env'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {mcpTokens.length > 0 && (
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(selectedAgent.result ?? '');
-                              toast.success('Output copied to clipboard');
+                              setPendingRemoveKey('__CLEAR_ALL__');
+                              setShowRemoveConfirm(true);
                             }}
-                            className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-white/72 transition-colors hover:bg-white/10 hover:text-white"
+                            className="inline-flex h-7 items-center rounded-lg px-2 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
                           >
-                            <Clipboard className="size-3.5" />
-                            Copy
+                            Clear All
                           </button>
                         )}
+                        <motion.button
+                          type="button"
+                          onClick={refreshMcpServers}
+                          className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px]"
+                          style={{
+                            border: '1px solid var(--prism-border-card)',
+                            background: 'var(--prism-board)',
+                            color: 'var(--prism-muted)',
+                          }}
+                          whileHover={{ borderColor: 'rgba(0,223,129,0.3)', color: '#fff' }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <RefreshCw className="size-3" />
+                          Refresh
+                        </motion.button>
                       </div>
-                      {selectedAgent.result ? (
-                        <article className="rounded-xl border border-white/10 bg-[#0d1117] p-6 text-sm leading-relaxed text-white/86">
-                          <MarkdownRenderer content={selectedAgent.result ?? ''} />
-                        </article>
-                      ) : (
-                        <div className="rounded-xl border border-dashed border-white/14 bg-white/[0.03] p-12 text-center">
-                          <Sparkles className="mx-auto mb-4 size-8 text-white/30" />
-                          <p className="text-sm font-semibold text-white/60">Output is being generated</p>
-                          <p className="mt-1 text-xs text-white/38">The sub-agents are still processing this objective.</p>
+                    </div>
+
+                    {/* Token List */}
+                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                      {mcpTokens.length === 0 && (
+                        <div
+                          className="rounded-xl p-4 text-xs text-center"
+                          style={{
+                            border: '1px dashed var(--prism-border-card)',
+                            background: 'var(--prism-board)',
+                            color: 'var(--prism-muted)',
+                          }}
+                        >
+                          No tool tokens found. Configure a token using the panel on the right.
                         </div>
                       )}
+                      {mcpTokens.map((token) => {
+                        const active = token.key === mcpEnvKey;
+                        return (
+                          <div
+                            key={token.key}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => handleSelectMcpToken(token)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                handleSelectMcpToken(token);
+                              }
+                            }}
+                            className={`layer-row cursor-pointer ${active ? 'highlighted' : ''}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span
+                                className="min-w-0 flex-1 truncate text-xs font-semibold"
+                                style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(255,255,255,0.9)' }}
+                              >
+                                {token.key}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className="rounded-full px-2 py-0.5 text-[10px]"
+                                  style={{
+                                    fontFamily: "'JetBrains Mono', monospace",
+                                    background: token.configured ? 'rgba(0,223,129,0.1)' : 'rgba(251,191,36,0.1)',
+                                    color: token.configured ? 'var(--prism-primary)' : '#fbbf24',
+                                  }}
+                                >
+                                  {token.configured ? 'configured' : 'missing'}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPendingRemoveKey(token.key);
+                                    setShowRemoveConfirm(true);
+                                  }}
+                                  className="text-white/30 hover:text-red-400 p-1 text-xs"
+                                  title="Delete token"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
-                )}
-              </div>
-            </>
-          )}
-        </section>
-      </main>
 
+                  {/* Chat sessions card */}
+                  {chatSessions && chatSessions.length > 0 && (
+                    <div
+                      className="rounded-xl p-3 flex flex-col max-h-[190px]"
+                      style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+                    >
+                      <h4 className="text-xs font-semibold text-white mb-2 flex-shrink-0">Chat Sessions ({chatSessions.length})</h4>
+                      <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 min-h-0">
+                        {chatSessions.map((session) => (
+                          <div
+                            key={session.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              setActiveSessionId(session.id);
+                              localStorage.setItem(ACTIVE_SWARM_CHAT_KEY, session.id);
+                              setActiveView('runs');
+                            }}
+                            className={`layer-row !p-1.5 cursor-pointer ${activeSessionId === session.id ? 'highlighted' : ''}`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate text-xs font-semibold flex-1" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                                {session.title}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteChatSession(session.id);
+                                }}
+                                className="text-white/30 hover:text-red-400 p-1"
+                                aria-label="Delete chat"
+                              >
+                                <Trash2 className="size-3" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right Column: Configure Token Form (5 cols) */}
+                <div className="lg:col-span-5 flex flex-col justify-between rounded-xl p-3 min-h-0 h-full" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
+                  <div>
+                    <div className="mb-3">
+                      <h4 className="text-sm font-semibold text-white">Configure MCP Token</h4>
+                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--prism-muted)' }}>
+                        Save API credentials directly into local tools environment.
+                      </p>
+                    </div>
+
+                    <form onSubmit={handleSaveMcpToken} className="space-y-2.5">
+                      <div>
+                        <label style={labelStyle}>Target Server</label>
+                        <StyledSelect
+                          value={selectedMcpServer}
+                          onChange={handleMcpServerChange}
+                          options={
+                            mcpServers.length
+                              ? mcpServers.map((s) => ({ value: s.name, label: s.name }))
+                              : [{ value: 'figma', label: 'figma' }]
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Environment Variable Key</label>
+                        <input
+                          type="text"
+                          value={mcpEnvKey}
+                          onChange={(e) => setMcpEnvKey(e.target.value.toUpperCase())}
+                          placeholder="e.g. FIGMA_API_TOKEN"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Secret API Token</label>
+                        <input
+                          type="password"
+                          value={mcpToken}
+                          onChange={(e) => setMcpToken(e.target.value)}
+                          placeholder="Paste API token value..."
+                          style={inputStyle}
+                        />
+                      </div>
+                      {mcpMessage && (
+                        <p
+                          className="rounded-lg p-2 text-xs"
+                          style={{
+                            fontFamily: "'JetBrains Mono', monospace",
+                            border: '1px solid rgba(0,223,129,0.2)',
+                            background: 'rgba(0,223,129,0.06)',
+                            color: 'var(--prism-primary)',
+                          }}
+                        >
+                          {mcpMessage}
+                        </p>
+                      )}
+                      <motion.button
+                        type="submit"
+                        disabled={savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()}
+                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all disabled:cursor-not-allowed mt-2"
+                        style={{
+                          background: savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()
+                            ? 'var(--prism-board)'
+                            : 'var(--prism-primary)',
+                          color: savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()
+                            ? 'var(--prism-muted)'
+                            : '#000',
+                          boxShadow: !savingMcpToken && mcpEnvKey.trim() && mcpToken.trim() ? '0 0 20px rgba(0,223,129,0.25)' : 'none',
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <KeyRound className="size-4" />
+                        {savingMcpToken ? 'Saving Token...' : 'Save MCP Token'}
+                      </motion.button>
+                    </form>
+                  </div>
+
+                  <div className="p-3 rounded-lg border text-xs" style={{ background: 'var(--prism-board)', borderColor: 'rgba(255,255,255,0.05)' }}>
+                    <p className="font-semibold text-white/80 mb-1">Security note</p>
+                    <p className="text-[11px] leading-relaxed text-white/40">
+                      Tokens are persisted to your local <code>.env</code> file only and never leave your local workspace.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Remove Confirm Dialog ──────────────────────────────────────── */}
       {showRemoveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-4">
-          <div className="w-full max-w-sm rounded-xl border border-white/12 bg-[#11141a] p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.65)' }}>
+          <div
+            className="w-full max-w-sm rounded-xl p-4"
+            style={{
+              border: '1px solid var(--prism-border-card)',
+              background: 'var(--prism-board)',
+            }}
+          >
             <h3 className="text-sm font-semibold text-white">Confirm removal</h3>
-            <p className="mt-2 text-xs leading-relaxed text-white/60">
+            <p className="mt-2 text-xs leading-relaxed" style={{ color: 'var(--prism-muted)' }}>
               {pendingRemoveKey === '__CLEAR_ALL__'
                 ? 'This will remove all saved MCP tokens from the tools .env. This action cannot be undone.'
                 : `Remove token ${pendingRemoveKey}? This will delete it from ${mcpEnvFile ?? 'tools .env'}.`}
@@ -1391,7 +1768,12 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   setShowRemoveConfirm(false);
                   setPendingRemoveKey(null);
                 }}
-                className="h-9 rounded-lg border border-white/10 bg-white/[0.04] px-3 text-xs font-semibold text-white/70 transition-colors hover:bg-white/10 hover:text-white"
+                className="h-9 rounded-lg px-3 text-xs font-semibold transition-colors"
+                style={{
+                  border: '1px solid var(--prism-border-card)',
+                  background: 'var(--prism-card)',
+                  color: 'var(--prism-muted)',
+                }}
               >
                 Cancel
               </button>
@@ -1421,7 +1803,8 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     toast.error(err instanceof Error ? err.message : 'Remove failed');
                   }
                 }}
-                className="h-9 rounded-lg bg-red-400/15 px-3 text-xs font-semibold text-red-200 transition-colors hover:bg-red-400/22"
+                className="h-9 rounded-lg px-3 text-xs font-semibold transition-colors"
+                style={{ background: 'rgba(248,113,113,0.12)', color: '#fca5a5' }}
               >
                 Remove
               </button>

@@ -4,6 +4,8 @@
  */
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const SWARM_URL = process.env.HIVE_API_URL ?? 'http://localhost:7433';
 
 export async function GET() {
