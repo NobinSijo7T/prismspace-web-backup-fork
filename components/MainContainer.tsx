@@ -11,13 +11,13 @@ interface DailyQuotes {
 }
 
 const fallbackQuotes: Record<string, DailyQuotes> = {
-  sunday:    { primary: "Rest and recharge, PRISM",        secondary: "User, Serene Sunday!" },
-  monday:    { primary: "Start your week strong, PRISM",   secondary: "User, Happy Monday!" },
-  tuesday:   { primary: "Build momentum today, PRISM",     secondary: "User, Terrific Tuesday!" },
-  wednesday: { primary: "You're halfway there, PRISM",     secondary: "User, Wonderful Wednesday!" },
-  thursday:  { primary: "Push through with power, PRISM",  secondary: "User, Thriving Thursday!" },
-  friday:    { primary: "Celebrate your success, PRISM",   secondary: "User, Happy Friday!" },
-  saturday:  { primary: "Enjoy your achievements, PRISM",  secondary: "User, Spectacular Saturday!" },
+  sunday: { primary: "Rest and recharge, PRISM", secondary: "User, Serene Sunday!" },
+  monday: { primary: "Start your week strong, PRISM", secondary: "User, Happy Monday!" },
+  tuesday: { primary: "Build momentum today, PRISM", secondary: "User, Terrific Tuesday!" },
+  wednesday: { primary: "You're halfway there, PRISM", secondary: "User, Wonderful Wednesday!" },
+  thursday: { primary: "Push through with power, PRISM", secondary: "User, Thriving Thursday!" },
+  friday: { primary: "Celebrate your success, PRISM", secondary: "User, Happy Friday!" },
+  saturday: { primary: "Enjoy your achievements, PRISM", secondary: "User, Spectacular Saturday!" },
 };
 
 const staggerContainer = {

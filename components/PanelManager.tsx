@@ -259,7 +259,7 @@ export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
                   whileTap={{ scale: 0.93 }}
                 >
                   <svg viewBox="0 0 14 14" width="14" height="14" fill="none">
-                    <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                    <path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                 </motion.button>
               </div>

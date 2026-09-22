@@ -1,3 +1,5 @@
+'use client';
+
 import { QRCodeGenerator } from '@/components/tools';
 
 export default function QRGeneratorPage() {

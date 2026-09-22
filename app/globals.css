@@ -215,6 +215,7 @@
 /* ── PrismSpace Component Classes ─────────────────────────────────────── */
 
 @layer components {
+
   /* Cutout Display Title Box */
   .cutout-box {
     display: inline-block;
@@ -391,6 +392,7 @@
 }
 
 @layer utilities {
+
   /* Animation utilities */
   .animate-float-up {
     animation: floatUp 8s linear infinite;
@@ -401,12 +403,15 @@
       transform: translateY(100vh) rotate(0deg);
       opacity: 0;
     }
+
     10% {
       opacity: 1;
     }
+
     90% {
       opacity: 1;
     }
+
     100% {
       transform: translateY(-10px) rotate(360deg);
       opacity: 0;
@@ -464,20 +469,49 @@
 /* ── Keyframe Animations ──────────────────────────────────────────────── */
 
 @keyframes pulseDot {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
+  }
 }
 
 @keyframes flowBeamTravel {
-  0% { top: 0%; opacity: 0; }
-  10% { opacity: 0.95; }
-  90% { opacity: 0.95; }
-  100% { top: calc(100% - 70px); opacity: 0; }
+  0% {
+    top: 0%;
+    opacity: 0;
+  }
+
+  10% {
+    opacity: 0.95;
+  }
+
+  90% {
+    opacity: 0.95;
+  }
+
+  100% {
+    top: calc(100% - 70px);
+    opacity: 0;
+  }
 }
 
 @keyframes statusGlow {
-  0%, 100% { box-shadow: 0 0 8px var(--prism-primary-glow); }
-  50% { box-shadow: 0 0 20px var(--prism-primary-glow), 0 0 40px rgba(0, 223, 129, 0.1); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 8px var(--prism-primary-glow);
+  }
+
+  50% {
+    box-shadow: 0 0 20px var(--prism-primary-glow), 0 0 40px rgba(0, 223, 129, 0.1);
+  }
 }
 
 /* ── Reduced Motion ───────────────────────────────────────────────────── */

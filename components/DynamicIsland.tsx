@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AgentOrb } from '@/components/AgentOrb';
+import { getRemainingSeconds, loadPomodoroState } from '@/lib/pomodoro-state';
 
 interface IslandEvent {
   title: string;
@@ -16,6 +17,23 @@ interface IslandSettings {
   showSeconds: boolean;
   autoExpand: boolean;
   clockFormat: '12' | '24';
+}
+
+interface PomodoroIslandState {
+  active: boolean;
+  remainingSeconds: number;
+  endsAt: number | null;
+}
+
+function loadIslandPomodoroState(): PomodoroIslandState | null {
+  const state = loadPomodoroState();
+  if (!state) return null;
+  const remainingSeconds = getRemainingSeconds(state);
+  return {
+    active: state.isRunning && remainingSeconds > 0,
+    remainingSeconds,
+    endsAt: state.endsAt,
+  };
 }
 
 function loadSettings(): IslandSettings {
@@ -53,6 +71,22 @@ function formatDate(date: Date): string {
   });
 }
 
+function formatDuration(totalSeconds: number): string {
+  const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+  const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
+}
+
+const islandTransition = {
+  duration: 0.24,
+  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+};
+
+const islandContentTransition = {
+  duration: 0.16,
+  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+};
+
 export function DynamicIsland() {
   const [mounted, setMounted] = useState(false);
   const [settings, setSettings] = useState<IslandSettings>(loadSettings);
@@ -60,8 +94,24 @@ export function DynamicIsland() {
   const [hovered, setHovered] = useState(false);
   const [event, setEvent] = useState<IslandEvent | null>(null);
   const [eventVisible, setEventVisible] = useState(false);
+  const [pomodoro, setPomodoro] = useState<PomodoroIslandState | null>(loadIslandPomodoroState);
   const eventTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hoverEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handlePointerEnter = useCallback(() => {
+    if (hoverEndTimerRef.current) clearTimeout(hoverEndTimerRef.current);
+    setHovered(true);
+  }, []);
+
+  const handlePointerLeave = useCallback(() => {
+    if (hoverEndTimerRef.current) clearTimeout(hoverEndTimerRef.current);
+    hoverEndTimerRef.current = setTimeout(() => setHovered(false), 80);
+  }, []);
+
+  useEffect(() => () => {
+    if (hoverEndTimerRef.current) clearTimeout(hoverEndTimerRef.current);
+  }, []);
 
   // Mark mounted on client & load settings
   useEffect(() => {
@@ -112,16 +162,58 @@ export function DynamicIsland() {
     return () => window.removeEventListener('prism:island-event', handleIslandEvent);
   }, [handleIslandEvent]);
 
+  useEffect(() => {
+    const handlePomodoroState = (e: Event) => {
+      const detail = (e as CustomEvent<PomodoroIslandState>).detail;
+      if (detail) setPomodoro(detail);
+    };
+
+    window.addEventListener('prism:pomodoro-state', handlePomodoroState);
+    return () => window.removeEventListener('prism:pomodoro-state', handlePomodoroState);
+  }, []);
+
+  useEffect(() => {
+    if (!pomodoro?.active || !pomodoro.endsAt) return;
+
+    const syncPomodoroCountdown = () => {
+      const remainingSeconds = Math.max(0, Math.ceil((pomodoro.endsAt! - Date.now()) / 1000));
+      if (remainingSeconds > 0) {
+        setPomodoro((current) => current ? { ...current, remainingSeconds } : current);
+        return;
+      }
+
+      setPomodoro((current) => current ? { ...current, active: false, remainingSeconds: 0, endsAt: null } : current);
+      window.dispatchEvent(
+        new CustomEvent('prism:island-event', {
+          detail: {
+            title: 'Focus session complete',
+            subtitle: 'Pomodoro timer finished',
+            duration: 4000,
+          },
+        }),
+      );
+    };
+
+    syncPomodoroCountdown();
+    const interval = setInterval(syncPomodoroCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [pomodoro?.active, pomodoro?.endsAt]);
+
   if (!mounted || !settings.enabled) return null;
 
   const timeStr = formatTime(now, settings.clockFormat, settings.showSeconds);
   const dateStr = formatDate(now);
 
+  const isPomodoroActive = pomodoro?.active === true;
   const isExpanded = hovered || eventVisible;
   const showEvent = eventVisible && event;
+  const islandWidth = showEvent ? 340 : isExpanded ? (isPomodoroActive ? 370 : 300) : isPomodoroActive ? 224 : 130;
+  const islandHeight = isExpanded ? 72 : 34;
 
   return (
     <div
+      onPointerEnter={handlePointerEnter}
+      onPointerLeave={handlePointerLeave}
       style={{
         position: 'fixed',
         top: '16px',
@@ -131,38 +223,40 @@ export function DynamicIsland() {
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
+        width: '340px',
+        height: '72px',
       }}
       aria-label="Dynamic Island"
     >
       <motion.div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
         className="hud-capsule relative overflow-hidden"
         animate={{
-          width: isExpanded ? (showEvent ? 340 : 300) : 130,
-          height: isExpanded ? 72 : 34,
+          width: islandWidth,
+          height: islandHeight,
           borderRadius: isExpanded ? 24 : 9999,
         }}
-        transition={{
-          type: 'spring',
-          stiffness: 400,
-          damping: 28,
-          mass: 0.8,
-        }}
+        transition={islandTransition}
         style={{
           cursor: 'default',
+          transformOrigin: 'center top',
+          willChange: 'width, height, border-radius',
+          isolation: 'isolate',
+          contain: 'layout paint',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
         }}
       >
         {/* Collapsed: time only */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {!isExpanded && (
             <motion.div
               key="collapsed"
-              className="absolute inset-0 flex items-center justify-center"
-              initial={{ opacity: 0, scale: 0.85 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              transition={{ duration: 0.2 }}
+              className="absolute inset-0 flex items-center justify-center gap-2"
+              initial={{ opacity: 0, y: -2 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 2 }}
+              transition={islandContentTransition}
+              style={{ pointerEvents: 'none' }}
             >
               <span
                 style={{
@@ -176,20 +270,45 @@ export function DynamicIsland() {
               >
                 {timeStr}
               </span>
+              {isPomodoroActive && (
+                <>
+                  <span
+                    style={{
+                      width: '1px',
+                      height: '14px',
+                      background: 'rgba(0, 223, 129, 0.35)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      color: '#00df81',
+                      fontVariantNumeric: 'tabular-nums',
+                      letterSpacing: '0.02em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    POMO {formatDuration(pomodoro.remainingSeconds)}
+                  </span>
+                </>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
 
         {/* Expanded: time + date / event */}
-        <AnimatePresence>
+        <AnimatePresence initial={false}>
           {isExpanded && (
             <motion.div
               key="expanded"
               className="absolute inset-0 flex items-center justify-between px-[18px]"
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              transition={{ duration: 0.25, delay: 0.05 }}
+              initial={{ opacity: 0, y: 3 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -3 }}
+              transition={islandContentTransition}
+              style={{ pointerEvents: 'none' }}
             >
               {showEvent ? (
                 // Event notification layout
@@ -270,17 +389,33 @@ export function DynamicIsland() {
                   </div>
 
                   {/* Status pill — live-status-badge pattern */}
-                  <div className="live-status-badge">
-                    <AgentOrb size="18px" provider="groq" />
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      AGENT ACTIVE
-                    </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                    <div className="live-status-badge">
+                      <AgentOrb size="18px" provider="groq" />
+                      <span
+                        style={{
+                          fontSize: '10px',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        AGENT ACTIVE
+                      </span>
+                    </div>
+                    {isPomodoroActive && (
+                      <span
+                        style={{
+                          fontFamily: "'JetBrains Mono', monospace",
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          color: '#00df81',
+                          fontVariantNumeric: 'tabular-nums',
+                          letterSpacing: '0.04em',
+                        }}
+                      >
+                        POMODORO {formatDuration(pomodoro.remainingSeconds)}
+                      </span>
+                    )}
                   </div>
                 </>
               )}

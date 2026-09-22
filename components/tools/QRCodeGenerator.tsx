@@ -203,7 +203,7 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 // ── Main component ────────────────────────────────────────────────────────────
 export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
   const [qrType, setQRType] = useState<QRType>('url');
-  const [qrData, setQRData] = useState('');
+  const [qrData, setQRData] = useState('https://prismspace.io');
   const [qrDataURL, setQRDataURL] = useState('');
   const [errorLevel, setErrorLevel] = useState<ErrorCorrectionLevel>('M');
   const [size, setSize] = useState(300);
@@ -235,7 +235,12 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
       case 'wifi': dataToEncode = `WIFI:T:${wifiEncryption};S:${wifiSSID};P:${wifiPassword};H:${wifiHidden ? 'true' : 'false'};;`; break;
       case 'vcard': dataToEncode = `BEGIN:VCARD\nVERSION:3.0\nFN:${vcardName}\nTEL:${vcardPhone}\nEMAIL:${vcardEmail}\nORG:${vcardOrg}\nURL:${vcardUrl}\nEND:VCARD`; break;
     }
+    
+    // For wifi and vcard, check if required fields are filled
+    if (qrType === 'wifi' && !wifiSSID) return;
+    if (qrType === 'vcard' && !vcardName) return;
     if (!dataToEncode && qrType !== 'wifi' && qrType !== 'vcard') return;
+    
     try {
       const canvas = canvasRef.current;
       if (!canvas) return;
@@ -259,6 +264,7 @@ export function QRCodeGenerator({ onClose }: QRCodeGeneratorProps) {
 
   useEffect(() => {
     generateQRCode();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qrData, qrType, errorLevel, size, darkColor, lightColor, margin, includeMargin,
     wifiSSID, wifiPassword, wifiEncryption, wifiHidden,
     vcardName, vcardPhone, vcardEmail, vcardOrg, vcardUrl]);

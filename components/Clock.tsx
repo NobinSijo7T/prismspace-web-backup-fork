@@ -72,17 +72,23 @@ export function Clock() {
   return (
     <motion.div 
       className={`text-[12rem] cursor-pointer transition-colors duration-300 leading-none
-                  hover:scale-[1.02] ${styleClass}`}
+                  ${styleClass}`}
       style={{ 
         color: clockColor,
         textShadow: clockColor === '#000000' 
           ? '0 4px 30px rgba(255, 255, 255, 0.2)' 
           : '0 4px 25px rgba(0, 0, 0, 0.7), 0 0 50px rgba(0, 0, 0, 0.4)',
-        transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s ease',
+        transformOrigin: 'center',
+        willChange: 'transform',
       }}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.995 }}
+      transition={{
+        opacity: { duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.1 },
+        scale: { duration: 0.18, ease: [0.16, 1, 0.3, 1] },
+      }}
     >
       {time || '00:00'}
     </motion.div>
