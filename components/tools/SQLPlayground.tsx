@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { GradientButton } from '@/components/kokonutui/gradient-button';
 
 interface SQLPlaygroundProps {
   onClose: () => void;
@@ -772,17 +773,21 @@ export function SQLPlayground({ onClose }: SQLPlaygroundProps) {
 
             {/* High-Voltage Run Bar */}
             <div className="sql-run-bar">
-              <button
-                className="sql-run-btn"
+              <GradientButton
+                className="h-9 px-4 text-xs font-mono tracking-wider"
                 onClick={execute}
+                loading={status.type === 'running'}
                 disabled={!ready || status.type === 'running'}
                 title="Execute SQL query (Ctrl+Enter)"
+                variant="emerald"
+                icon={
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                  </svg>
+                }
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-                  <polygon points="5 3 19 12 5 21 5 3" />
-                </svg>
-                <span>RUN QUERY</span>
-              </button>
+                {status.type === 'running' ? 'RUNNING...' : 'RUN QUERY'}
+              </GradientButton>
 
               {/* Status Telemetry */}
               <div className={`sql-telemetry-pill sql-telemetry-${status.type}`}>

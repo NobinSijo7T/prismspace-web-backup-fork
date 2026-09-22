@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { CosmicButton } from '@/components/ui/cosmic-button';
 
 interface Note {
   id: number;
@@ -397,36 +398,14 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
           </motion.div>
 
           {/* Download button */}
-          <button
+          <CosmicButton
+            as="button"
             onClick={downloadNote}
             title="Download note"
-            className="notepad-btn"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 8,
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              color: 'rgba(255, 255, 255, 0.5)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(0, 223, 129, 0.1)';
-              e.currentTarget.style.borderColor = 'rgba(0, 223, 129, 0.3)';
-              e.currentTarget.style.color = '#00df81';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-              e.currentTarget.style.color = 'rgba(255, 255, 255, 0.5)';
-            }}
+            className="w-[34px] h-[34px] min-w-0 min-h-0 p-0"
           >
             <DownloadIcon />
-          </button>
+          </CosmicButton>
 
           {/* Close button */}
           <button
@@ -648,36 +627,15 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
         </AnimatePresence>
 
         {/* Add new tab */}
-        <button
+        <CosmicButton
+          as="button"
           onClick={addNewTab}
           title="New note"
-          className="notepad-btn"
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            background: 'rgba(255, 255, 255, 0.02)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            color: 'rgba(255, 255, 255, 0.35)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(0, 223, 129, 0.1)';
-            e.currentTarget.style.borderColor = 'rgba(0, 223, 129, 0.3)';
-            e.currentTarget.style.color = '#00df81';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
-            e.currentTarget.style.color = 'rgba(255, 255, 255, 0.35)';
-          }}
+          className="w-8 h-8 min-w-0 min-h-0 p-0"
         >
           <PlusIcon />
-        </button>
+        </CosmicButton>
+
       </div>
 
       {/* ── Editor area ── */}

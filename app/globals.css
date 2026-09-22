@@ -5,7 +5,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Bitcount+Grid+Single:wght@100..900&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap');
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -117,6 +116,7 @@
     --font-heading: 'Space Grotesk', sans-serif;
     --font-sans: 'Space Grotesk', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
+    --animate-rainbow: rainbow var(--speed, 2s) infinite linear;
   }
 
   /* ── PrismSpace High-Voltage Developer OS Design Tokens ─────────────── */
@@ -209,6 +209,18 @@
     --chart-3: #94a3b8;
     --chart-4: #090c12;
     --chart-5: #06190e;
+    --color-1: oklch(66.2% 0.225 25.9);
+    --color-2: oklch(60.4% 0.26 302);
+    --color-3: oklch(69.6% 0.165 251);
+    --color-4: oklch(80.2% 0.134 225);
+    --color-5: oklch(90.7% 0.231 133);
+  }
+  .dark {
+    --color-1: oklch(66.2% 0.225 25.9);
+    --color-2: oklch(60.4% 0.26 302);
+    --color-3: oklch(69.6% 0.165 251);
+    --color-4: oklch(80.2% 0.134 225);
+    --color-5: oklch(90.7% 0.231 133);
   }
 }
 
@@ -535,5 +547,16 @@
   * {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+@theme inline {
+  @keyframes rainbow {
+  0% {
+    background-position: 0%;
+    }
+  100% {
+    background-position: 200%;
+    }
   }
 }

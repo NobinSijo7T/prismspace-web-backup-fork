@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Star, ExternalLink, Loader2 } from 'lucide-react';
+import { CosmicButton } from '@/components/ui/cosmic-button';
 import type { Bookmark, BookmarkFormData } from '@/lib/bookmark-canvas/types';
 import { STICKY_COLORS } from '@/lib/bookmark-canvas/types';
 import { getFaviconUrl, isValidUrl, normalizeUrl } from '@/lib/bookmark-canvas/utils';
@@ -311,12 +312,13 @@ export function BookmarkModal({
                 >
                   Cancel
                 </button>
-                <button
+                <CosmicButton
+                  as="button"
                   type="submit"
-                  className="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium bg-violet-600 hover:bg-violet-500 text-white transition-all active:scale-[0.98]"
+                  className="flex-1"
                 >
                   {editingBookmark ? 'Save Changes' : 'Add Bookmark'}
-                </button>
+                </CosmicButton>
               </div>
             </form>
           </motion.div>

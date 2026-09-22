@@ -95,6 +95,9 @@ export default {
         fadeInUp: 'fadeInUp 1s ease-in-out',
         fadeInDown: 'fadeInDown 0.8s ease-in-out',
         bounce: 'bounce 2s infinite',
+        rainbow: 'rainbow var(--speed, 2s) infinite linear',
+        'cosmic-spin': 'cosmic-spin 3s linear infinite',
+        'cosmic-spin-slow': 'cosmic-spin-slow 5s linear infinite',
       },
       keyframes: {
         fadeInUp: {
@@ -104,6 +107,18 @@ export default {
         fadeInDown: {
           '0%': { opacity: '0', transform: 'translateY(-30px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        rainbow: {
+          '0%': { 'background-position': '0%' },
+          '100%': { 'background-position': '200%' },
+        },
+        'cosmic-spin': {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
+        },
+        'cosmic-spin-slow': {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(-360deg)' },
         },
       },
     },

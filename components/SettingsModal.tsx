@@ -10,6 +10,7 @@ import { AppleSwitch } from '@/components/unlumen-ui/apple-switch';
 import ExposureSlider from '@/components/ui/smoothui/exposure-slider';
 import { db, UserProfile } from '@/lib/db';
 import ProfileCard from './ProfileCard';
+import { CosmicButton } from '@/components/ui/cosmic-button';
 
 type SettingsSection = 'clock' | 'themes' | 'stats' | 'quotes' | 'extras' | 'profile';
 type BackgroundMediaType = 'image' | 'video';
@@ -1268,7 +1269,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 <div className="sm-color-input-wrap" style={{ marginBottom: 12 }}>
                   <input type="color" value={clockColor} onChange={(e) => handleColorChange(e.target.value)} className="sm-color-swatch" style={{ backgroundColor: clockColor }} />
                   <input type="text" value={clockColor} onChange={(e) => handleColorChange(e.target.value)} className="sm-color-text-input" maxLength={7} placeholder="#ffffff" />
-                  <button onClick={() => handleColorChange('#ffffff')} className="sm-color-reset-btn">Reset</button>
+                  <CosmicButton as="button" onClick={() => handleColorChange('#ffffff')} className="h-7 text-[11px] px-2.5">Reset</CosmicButton>
                 </div>
                 {colorHistory.length > 0 && (
                   <div>
@@ -1543,13 +1544,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                             placeholder="Enter display name"
                             autoFocus
                           />
-                          <button onClick={async () => { const t = tempUsername.trim(); if (t) { setUsername(t); await db.user_profile.update('current', { username: t, updatedAt: new Date() }); setIsEditingUsername(false); } }} className="sm-save-btn">Save</button>
+                          <CosmicButton as="button" onClick={async () => { const t = tempUsername.trim(); if (t) { setUsername(t); await db.user_profile.update('current', { username: t, updatedAt: new Date() }); setIsEditingUsername(false); } }} className="h-8 text-xs px-3">Save</CosmicButton>
                           <button onClick={() => setIsEditingUsername(false)} className="sm-cancel-btn">Cancel</button>
                         </>
                       ) : (
                         <>
                           <div className="sm-input" style={{ flex: 1, cursor: 'default' }}>{username}</div>
-                          <button onClick={() => { setTempUsername(username); setIsEditingUsername(true); }} className="sm-edit-btn">Edit</button>
+                          <CosmicButton as="button" onClick={() => { setTempUsername(username); setIsEditingUsername(true); }} className="h-8 text-xs px-3">Edit</CosmicButton>
                         </>
                       )}
                     </div>

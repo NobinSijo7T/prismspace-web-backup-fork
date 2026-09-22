@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 /**
  * components/AgentSwarm.tsx
@@ -31,6 +31,8 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
+import { StatefulButton } from '@/components/ui/stateful-button';
+import { GradientButton } from '@/components/kokonutui/gradient-button';
 
 // ── Custom dark-themed Select component ─────────────────────────────────────
 interface SelectOption { value: string; label: ReactNode; }
@@ -915,37 +917,16 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   </div>
 
                   {/* Launch CTA Button */}
-                  <motion.button
+                  <GradientButton
                     type="submit"
+                    loading={launching}
                     disabled={!objective.trim() || launching || !backendOnline}
-                    className="flex-shrink-0 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold tracking-wide transition-all disabled:cursor-not-allowed"
-                    style={{
-                      background: !objective.trim() || launching || !backendOnline
-                        ? 'var(--prism-card)'
-                        : 'var(--prism-primary)',
-                      color: !objective.trim() || launching || !backendOnline
-                        ? 'var(--prism-muted)'
-                        : '#000',
-                      borderRadius: 'var(--prism-radius-xl)',
-                      boxShadow: objective.trim() && !launching && backendOnline
-                        ? '0 0 24px rgba(0,223,129,0.35)'
-                        : 'none',
-                    }}
-                    whileHover={objective.trim() && !launching && backendOnline ? { scale: 1.008 } : {}}
-                    whileTap={objective.trim() && !launching && backendOnline ? { scale: 0.985 } : {}}
+                    variant="emerald"
+                    className="flex-shrink-0 h-11 w-full text-sm font-bold tracking-wide"
+                    icon={!launching ? <Send className="size-4" /> : undefined}
                   >
-                    {launching ? (
-                      <>
-                        <GridLoader color="#000" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
-                        <span>Deploying Swarm Nodes...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Send className="size-4" />
-                        <span>Launch Swarm Orchestration</span>
-                      </>
-                    )}
-                  </motion.button>
+                    {launching ? 'Deploying Swarm Nodes...' : 'Launch Swarm Orchestration'}
+                  </GradientButton>
                 </div>
 
                 {/* Right: Controls (lg:col-span-5) */}
@@ -1057,9 +1038,12 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                           Disconnect
                         </button>
                       ) : (
-                        <button
+                        <GradientButton
                           type="button"
+                          loading={gmailLoading}
                           disabled={gmailLoading}
+                          variant="emerald"
+                          className="h-8 px-3 text-xs"
                           onClick={async () => {
                             setGmailLoading(true);
                             try {
@@ -1070,11 +1054,9 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                               setGmailLoading(false);
                             }
                           }}
-                          className="rounded-lg px-3 py-1.5 text-xs font-semibold"
-                          style={{ background: 'var(--prism-primary)', color: '#000' }}
                         >
-                          {gmailLoading ? '...' : 'Connect'}
-                        </button>
+                          {gmailLoading ? 'Connecting...' : 'Connect'}
+                        </GradientButton>
                       )}
                     </div>
                   </div>
@@ -1711,24 +1693,16 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                           {mcpMessage}
                         </p>
                       )}
-                      <motion.button
+                      <GradientButton
                         type="submit"
+                        loading={savingMcpToken}
                         disabled={savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()}
-                        className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl text-sm font-bold transition-all disabled:cursor-not-allowed mt-2"
-                        style={{
-                          background: savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()
-                            ? 'var(--prism-board)'
-                            : 'var(--prism-primary)',
-                          color: savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()
-                            ? 'var(--prism-muted)'
-                            : '#000',
-                          boxShadow: !savingMcpToken && mcpEnvKey.trim() && mcpToken.trim() ? '0 0 20px rgba(0,223,129,0.25)' : 'none',
-                        }}
-                        whileTap={{ scale: 0.98 }}
+                        variant="emerald"
+                        className="h-11 w-full text-sm font-bold mt-2"
+                        icon={<KeyRound className="size-4" />}
                       >
-                        <KeyRound className="size-4" />
                         {savingMcpToken ? 'Saving Token...' : 'Save MCP Token'}
-                      </motion.button>
+                      </GradientButton>
                     </form>
                   </div>
 

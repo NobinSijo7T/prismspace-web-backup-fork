@@ -3,6 +3,7 @@
 import NumberFlow from '@number-flow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus, Settings2, X, Check } from 'lucide-react';
+import { CosmicButton } from '@/components/ui/cosmic-button';
 import { useEffect, useRef, useState } from 'react';
 import { getRemainingSeconds, loadPomodoroState, savePomodoroState } from '@/lib/pomodoro-state';
 
@@ -827,9 +828,13 @@ export function PomodoroTimer({ onClose: _onClose }: PomodoroTimerProps) {
                 </div>
               </div>
 
-              <button className="pt-apply-btn" onClick={applySettings}>
+              <CosmicButton
+                as="button"
+                className="w-full text-xs font-bold tracking-wider uppercase"
+                onClick={applySettings}
+              >
                 Apply & Reset
-              </button>
+              </CosmicButton>
             </motion.div>
           </>
         )}

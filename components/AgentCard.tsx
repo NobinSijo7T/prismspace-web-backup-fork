@@ -20,6 +20,7 @@ import {
 
 import { AgentOrb } from '@/components/AgentOrb';
 import ShaderRevealTransition from '@/components/ui/smoothui/shader-reveal-transition';
+import { StatefulButton } from '@/components/ui/stateful-button';
 
 interface AgentCardProps {
   agent: SwarmAgent;
@@ -171,8 +172,9 @@ export function AgentCard({ agent, isSelected, onSelect, onRefresh }: AgentCardP
         {/* HITL approval buttons */}
         {agent.status === 'awaiting_approval' && (
           <div className="flex gap-2 mt-3 pt-2" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
-            <button
+            <StatefulButton
               onClick={(e) => handleApprove(true, e)}
+              loading={approving}
               disabled={approving}
               className="flex-1 py-1.5 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all"
               style={{
@@ -181,10 +183,11 @@ export function AgentCard({ agent, isSelected, onSelect, onRefresh }: AgentCardP
                 color: 'var(--prism-primary)',
               }}
             >
-              {approving ? '…' : '✓ Approve'}
-            </button>
-            <button
+              ✓ Approve
+            </StatefulButton>
+            <StatefulButton
               onClick={(e) => handleApprove(false, e)}
+              loading={approving}
               disabled={approving}
               className="flex-1 py-1.5 rounded-lg text-[11px] font-mono font-bold tracking-wider uppercase transition-all"
               style={{
@@ -193,8 +196,8 @@ export function AgentCard({ agent, isSelected, onSelect, onRefresh }: AgentCardP
                 color: '#fca5a5',
               }}
             >
-              {approving ? '…' : '✕ Reject'}
-            </button>
+              ✕ Reject
+            </StatefulButton>
           </div>
         )}
 
