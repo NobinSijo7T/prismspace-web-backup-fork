@@ -2,7 +2,7 @@
 
 import React, { useId } from 'react';
 
-export type ModernIconVariant = 'cyber' | 'prism' | 'minimal' | 'matrix' | 'phantom';
+export type ModernIconVariant = 'cyber' | 'prism' | 'minimal' | 'zenith' | 'mono' | 'matrix' | 'phantom';
 
 export interface ModernUserIconProps {
   variant?: ModernIconVariant | string;
@@ -23,6 +23,129 @@ export function ModernUserIcon({
     : variant) as ModernIconVariant;
 
   switch (normalizedVariant) {
+    case 'zenith':
+      return (
+        <svg
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={className}
+          width={size}
+          height={size}
+        >
+          <defs>
+            <radialGradient id={`${id}-zen-bg`} cx="50%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#111622" />
+              <stop offset="100%" stopColor="#05070a" />
+            </radialGradient>
+            <linearGradient id={`${id}-zen-head`} x1="18" y1="8" x2="18" y2="19" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="100%" stopColor="#cbd5e1" />
+            </linearGradient>
+            <linearGradient id={`${id}-zen-torso`} x1="18" y1="22" x2="18" y2="34" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#1e293b" />
+              <stop offset="100%" stopColor="#090d16" />
+            </linearGradient>
+          </defs>
+
+          {/* Deep Obsidian Background */}
+          <circle cx="18" cy="18" r="18" fill={`url(#${id}-zen-bg)`} />
+          <circle cx="18" cy="18" r="17.25" stroke="rgba(255, 255, 255, 0.08)" strokeWidth="0.75" />
+
+          {/* Torso */}
+          <path
+            d="M 8.5 32.5 C 8.5 26.2 13 22.8 18 22.8 C 23 22.8 27.5 26.2 27.5 32.5 C 27.5 33 27 33.5 26.5 33.5 L 9.5 33.5 C 9 33.5 8.5 33 8.5 32.5 Z"
+            fill={`url(#${id}-zen-torso)`}
+          />
+
+          {/* Subtle Electric Mint Collar Accent Arc */}
+          <path
+            d="M 14.5 23.5 C 15.5 24.8 16.7 25.4 18 25.4 C 19.3 25.4 20.5 24.8 21.5 23.5"
+            stroke="#00df81"
+            strokeWidth="1.2"
+            strokeLinecap="round"
+          />
+
+          {/* Head */}
+          <circle cx="18" cy="13.2" r="5.2" fill={`url(#${id}-zen-head)`} />
+        </svg>
+      );
+
+    case 'mono':
+      return (
+        <svg
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={className}
+          width={size}
+          height={size}
+        >
+          <defs>
+            <radialGradient id={`${id}-mono-bg`} cx="50%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#141923" />
+              <stop offset="100%" stopColor="#07090e" />
+            </radialGradient>
+          </defs>
+
+          {/* Deep Obsidian Background */}
+          <circle cx="18" cy="18" r="18" fill={`url(#${id}-mono-bg)`} />
+          <circle cx="18" cy="18" r="17.25" stroke="rgba(255, 255, 255, 0.06)" strokeWidth="0.75" />
+
+          {/* Minimalist Stroke Torso */}
+          <path
+            d="M 9.5 32.5 C 9.5 26.2 13.2 23 18 23 C 22.8 23 26.5 26.2 26.5 32.5"
+            stroke="#e2e8f0"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
+
+          {/* Minimalist Stroke Head */}
+          <circle cx="18" cy="13.5" r="4.8" stroke="#ffffff" strokeWidth="1.5" />
+
+          {/* Single Electric Mint Core Dot */}
+          <circle cx="18" cy="13.5" r="1.5" fill="#00df81" />
+        </svg>
+      );
+
+    case 'minimal':
+      return (
+        <svg
+          viewBox="0 0 36 36"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          className={className}
+          width={size}
+          height={size}
+        >
+          <defs>
+            <radialGradient id={`${id}-min-bg`} cx="50%" cy="30%" r="70%">
+              <stop offset="0%" stopColor="#1e2433" />
+              <stop offset="100%" stopColor="#0b0e14" />
+            </radialGradient>
+            <linearGradient id={`${id}-min-body`} x1="18" y1="8" x2="18" y2="33" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="100%" stopColor="#94a3b8" />
+            </linearGradient>
+          </defs>
+
+          <circle cx="18" cy="18" r="18" fill={`url(#${id}-min-bg)`} />
+          <circle cx="18" cy="18" r="17" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="0.75" />
+
+          {/* Torso */}
+          <path
+            d="M 8.5 32.5 C 8.5 26.2 13.2 23 18 23 C 22.8 23 27.5 26.2 27.5 32.5 C 27.5 33 27 33.5 26.5 33.5 L 9.5 33.5 C 9 33.5 8.5 33 8.5 32.5 Z"
+            fill={`url(#${id}-min-body)`}
+          />
+
+          {/* Head */}
+          <circle cx="18" cy="13.5" r="5.5" fill={`url(#${id}-min-body)`} />
+
+          {/* Status pill dot */}
+          <circle cx="26" cy="26" r="2.5" fill="#00df81" stroke="#0b0e14" strokeWidth="1" />
+        </svg>
+      );
+
     case 'prism':
       return (
         <svg
@@ -73,44 +196,6 @@ export function ModernUserIcon({
           {/* Glass specular sheen */}
           <circle cx="18" cy="13.2" r="5.5" fill={`url(#${id}-prism-sheen)`} />
           <circle cx="16.2" cy="11.2" r="1.3" fill="#ffffff" fillOpacity="0.5" />
-        </svg>
-      );
-
-    case 'minimal':
-      return (
-        <svg
-          viewBox="0 0 36 36"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={className}
-          width={size}
-          height={size}
-        >
-          <defs>
-            <radialGradient id={`${id}-min-bg`} cx="50%" cy="30%" r="70%">
-              <stop offset="0%" stopColor="#1e2433" />
-              <stop offset="100%" stopColor="#0b0e14" />
-            </radialGradient>
-            <linearGradient id={`${id}-min-body`} x1="18" y1="8" x2="18" y2="33" gradientUnits="userSpaceOnUse">
-              <stop offset="0%" stopColor="#ffffff" />
-              <stop offset="100%" stopColor="#94a3b8" />
-            </linearGradient>
-          </defs>
-
-          <circle cx="18" cy="18" r="18" fill={`url(#${id}-min-bg)`} />
-          <circle cx="18" cy="18" r="17" stroke="rgba(255, 255, 255, 0.12)" strokeWidth="0.75" />
-
-          {/* Torso */}
-          <path
-            d="M 8.5 32.5 C 8.5 26.2 13.2 23 18 23 C 22.8 23 27.5 26.2 27.5 32.5 C 27.5 33 27 33.5 26.5 33.5 L 9.5 33.5 C 9 33.5 8.5 33 8.5 32.5 Z"
-            fill={`url(#${id}-min-body)`}
-          />
-
-          {/* Head */}
-          <circle cx="18" cy="13.5" r="5.5" fill={`url(#${id}-min-body)`} />
-
-          {/* Status pill dot */}
-          <circle cx="26" cy="26" r="2.5" fill="#00df81" stroke="#0b0e14" strokeWidth="1" />
         </svg>
       );
 
@@ -306,6 +391,10 @@ export function ModernUserIcon({
 export function getModernIconSvgDataUri(variant: string = 'cyber'): string {
   const norm = variant?.startsWith('modern:') ? variant.replace('modern:', '') : variant;
   switch (norm) {
+    case 'zenith':
+      return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%2305070a'/><circle cx='18' cy='18' r='17.25' stroke='rgba(255,255,255,0.08)' stroke-width='0.75'/><path d='M8.5 32.5 C8.5 26.2 13 22.8 18 22.8 C23 22.8 27.5 26.2 27.5 32.5 Z' fill='%231e293b'/><path d='M14.5 23.5 C15.5 24.8 16.7 25.4 18 25.4 C19.3 25.4 20.5 24.8 21.5 23.5' stroke='%2300df81' stroke-width='1.2' stroke-linecap='round'/><circle cx='18' cy='13.2' r='5.2' fill='%23f1f5f9'/></svg>`;
+    case 'mono':
+      return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><circle cx='18' cy='18' r='18' fill='%2307090e'/><circle cx='18' cy='18' r='17.25' stroke='rgba(255,255,255,0.06)' stroke-width='0.75'/><path d='M9.5 32.5 C9.5 26.2 13.2 23 18 23 C22.8 23 26.5 26.2 26.5 32.5' stroke='%23e2e8f0' stroke-width='1.5' stroke-linecap='round'/><circle cx='18' cy='13.5' r='4.8' stroke='%23ffffff' stroke-width='1.5'/><circle cx='18' cy='13.5' r='1.5' fill='%2300df81'/></svg>`;
     case 'prism':
       return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><linearGradient id='pg' x1='8' y1='8' x2='28' y2='32'><stop offset='0%' stop-color='%2300df81'/><stop offset='50%' stop-color='%2300d2ff'/><stop offset='100%' stop-color='%23b5179e'/></linearGradient><circle cx='18' cy='18' r='18' fill='%23080712'/><circle cx='18' cy='18' r='16.5' stroke='url(%23pg)' stroke-opacity='0.4' stroke-width='0.8'/><path d='M8.5 32.5 C8.5 25.8 13.2 22.8 18 22.8 C22.8 22.8 27.5 25.8 27.5 32.5 Z' fill='url(%23pg)'/><circle cx='18' cy='13.2' r='5.5' fill='url(%23pg)'/><circle cx='16.2' cy='11.2' r='1.3' fill='%23fff' fill-opacity='0.5'/></svg>`;
     case 'minimal':

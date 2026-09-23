@@ -42,7 +42,7 @@ function Avatar({ avatar, name }: ProfileDropdownData) {
     avatar.startsWith('modern:');
   const modernVariant = avatar?.startsWith('modern:')
     ? avatar.replace('modern:', '')
-    : 'cyber';
+    : 'zenith';
 
   return (
     <span

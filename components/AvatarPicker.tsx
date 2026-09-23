@@ -9,9 +9,11 @@ interface AvatarPickerProps {
 }
 
 export const MODERN_AVATARS: { id: string; name: string; variant: ModernIconVariant; tag: string }[] = [
+  { id: 'modern:zenith', name: 'Zenith Minimal', variant: 'zenith', tag: 'Pure Sleek' },
+  { id: 'modern:mono', name: 'Mono Contour', variant: 'mono', tag: 'Minimal Line' },
+  { id: 'modern:minimal', name: 'Minimal Luxe', variant: 'minimal', tag: 'Platinum' },
   { id: 'modern:cyber', name: 'Cyber Operator', variant: 'cyber', tag: 'Neon Visor' },
   { id: 'modern:prism', name: 'Prism Hologram', variant: 'prism', tag: 'Refraction' },
-  { id: 'modern:minimal', name: 'Minimal Luxe', variant: 'minimal', tag: 'Platinum' },
   { id: 'modern:matrix', name: 'Neural Matrix', variant: 'matrix', tag: 'Digital Wire' },
   { id: 'modern:phantom', name: 'Stealth Obsidian', variant: 'phantom', tag: 'Cyan Glow' },
 ];
@@ -27,7 +29,7 @@ export function AvatarPicker({ currentAvatar, onAvatarChange }: AvatarPickerProp
   const [showPicker, setShowPicker] = useState(false);
   const isImage = currentAvatar?.startsWith('data:image/') || currentAvatar?.startsWith('/') || currentAvatar?.startsWith('http');
   const isModern = !currentAvatar || currentAvatar === '👤' || currentAvatar === 'default' || currentAvatar === 'user' || currentAvatar.startsWith('modern:');
-  const modernVariant = currentAvatar?.startsWith('modern:') ? currentAvatar.replace('modern:', '') : 'cyber';
+  const modernVariant = currentAvatar?.startsWith('modern:') ? currentAvatar.replace('modern:', '') : 'zenith';
   const isEmoji = !isImage && !isModern && (currentAvatar?.length <= 4);
 
   const [tab, setTab] = useState<'modern' | 'emoji' | 'upload'>(isModern ? 'modern' : isImage ? 'upload' : 'emoji');
@@ -75,7 +77,7 @@ export function AvatarPicker({ currentAvatar, onAvatarChange }: AvatarPickerProp
           </div>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-[#090d16]">
-            <ModernUserIcon variant="cyber" className="w-full h-full" />
+            <ModernUserIcon variant="zenith" className="w-full h-full" />
           </div>
         )}
 
