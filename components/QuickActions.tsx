@@ -66,7 +66,7 @@ export function QuickActions({
         <ProfileDropdown
           data={{
             name: profile?.username || 'User',
-            avatar: profile?.avatar || '👤',
+            avatar: profile?.avatar || 'modern:cyber',
           }}
           onSettingsClick={onSettingsClick}
         />

@@ -2,6 +2,7 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
+  darkMode: "class",
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -113,12 +114,12 @@ export default {
           '100%': { 'background-position': '200%' },
         },
         'cosmic-spin': {
-          from: { transform: 'rotate(0deg)' },
-          to: { transform: 'rotate(360deg)' },
+          from: { transform: 'rotate(0deg) translateZ(0)' },
+          to: { transform: 'rotate(360deg) translateZ(0)' },
         },
         'cosmic-spin-slow': {
-          from: { transform: 'rotate(0deg)' },
-          to: { transform: 'rotate(-360deg)' },
+          from: { transform: 'rotate(0deg) translateZ(0)' },
+          to: { transform: 'rotate(-360deg) translateZ(0)' },
         },
       },
     },

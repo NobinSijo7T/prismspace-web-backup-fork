@@ -19,7 +19,7 @@ const CUSTOM_WALLPAPER_KEY = 'custom-wallpaper';
 const DEFAULT_BACKGROUND: StoredBackgroundSetting = {
   source: 'static',
   mediaType: 'image',
-  path: '/images/BG.png',
+  path: '/bg.png',
   name: 'Default',
 };
 
@@ -28,7 +28,7 @@ function getMediaTypeFromPath(path: string): BackgroundMediaType {
 }
 
 function getLegacyBackgroundSetting(value: string | null): StoredBackgroundSetting {
-  if (!value || value === 'default') return DEFAULT_BACKGROUND;
+  if (!value || value === 'default' || value === '/images/BG.png') return DEFAULT_BACKGROUND;
 
   if (value === 'custom') {
     return {
@@ -47,7 +47,7 @@ function getLegacyBackgroundSetting(value: string | null): StoredBackgroundSetti
 
 export function BackgroundManager() {
   const [bgType, setBgType] = useState<BackgroundMediaType>('image');
-  const [bgUrl, setBgUrl] = useState<string>('/images/BG.png');
+  const [bgUrl, setBgUrl] = useState<string>(DEFAULT_BACKGROUND.path!);
   const [opacity, setOpacity] = useState<number>(100);
 
   useEffect(() => {

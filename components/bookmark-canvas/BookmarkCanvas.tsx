@@ -10,10 +10,23 @@ import {
 import { AnimatePresence } from 'motion/react';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
+import {
+  MousePointer2,
+  Move,
+  Plus,
+  Star,
+  Maximize2,
+  FileDown,
+  Upload,
+  Lock,
+  Edit2,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { BookmarkCard } from './BookmarkCard';
 import { BookmarkModal } from './BookmarkModal';
 import { ContextMenu } from './ContextMenu';
 import { Toolbar } from './Toolbar';
+import { Toolbar as KokonutToolbar, type ToolbarItem } from '@/components/kokonutui/toolbar';
 import { BookmarkIcon } from '@/components/tools/ToolIcons';
 import { useBookmarks } from '@/hooks/bookmark-canvas/useBookmarks';
 import { useCanvas } from '@/hooks/bookmark-canvas/useCanvas';
@@ -24,9 +37,12 @@ import { copyToClipboard } from '@/lib/bookmark-canvas/utils';
 export function BookmarkCanvas() {
   const canvasRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const dropPositionRef = useRef<{ x: number; y: number } | undefined>(undefined);
 
   // State
+  const [activeTool, setActiveTool] = useState<'select' | 'pan'>('select');
+  const [isLocked, setIsLocked] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -64,7 +80,22 @@ export function BookmarkCanvas() {
     importFromJson,
   } = useBookmarks();
 
-  const { camera, zoomIn, zoomOut, resetZoom } = useCanvas(canvasRef);
+  const { camera, zoomIn, zoomOut, resetZoom } = useCanvas(canvasRef, activeTool === 'pan');
+
+  const favoritesCount = useMemo(() => {
+    return allBookmarks.filter((b) => b.favorite).length;
+  }, [allBookmarks]);
+
+  const handleToolbarFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (file) {
+        importFromJson(file);
+        e.target.value = '';
+      }
+    },
+    [importFromJson]
+  );
 
   // ── Helpers ────────────────────────────────────────────────────
 
@@ -79,6 +110,55 @@ export function BookmarkCanvas() {
     dropPositionRef.current = undefined;
     setModalOpen(true);
   }, []);
+
+  const kokonutToolbarItems: ToolbarItem[] = useMemo(
+    () => [
+      {
+        id: 'select',
+        title: 'Select',
+        icon: MousePointer2,
+        onClick: () => setActiveTool('select'),
+      },
+      {
+        id: 'pan',
+        title: 'Pan',
+        icon: Move,
+        onClick: () => setActiveTool('pan'),
+      },
+      {
+        id: 'add',
+        title: 'Add',
+        icon: Plus,
+        onClick: () => openAddModal(),
+      },
+      {
+        id: 'favorites',
+        title: 'Favorites',
+        icon: Star,
+        badge: favoritesCount > 0 ? favoritesCount : undefined,
+        onClick: () => setShowFavoritesOnly((prev) => !prev),
+      },
+      {
+        id: 'fit',
+        title: 'Fit',
+        icon: Maximize2,
+        onClick: resetZoom,
+      },
+      {
+        id: 'export',
+        title: 'Export',
+        icon: FileDown,
+        onClick: exportToJson,
+      },
+      {
+        id: 'import',
+        title: 'Import',
+        icon: Upload,
+        onClick: () => fileInputRef.current?.click(),
+      },
+    ],
+    [favoritesCount, openAddModal, resetZoom, exportToJson, setShowFavoritesOnly]
+  );
 
   const closeModal = useCallback(() => {
     setModalOpen(false);
@@ -301,7 +381,10 @@ export function BookmarkCanvas() {
       {/* Canvas wrapper */}
       <div
         ref={canvasRef}
-        className="fixed inset-0 overflow-hidden"
+        className={cn(
+          "fixed inset-0 overflow-hidden",
+          activeTool === 'pan' ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
+        )}
         style={{
           background: '#00df81',
         }}
@@ -353,6 +436,8 @@ export function BookmarkCanvas() {
                 bookmark={bm}
                 isSelected={selectedId === bm.id}
                 scale={camera.scale}
+                isLocked={isLocked}
+                isPanMode={activeTool === 'pan'}
                 onSelect={setSelectedId}
                 onDoubleClick={handleCardDoubleClick}
                 onDragStop={updatePosition}
@@ -412,19 +497,64 @@ export function BookmarkCanvas() {
         )}
 
         {/* Hint strip */}
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 pointer-events-none z-10 hidden sm:block">
           <p 
-            className="text-xs text-center"
+            className="text-xs text-center px-3.5 py-1 rounded-full bg-black/50 backdrop-blur-md border border-white/10"
             style={{
               fontFamily: 'JetBrains Mono, monospace',
-              color: '#06190e',
-              opacity: 0.4,
+              color: '#ffffff',
+              opacity: 0.85,
               fontWeight: 600,
             }}
           >
-            Scroll to zoom · Space+drag to pan · Double-click canvas to add
+            {activeTool === 'pan'
+              ? '🖐️ Pan Mode: Drag canvas to navigate'
+              : isLocked
+              ? '🔒 Canvas Locked: Layout is protected from edits'
+              : 'Scroll to zoom · Space+drag to pan · Double-click canvas to add'}
           </p>
         </div>
+      </div>
+
+      {/* Floating KokonutUI Canvas Toolbar Dock */}
+      <div className="fixed bottom-5 sm:bottom-6 left-1/2 -translate-x-1/2 z-[100] max-w-[calc(100%-2rem)]">
+        <KokonutToolbar
+          items={kokonutToolbarItems}
+          selected={showFavoritesOnly ? 'favorites' : activeTool}
+          onSelect={(id) => {
+            if (id === 'select' || id === 'pan') {
+              setActiveTool(id);
+            }
+          }}
+          showToggle={true}
+          isToggled={!isLocked}
+          onToggleChange={(toggled) => {
+            const nextLocked = !toggled;
+            setIsLocked(nextLocked);
+            toast(nextLocked ? '🔒 Canvas locked (Protected)' : '✏️ Canvas unlocked (Edit mode)', {
+              icon: nextLocked ? '🔒' : '✏️',
+            });
+          }}
+          toggleLabels={{ on: 'Edit', off: 'Locked' }}
+          toggleIcons={{ on: Edit2, off: Lock }}
+          notificationMessage={(item) => {
+            if (item.id === 'select') return 'Select mode';
+            if (item.id === 'pan') return 'Pan mode: drag canvas';
+            if (item.id === 'add') return 'New bookmark';
+            if (item.id === 'favorites') return showFavoritesOnly ? 'Showing all' : 'Showing favorites';
+            if (item.id === 'fit') return 'Centered 100%';
+            if (item.id === 'export') return 'Exported JSON';
+            if (item.id === 'import') return 'Import JSON';
+            return item.title;
+          }}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          className="hidden"
+          onChange={handleToolbarFileChange}
+        />
       </div>
 
       {/* Modals & Overlays */}

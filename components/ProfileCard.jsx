@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import './ProfileCard.css';
 
-const DEFAULT_INNER_GRADIENT = 'linear-gradient(145deg,#60496e8c 0%,#71C4FF44 100%)';
+const DEFAULT_INNER_GRADIENT = 'radial-gradient(circle at 50% 12%, rgba(0, 223, 129, 0.16) 0%, rgba(9, 12, 18, 0.96) 65%)';
 
 const ANIMATION_CONFIG = {
   INITIAL_DURATION: 1200,
@@ -33,8 +33,9 @@ const ProfileCardComponent = ({
   handle = 'javicodes',
   status = 'Online',
   contactText = 'Contact',
+  showContactButton = false,
   showUserInfo = true,
-  onContactClick
+  onContactClick = undefined
 }) => {
   const wrapRef = useRef(null);
   const shellRef = useRef(null);
@@ -294,8 +295,8 @@ const ProfileCardComponent = ({
       '--icon': iconUrl ? `url(${iconUrl})` : 'none',
       '--grain': grainUrl ? `url(${grainUrl})` : 'none',
       '--inner-gradient': innerGradient ?? DEFAULT_INNER_GRADIENT,
-      '--behind-glow-color': behindGlowColor ?? 'rgba(125, 190, 255, 0.67)',
-      '--behind-glow-size': behindGlowSize ?? '50%'
+      '--behind-glow-color': behindGlowColor ?? 'rgba(0, 223, 129, 0.35)',
+      '--behind-glow-size': behindGlowSize ?? '60%'
     }),
     [iconUrl, grainUrl, innerGradient, behindGlowColor, behindGlowSize]
   );
@@ -310,9 +311,27 @@ const ProfileCardComponent = ({
       <div ref={shellRef} className="pc-card-shell">
         <section className="pc-card">
           <div className="pc-inside">
+            <div className="pc-grid-overlay" />
             <div className="pc-shine" />
             <div className="pc-glare" />
+
+            {/* Header Details */}
+            <div className="pc-content pc-header-content">
+              <div className="pc-details">
+                <div className="pc-kicker">PRISMSPACE IDENTITY</div>
+                <h3>{name || 'User'}</h3>
+                {title && (
+                  <div className="pc-role-badge">
+                    <span className="pc-role-dot" />
+                    <span>{title}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Central Avatar with glowing pedestal */}
             <div className="pc-content pc-avatar-content">
+              <div className="pc-avatar-halo" />
               <img
                 className="avatar"
                 src={avatarUrl}
@@ -323,7 +342,11 @@ const ProfileCardComponent = ({
                   t.style.display = 'none';
                 }}
               />
-              {showUserInfo && (
+            </div>
+
+            {/* Bottom Glass Capsule */}
+            {showUserInfo && (
+              <div className="pc-content pc-footer-content">
                 <div className="pc-user-info">
                   <div className="pc-user-details">
                     <div className="pc-mini-avatar">
@@ -339,28 +362,40 @@ const ProfileCardComponent = ({
                       />
                     </div>
                     <div className="pc-user-text">
-                      <div className="pc-handle">@{handle}</div>
-                      <div className="pc-status">{status}</div>
+                      <div className="pc-handle">@{handle || 'user'}</div>
+                      <div className="pc-status">
+                        <span className="pc-status-dot" />
+                        <span>{status}</span>
+                      </div>
                     </div>
                   </div>
-                  <button
-                    className="pc-contact-btn"
-                    onClick={handleContactClick}
-                    style={{ pointerEvents: 'auto' }}
-                    type="button"
-                    aria-label={`Contact ${name || 'user'}`}
-                  >
-                    {contactText}
-                  </button>
+                  {showContactButton && (
+                    <button
+                      className="pc-contact-btn"
+                      onClick={handleContactClick}
+                      style={{ pointerEvents: 'auto' }}
+                      type="button"
+                      aria-label={`Contact ${name || 'user'}`}
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="pc-contact-icon"
+                      >
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                      </svg>
+                      <span>{contactText}</span>
+                    </button>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="pc-content">
-              <div className="pc-details">
-                <h3>{name}</h3>
-                <p>{title}</p>
               </div>
-            </div>
+            )}
           </div>
         </section>
       </div>

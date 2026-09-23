@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 
+import { ModernUserIcon } from "@/components/ui/ModernUserIcon";
+
 export interface ProfileDropdownData {
   name: string;
   avatar: string;
@@ -31,17 +33,31 @@ function isImageAvatar(avatar: string) {
 }
 
 function Avatar({ avatar, name }: ProfileDropdownData) {
+  const isImg = isImageAvatar(avatar);
+  const isModern =
+    !avatar ||
+    avatar === '👤' ||
+    avatar === 'default' ||
+    avatar === 'user' ||
+    avatar.startsWith('modern:');
+  const modernVariant = avatar?.startsWith('modern:')
+    ? avatar.replace('modern:', '')
+    : 'cyber';
+
   return (
     <span
-      className="flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-lg"
+      className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center overflow-hidden rounded-full text-lg"
       style={{
-        border: '1px solid rgba(0, 223, 129, 0.2)',
+        border: '1px solid rgba(0, 223, 129, 0.25)',
         background: 'rgba(0, 223, 129, 0.06)',
+        boxShadow: '0 0 10px rgba(0, 223, 129, 0.12)',
       }}
     >
-      {isImageAvatar(avatar) ? (
+      {isImg ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={avatar} alt={name} className="h-full w-full object-cover" />
+      ) : isModern ? (
+        <ModernUserIcon variant={modernVariant} className="h-full w-full" />
       ) : (
         <span aria-hidden="true">{avatar}</span>
       )}

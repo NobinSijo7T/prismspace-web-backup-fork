@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,
@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { StatefulButton } from '@/components/ui/stateful-button';
 import { GradientButton } from '@/components/kokonutui/gradient-button';
+import { AIPrompt, type AIPromptModel } from '@/components/kokonutui/ai-prompt';
 
 // ── Custom dark-themed Select component ─────────────────────────────────────
 interface SelectOption { value: string; label: ReactNode; }
@@ -213,6 +214,13 @@ const MODELS: Record<ModelProvider, string[]> = {
   groq: ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768'],
 };
 
+const SWARM_PROMPT_MODELS: AIPromptModel[] = [
+  { id: 'nvidia/nemotron-3.5-lightning-30b-a3b', name: 'NVIDIA Nemotron 30B', provider: 'nvidia', badge: 'Ultra-Fast' },
+  { id: 'llama-3.3-70b-versatile', name: 'Groq LLaMA 3.3 70B', provider: 'groq', badge: 'Recommended' },
+  { id: 'llama3-70b-8192', name: 'Groq LLaMA 3 70B', provider: 'groq', badge: 'Low Latency' },
+  { id: 'mixtral-8x7b-32768', name: 'Groq Mixtral 8x7B', provider: 'groq', badge: 'Long Context' },
+];
+
 const ACTIVE_SWARM_CHAT_KEY = 'prism.agentSwarm.activeChatId';
 
 function createChatId() {
@@ -243,13 +251,7 @@ const VIEW_TABS: { id: SwarmView; label: string; icon: typeof Send }[] = [
   { id: 'settings', label: 'Settings', icon: Settings },
 ];
 
-// ── Motion presets ──────────────────────────────────────────────────────────
-const viewTransition = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: { duration: 0.22, ease: [0.16, 1, 0.3, 1] as const },
-};
+
 
 export function AgentSwarm({ onClose }: AgentSwarmProps) {
   // ── State ─────────────────────────────────────────────────────────────────
@@ -506,9 +508,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   }, [logLines]);
 
   // ── Launch new agent ──────────────────────────────────────────────────────
-  const handleLaunch = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmedObjective = objective.trim();
+  const handleLaunch = async (e?: React.FormEvent, customPrompt?: string) => {
+    e?.preventDefault();
+    const textToLaunch = customPrompt !== undefined ? customPrompt : objective;
+    const trimmedObjective = textToLaunch.trim();
     if (!trimmedObjective || launching) return;
 
     setLaunching(true);
@@ -746,9 +749,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveView(tab.id)}
-                className="relative flex h-8 min-w-[95px] items-center justify-center gap-1.5 px-3 text-xs font-semibold transition-colors"
+                className={`relative flex h-8 min-w-[95px] items-center justify-center gap-1.5 px-3 text-xs font-semibold transition-colors duration-150 ${
+                  isActive ? 'text-black' : 'text-neutral-400 hover:text-white'
+                }`}
                 style={{
-                  color: isActive ? '#000' : 'var(--prism-muted)',
                   borderRadius: 'var(--prism-radius-md)',
                 }}
               >
@@ -757,7 +761,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     layoutId="swarm-tab-pill"
                     className="absolute inset-0"
                     style={{ background: 'var(--prism-primary)', borderRadius: 'var(--prism-radius-md)' }}
-                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   />
                 )}
                 <span className="relative z-10 flex items-center gap-1.5">
@@ -842,30 +846,42 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
       )}
 
       {/* ── View Content ───────────────────────────────────────────────── */}
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <AnimatePresence mode="wait">
-          {/* ═══════ LAUNCH VIEW (2-COLUMN ZERO-SCROLL) ═══════ */}
-          {activeView === 'launch' && (
-            <motion.div key="launch" {...viewTransition} className="h-full min-h-0 overflow-y-auto lg:overflow-hidden p-4">
+      <div className="relative min-h-0 flex-1 overflow-hidden">
+        {/* ═══════ LAUNCH VIEW (2-COLUMN ZERO-SCROLL) ═══════ */}
+        <div className={`h-full min-h-0 overflow-y-auto lg:overflow-hidden p-4 ${activeView === 'launch' ? 'block' : 'hidden'}`}>
               <form onSubmit={handleLaunch} className="grid h-full grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
-                {/* Left: Mission Brief & Action (lg:col-span-7) */}
-                <div className="lg:col-span-7 flex flex-col gap-2.5 min-h-0 h-full">
-                  <div
-                    className="flex-1 flex flex-col min-h-0 rounded-xl p-3"
-                    style={{
-                      border: '1px solid var(--prism-border-card)',
-                      background: 'var(--prism-card)',
+                {/* Left: Mission Brief AI Prompt Toolbar (lg:col-span-7) */}
+                <div className="lg:col-span-7 flex flex-col min-h-0 h-full">
+                  <AIPrompt
+                    value={objective}
+                    onChange={setObjective}
+                    onSubmit={(val, selectedModelId, modelProvider) => {
+                      if (selectedModelId && selectedModelId !== model) {
+                        setModel(selectedModelId);
+                      }
+                      if (modelProvider && modelProvider !== provider) {
+                        setProvider(modelProvider as ModelProvider);
+                      }
+                      handleLaunch(undefined, val);
                     }}
-                  >
-                    <div className="mb-2 flex items-center justify-between gap-3 flex-shrink-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold tracking-wider uppercase" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--prism-primary)' }}>
-                          Mission Brief
-                        </span>
-                        <span className="text-[11px] text-white/40">· Swarm Objective</span>
-                      </div>
+                    models={SWARM_PROMPT_MODELS}
+                    selectedModel={model}
+                    onModelChange={(newModelId, newProvider) => {
+                      setModel(newModelId);
+                      if (newProvider) {
+                        setProvider(newProvider as ModelProvider);
+                      }
+                    }}
+                    templates={[
+                      { label: 'Research & Map', text: 'Research latest advancements and synthesize an architectural breakdown.' },
+                      { label: 'Code Review & Audit', text: 'Audit recent commits, check for edge-case regressions, and formulate fixes.' },
+                      { label: 'Feature Spec', text: 'Draft a fullstack implementation spec with API models, components, and tests.' },
+                    ]}
+                    headerText="Mission Brief"
+                    headerSubtitle="Autonomous Swarm Objective"
+                    headerAction={
                       <span
-                        className="rounded-full px-2 py-0.5 text-[10px] font-mono font-semibold"
+                        className="rounded-full px-2.5 py-0.5 text-[10px] font-mono font-semibold"
                         style={{
                           border: '1px solid rgba(0,223,129,0.25)',
                           background: 'rgba(0,223,129,0.08)',
@@ -874,59 +890,14 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                       >
                         {maxAgents} worker{maxAgents > 1 ? 's' : ''} assigned
                       </span>
-                    </div>
-
-                    {/* Quick Template Chips */}
-                    <div className="mb-1.5 flex flex-wrap gap-1.5 flex-shrink-0">
-                      {[
-                        { label: 'Research & Map', text: 'Research latest advancements and synthesize an architectural breakdown.' },
-                        { label: 'Code Review & Audit', text: 'Audit recent commits, check for edge-case regressions, and formulate fixes.' },
-                        { label: 'Feature Spec', text: 'Draft a fullstack implementation spec with API models, components, and tests.' },
-                      ].map((tpl) => (
-                        <button
-                          key={tpl.label}
-                          type="button"
-                          onClick={() => setObjective(tpl.text)}
-                          className="rounded-md px-2 py-0.5 text-[11px] font-mono transition-all hover:border-[rgba(0,223,129,0.4)] hover:text-white"
-                          style={{
-                            background: 'rgba(255,255,255,0.03)',
-                            border: '1px solid var(--prism-border-card)',
-                            color: 'var(--prism-muted)',
-                          }}
-                        >
-                          + {tpl.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Textarea */}
-                    <textarea
-                      id="swarm-objective"
-                      value={objective}
-                      onChange={(e) => setObjective(e.target.value)}
-                      placeholder="Describe the outcome you want the swarm to produce... (e.g. build a data visualization pipeline, audit security, or synthesize documentation)"
-                      className="flex-1 min-h-[110px] w-full resize-none p-3 leading-relaxed rounded-xl text-sm"
-                      style={{
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        background: 'var(--prism-board)',
-                        color: '#fff',
-                        outline: 'none',
-                        fontFamily: "'Space Grotesk', sans-serif",
-                      }}
-                    />
-                  </div>
-
-                  {/* Launch CTA Button */}
-                  <GradientButton
-                    type="submit"
+                    }
+                    placeholder="Describe the outcome you want the swarm to produce... (e.g. build a data visualization pipeline, audit security, or synthesize documentation)"
                     loading={launching}
-                    disabled={!objective.trim() || launching || !backendOnline}
-                    variant="emerald"
-                    className="flex-shrink-0 h-11 w-full text-sm font-bold tracking-wide"
-                    icon={!launching ? <Send className="size-4" /> : undefined}
-                  >
-                    {launching ? 'Deploying Swarm Nodes...' : 'Launch Swarm Orchestration'}
-                  </GradientButton>
+                    disabled={!backendOnline}
+                    submitLabel="Launch Swarm Orchestration"
+                    submitLoadingLabel="Deploying Swarm Nodes..."
+                    className="h-full flex-1 flex flex-col"
+                  />
                 </div>
 
                 {/* Right: Controls (lg:col-span-5) */}
@@ -1075,12 +1046,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   </div>
                 </div>
               </form>
-            </motion.div>
-          )}
+        </div>
 
-          {/* ═══════ RUNS VIEW ═══════ */}
-          {activeView === 'runs' && (
-            <motion.div key="runs" {...viewTransition} className="flex h-full min-h-0">
+        {/* ═══════ RUNS VIEW ═══════ */}
+        <div className={`h-full min-h-0 ${activeView === 'runs' ? 'flex' : 'hidden'}`}>
               {/* Left: Agent list / Chat switcher */}
               <div
                 className="flex w-[360px] xl:w-[400px] flex-shrink-0 flex-col min-h-0"
@@ -1133,69 +1102,86 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                 </div>
 
                 {/* SubTab Content */}
-                {runsSubTab === 'agents' ? (
-                  /* Agent cards take 100% of left pane */
+                <div className={`min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5 ${runsSubTab === 'agents' ? 'block' : 'hidden'}`}>
+                  {agents.length === 0 && (
+                    <div
+                      className="rounded-xl p-5 text-sm text-center"
+                      style={{
+                        border: '1px dashed var(--prism-border-card)',
+                        background: 'var(--prism-card)',
+                        color: 'var(--prism-muted)',
+                      }}
+                    >
+                      No swarms yet. Launch a mission to start.
+                    </div>
+                  )}
+                  {agents.map((agent) => (
+                    <AgentCard
+                      key={agent.id}
+                      agent={agent}
+                      isSelected={selectedId === agent.id}
+                      onSelect={() => setSelectedId(agent.id)}
+                      onRefresh={refresh}
+                    />
+                  ))}
+                </div>
+
+                <div className={`flex min-h-0 flex-1 flex-col ${runsSubTab === 'chat' ? 'flex' : 'hidden'}`}>
+                  <div className="px-3 py-2 text-xs font-semibold text-white flex items-center justify-between border-b" style={{ borderColor: 'var(--prism-border-card)' }}>
+                    <span className="truncate">{currentSession?.title ?? 'New chat'}</span>
+                    <span className="text-[10px] font-mono text-white/40">{currentSessionMessages?.length ?? 0} msgs</span>
+                  </div>
                   <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
-                    {agents.length === 0 && (
-                      <div
-                        className="rounded-xl p-5 text-sm text-center"
-                        style={{
-                          border: '1px dashed var(--prism-border-card)',
-                          background: 'var(--prism-card)',
-                          color: 'var(--prism-muted)',
-                        }}
-                      >
-                        No swarms yet. Launch a mission to start.
+                    {!currentSessionMessages?.length && (
+                      <div className="rounded-lg p-3 text-xs" style={{ border: '1px dashed var(--prism-border-card)', background: 'var(--prism-card)', color: 'var(--prism-muted)' }}>
+                        Launch a swarm to start this conversation.
                       </div>
                     )}
-                    {agents.map((agent) => (
-                      <AgentCard
-                        key={agent.id}
-                        agent={agent}
-                        isSelected={selectedId === agent.id}
-                        onSelect={() => setSelectedId(agent.id)}
-                        onRefresh={refresh}
-                      />
+                    {currentSessionMessages?.map((message) => (
+                      <div
+                        key={message.id}
+                        className="rounded-lg px-3 py-2 text-xs"
+                        style={{
+                          border: `1px solid ${message.role === 'user' ? 'rgba(0,223,129,0.18)' : 'var(--prism-border-card)'}`,
+                          background: message.role === 'user' ? 'rgba(0,223,129,0.04)' : 'var(--prism-card)',
+                        }}
+                      >
+                        <div className="mb-1 flex items-center justify-between gap-2">
+                          <span className="font-semibold" style={{ color: message.role === 'user' ? 'var(--prism-primary)' : '#fff' }}>
+                            {message.role === 'user' ? 'You' : 'Swarm'}
+                          </span>
+                          <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: 'var(--prism-muted)' }}>
+                            {message.status === 'pending' ? 'running' : formatChatTime(message.createdAt)}
+                          </span>
+                        </div>
+                        <p className="whitespace-pre-wrap leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
+                          {message.content}
+                        </p>
+                      </div>
                     ))}
                   </div>
-                ) : (
-                  /* Chat history takes 100% of left pane */
-                  <div className="flex min-h-0 flex-1 flex-col">
-                    <div className="px-3 py-2 text-xs font-semibold text-white flex items-center justify-between border-b" style={{ borderColor: 'var(--prism-border-card)' }}>
-                      <span className="truncate">{currentSession?.title ?? 'New chat'}</span>
-                      <span className="text-[10px] font-mono text-white/40">{currentSessionMessages?.length ?? 0} msgs</span>
-                    </div>
-                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2.5">
-                      {!currentSessionMessages?.length && (
-                        <div className="rounded-lg p-3 text-xs" style={{ border: '1px dashed var(--prism-border-card)', background: 'var(--prism-card)', color: 'var(--prism-muted)' }}>
-                          Launch a swarm to start this conversation.
-                        </div>
-                      )}
-                      {currentSessionMessages?.map((message) => (
-                        <div
-                          key={message.id}
-                          className="rounded-lg px-3 py-2 text-xs"
-                          style={{
-                            border: `1px solid ${message.role === 'user' ? 'rgba(0,223,129,0.18)' : 'var(--prism-border-card)'}`,
-                            background: message.role === 'user' ? 'rgba(0,223,129,0.04)' : 'var(--prism-card)',
-                          }}
-                        >
-                          <div className="mb-1 flex items-center justify-between gap-2">
-                            <span className="font-semibold" style={{ color: message.role === 'user' ? 'var(--prism-primary)' : '#fff' }}>
-                              {message.role === 'user' ? 'You' : 'Swarm'}
-                            </span>
-                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: 'var(--prism-muted)' }}>
-                              {message.status === 'pending' ? 'running' : formatChatTime(message.createdAt)}
-                            </span>
-                          </div>
-                          <p className="whitespace-pre-wrap leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
-                            {message.content}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+
+                  {/* Swarm Interactive Chat Input Bar */}
+                  <div className="p-2.5 border-t flex-shrink-0" style={{ borderColor: 'var(--prism-border-card)', background: 'rgba(0,0,0,0.3)' }}>
+                    <AIPrompt
+                      compact
+                      models={SWARM_PROMPT_MODELS}
+                      selectedModel={model}
+                      onModelChange={(newModelId, newProvider) => {
+                        setModel(newModelId);
+                        if (newProvider) {
+                          setProvider(newProvider as ModelProvider);
+                        }
+                      }}
+                      placeholder="Send follow-up objective or prompt to swarm..."
+                      loading={launching}
+                      disabled={!backendOnline}
+                      onSubmit={(promptVal) => {
+                        handleLaunch(undefined, promptVal);
+                      }}
+                    />
                   </div>
-                )}
+                </div>
               </div>
 
               {/* Right: Inspector */}
@@ -1327,160 +1313,156 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
 
                     {/* Inspector content */}
                     <div className="min-h-0 flex-1 overflow-hidden">
-                      <AnimatePresence mode="wait">
-                        {inspectorTab === 'dag' && (
-                          <motion.div key="dag" {...viewTransition} className="grid h-full min-h-0 grid-rows-[minmax(240px,42%)_1fr]">
-                            <div className="p-4" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
-                              <div className="mb-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                                  <GitBranch className="size-4" style={{ color: 'var(--prism-primary)' }} />
-                                  Execution Map
-                                </div>
-                                <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: 'var(--prism-muted)' }}>
-                                  {selectedAgent.id.slice(0, 8)}
-                                </span>
-                              </div>
-                              <SwarmDagGraph agent={selectedAgent} logLines={logLines} />
+                      {/* Pipeline / DAG */}
+                      <div className={`h-full min-h-0 ${inspectorTab === 'dag' ? 'grid grid-rows-[minmax(240px,42%)_1fr]' : 'hidden'}`}>
+                        <div className="p-4" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
+                          <div className="mb-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                              <GitBranch className="size-4" style={{ color: 'var(--prism-primary)' }} />
+                              Execution Map
                             </div>
-                            <div className="min-h-0 overflow-y-auto p-4" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
-                              <div className="mb-3 flex items-center justify-between pb-2" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
-                                <span style={{ color: 'var(--prism-muted)' }}>Live log tail</span>
-                                <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
+                            <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '10px', color: 'var(--prism-muted)' }}>
+                              {selectedAgent.id.slice(0, 8)}
+                            </span>
+                          </div>
+                          <SwarmDagGraph agent={selectedAgent} logLines={logLines} />
+                        </div>
+                        <div className="min-h-0 overflow-y-auto p-4" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
+                          <div className="mb-3 flex items-center justify-between pb-2" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
+                            <span style={{ color: 'var(--prism-muted)' }}>Live log tail</span>
+                            <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
+                          </div>
+                          {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
+                          {logLines.map((line, i) => {
+                            const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
+                            const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
+                            const isWarning = line.includes('⏸️') || line.includes('checkpoint');
+                            return (
+                              <div
+                                key={i}
+                                className="py-1 leading-relaxed"
+                                style={{
+                                  borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                  color: isError ? '#f87171' : isSuccess ? '#00df81' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.72)',
+                                }}
+                              >
+                                {line}
                               </div>
-                              {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
-                              {logLines.map((line, i) => {
-                                const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
-                                const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
-                                const isWarning = line.includes('⏸️') || line.includes('checkpoint');
-                                return (
-                                  <div
-                                    key={i}
-                                    className="py-1 leading-relaxed"
-                                    style={{
-                                      borderBottom: '1px solid rgba(255,255,255,0.03)',
-                                      color: isError ? '#f87171' : isSuccess ? '#00df81' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.72)',
-                                    }}
-                                  >
-                                    {line}
-                                  </div>
-                                );
-                              })}
-                              {!isTerminal(selectedAgent.status) && (
-                                <div className="mt-4 flex items-center gap-3 pt-4" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
-                                  <GridLoader color="#00df81" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
-                                  <span style={{ color: 'rgba(0,223,129,0.8)' }}>Running tasks...</span>
-                                </div>
-                              )}
-                              <div ref={logsEndRef} />
+                            );
+                          })}
+                          {!isTerminal(selectedAgent.status) && (
+                            <div className="mt-4 flex items-center gap-3 pt-4" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
+                              <GridLoader color="#00df81" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
+                              <span style={{ color: 'rgba(0,223,129,0.8)' }}>Running tasks...</span>
                             </div>
-                          </motion.div>
-                        )}
+                          )}
+                          <div ref={logsEndRef} />
+                        </div>
+                      </div>
 
-                        {inspectorTab === 'logs' && (
-                          <motion.div key="logs" {...viewTransition} className="h-full overflow-y-auto p-5" style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}>
-                            <div className="sticky top-0 z-10 mb-4 flex items-center justify-between pb-3" style={{ borderBottom: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}>
-                              <span style={{ color: 'var(--prism-muted)' }}>Execution stream / {selectedAgent.id}</span>
-                              <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
+                      {/* Logs Tab */}
+                      <div
+                        className={`h-full overflow-y-auto p-5 ${inspectorTab === 'logs' ? 'block' : 'hidden'}`}
+                        style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '0.75rem' }}
+                      >
+                        <div className="sticky top-0 z-10 mb-4 flex items-center justify-between pb-3" style={{ borderBottom: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}>
+                          <span style={{ color: 'var(--prism-muted)' }}>Execution stream / {selectedAgent.id}</span>
+                          <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
+                        </div>
+                        {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
+                        {logLines.map((line, i) => {
+                          const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
+                          const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
+                          const isWarning = line.includes('⏸️') || line.includes('checkpoint');
+                          return (
+                            <div
+                              key={i}
+                              className="py-1.5 leading-relaxed"
+                              style={{
+                                borderBottom: '1px solid rgba(255,255,255,0.03)',
+                                color: isError ? '#f87171' : isSuccess ? '#00df81' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.82)',
+                              }}
+                            >
+                              {line}
                             </div>
-                            {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
-                            {logLines.map((line, i) => {
-                              const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
-                              const isSuccess = line.includes('✅') || line.includes('🎉') || line.includes('completed');
-                              const isWarning = line.includes('⏸️') || line.includes('checkpoint');
-                              return (
-                                <div
-                                  key={i}
-                                  className="py-1.5 leading-relaxed"
-                                  style={{
-                                    borderBottom: '1px solid rgba(255,255,255,0.03)',
-                                    color: isError ? '#f87171' : isSuccess ? '#00df81' : isWarning ? '#fbbf24' : 'rgba(255,255,255,0.82)',
-                                  }}
-                                >
-                                  {line}
-                                </div>
-                              );
-                            })}
-                            {!isTerminal(selectedAgent.status) && (
-                              <div className="mt-5 flex items-center gap-3 pt-5" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
-                                <GridLoader color="#00df81" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
-                                <span style={{ color: 'rgba(0,223,129,0.8)' }}>Live streaming execution logs...</span>
-                              </div>
+                          );
+                        })}
+                        {!isTerminal(selectedAgent.status) && (
+                          <div className="mt-5 flex items-center gap-3 pt-5" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
+                            <GridLoader color="#00df81" pattern="plus-hollow" size="sm" gap={3} rounded speed="fast" />
+                            <span style={{ color: 'rgba(0,223,129,0.8)' }}>Live streaming execution logs...</span>
+                          </div>
+                        )}
+                        <div ref={logsEndRef} />
+                      </div>
+
+                      {/* Output Tab */}
+                      <div className={`h-full overflow-y-auto p-6 ${inspectorTab === 'output' ? 'block' : 'hidden'}`}>
+                        <div className="mx-auto max-w-3xl">
+                          <div className="mb-5 flex items-center justify-between gap-3 pb-4" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="size-4" style={{ color: 'var(--prism-primary)' }} />
+                              <h3 className="text-base font-semibold text-white">Final Output</h3>
+                            </div>
+                            {selectedAgent.result && (
+                              <motion.button
+                                type="button"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(selectedAgent.result ?? '');
+                                  toast.success('Output copied to clipboard');
+                                }}
+                                className="inline-flex h-8 items-center gap-2 rounded-lg px-3 text-xs font-semibold"
+                                style={{
+                                  border: '1px solid var(--prism-border-card)',
+                                  background: 'var(--prism-card)',
+                                  color: 'var(--prism-muted)',
+                                }}
+                                whileHover={{ borderColor: 'rgba(0,223,129,0.3)', color: '#fff' }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <Clipboard className="size-3.5" />
+                                Copy
+                              </motion.button>
                             )}
-                            <div ref={logsEndRef} />
-                          </motion.div>
-                        )}
-
-                        {inspectorTab === 'output' && (
-                          <motion.div key="output" {...viewTransition} className="h-full overflow-y-auto p-6">
-                            <div className="mx-auto max-w-3xl">
-                              <div className="mb-5 flex items-center justify-between gap-3 pb-4" style={{ borderBottom: '1px solid var(--prism-border-card)' }}>
-                                <div className="flex items-center gap-2">
-                                  <Sparkles className="size-4" style={{ color: 'var(--prism-primary)' }} />
-                                  <h3 className="text-base font-semibold text-white">Final Output</h3>
-                                </div>
-                                {selectedAgent.result && (
-                                  <motion.button
-                                    type="button"
-                                    onClick={() => {
-                                      navigator.clipboard.writeText(selectedAgent.result ?? '');
-                                      toast.success('Output copied to clipboard');
-                                    }}
-                                    className="inline-flex h-8 items-center gap-2 rounded-lg px-3 text-xs font-semibold"
-                                    style={{
-                                      border: '1px solid var(--prism-border-card)',
-                                      background: 'var(--prism-card)',
-                                      color: 'var(--prism-muted)',
-                                    }}
-                                    whileHover={{ borderColor: 'rgba(0,223,129,0.3)', color: '#fff' }}
-                                    whileTap={{ scale: 0.95 }}
-                                  >
-                                    <Clipboard className="size-3.5" />
-                                    Copy
-                                  </motion.button>
-                                )}
-                              </div>
-                              {selectedAgent.result ? (
-                                <article
-                                  className="rounded-xl p-6 text-sm leading-relaxed"
-                                  style={{
-                                    border: '1px solid var(--prism-border-card)',
-                                    background: 'rgba(0,0,0,0.3)',
-                                    color: 'rgba(255,255,255,0.86)',
-                                  }}
-                                >
-                                  <MarkdownRenderer content={selectedAgent.result ?? ''} />
-                                </article>
-                              ) : (
-                                <div
-                                  className="rounded-xl p-12 text-center"
-                                  style={{
-                                    border: '1px dashed var(--prism-border-card)',
-                                    background: 'var(--prism-card)',
-                                  }}
-                                >
-                                  <Sparkles className="mx-auto mb-4 size-8" style={{ color: 'var(--prism-muted)' }} />
-                                  <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>
-                                    Output is being generated
-                                  </p>
-                                  <p className="mt-1 text-xs" style={{ color: 'var(--prism-muted)' }}>
-                                    The sub-agents are still processing this objective.
-                                  </p>
-                                </div>
-                              )}
+                          </div>
+                          {selectedAgent.result ? (
+                            <article
+                              className="rounded-xl p-6 text-sm leading-relaxed"
+                              style={{
+                                border: '1px solid var(--prism-border-card)',
+                                background: 'rgba(0,0,0,0.3)',
+                                color: 'rgba(255,255,255,0.86)',
+                              }}
+                            >
+                              <MarkdownRenderer content={selectedAgent.result ?? ''} />
+                            </article>
+                          ) : (
+                            <div
+                              className="rounded-xl p-12 text-center"
+                              style={{
+                                border: '1px dashed var(--prism-border-card)',
+                                background: 'var(--prism-card)',
+                              }}
+                            >
+                              <Sparkles className="mx-auto mb-4 size-8" style={{ color: 'var(--prism-muted)' }} />
+                              <p className="text-sm font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>
+                                Output is being generated
+                              </p>
+                              <p className="mt-1 text-xs" style={{ color: 'var(--prism-muted)' }}>
+                                The sub-agents are still processing this objective.
+                              </p>
                             </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                          )}
+                        </div>
+                      </div>
                     </div>
                   </>
                 )}
               </div>
-            </motion.div>
-          )}
+        </div>
 
-          {/* ═══════ SETTINGS VIEW (2-COLUMN ZERO-SCROLL) ═══════ */}
-          {activeView === 'settings' && (
-            <motion.div key="settings" {...viewTransition} className="h-full min-h-0 overflow-y-auto lg:overflow-hidden p-4">
+        {/* ═══════ SETTINGS VIEW (2-COLUMN ZERO-SCROLL) ═══════ */}
+        <div className={`h-full min-h-0 overflow-y-auto lg:overflow-hidden p-4 ${activeView === 'settings' ? 'block' : 'hidden'}`}>
               <div className="mx-auto grid h-full grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 max-w-none">
                 {/* Left Column: Active Tokens & Chat Sessions (7 cols) */}
                 <div className="lg:col-span-7 flex flex-col gap-2.5 min-h-0 h-full">
@@ -1714,9 +1696,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   </div>
                 </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
       </div>
 
       {/* ── Remove Confirm Dialog ──────────────────────────────────────── */}

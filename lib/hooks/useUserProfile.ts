@@ -12,11 +12,16 @@ export function useUserProfile() {
         const defaultProfile: UserProfile = {
           key: 'current',
           username: 'User',
-          avatar: '👤',
+          avatar: 'modern:cyber',
           createdAt: now,
           updatedAt: now,
         };
         await db.user_profile.put(defaultProfile);
+      } else if (existing.avatar === '👤') {
+        await db.user_profile.update('current', {
+          avatar: 'modern:cyber',
+          updatedAt: new Date(),
+        });
       }
     })();
   }, []);

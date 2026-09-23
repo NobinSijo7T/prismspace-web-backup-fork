@@ -11,6 +11,7 @@ import ExposureSlider from '@/components/ui/smoothui/exposure-slider';
 import { db, UserProfile } from '@/lib/db';
 import ProfileCard from './ProfileCard';
 import { CosmicButton } from '@/components/ui/cosmic-button';
+import { getModernIconSvgDataUri } from '@/components/ui/ModernUserIcon';
 
 type SettingsSection = 'clock' | 'themes' | 'stats' | 'quotes' | 'extras' | 'profile';
 type BackgroundMediaType = 'image' | 'video';
@@ -52,7 +53,7 @@ const clockStyles: { name: string; value: ClockStyle }[] = [
 ];
 
 const backgrounds: BackgroundChoice[] = [
-  { name: 'Default', path: '/images/BG.png', mediaType: 'image' },
+  { name: 'Default', path: '/bg.png', mediaType: 'image' },
   { name: 'Animated 1', path: '/images/bg-gifs/1.gif', mediaType: 'image' },
   { name: 'Animated 2', path: '/images/bg-gifs/2.gif', mediaType: 'image' },
   { name: 'Wallpaper 1', path: '/images/Wallpapers/1 (1).jpg', mediaType: 'image' },
@@ -89,8 +90,10 @@ function toSelectedBackground(value: string): StoredBackgroundSetting {
 }
 
 function getSelectionId(setting: StoredBackgroundSetting | null | undefined) {
-  if (!setting) return '/images/BG.png';
-  return setting.source === 'custom' ? 'custom' : setting.path || '/images/BG.png';
+  if (!setting) return '/bg.png';
+  if (setting.source === 'custom') return 'custom';
+  if (setting.path === '/images/BG.png' || setting.path === '/bg.png') return '/bg.png';
+  return setting.path || '/bg.png';
 }
 
 export function SettingsModal({ onClose }: { onClose: () => void }) {
@@ -99,7 +102,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [clockStyle, setClockStyle] = useState<ClockStyle>('default');
   const [clockColor, setClockColor] = useState('#ffffff');
   const [colorHistory, setColorHistory] = useState<string[]>([]);
-  const [selectedBg, setSelectedBg] = useState('/images/BG.png');
+  const [selectedBg, setSelectedBg] = useState('/bg.png');
   const [customPreviewUrl, setCustomPreviewUrl] = useState<string | null>(null);
   const [customMediaType, setCustomMediaType] = useState<BackgroundMediaType>('image');
   const [dynamicGreetings, setDynamicGreetings] = useState(true);
@@ -113,7 +116,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
 
   // Profile states
   const [username, setUsername] = useState('User');
-  const [avatar, setAvatar] = useState('👤');
+  const [avatar, setAvatar] = useState('modern:cyber');
   const [isEditingUsername, setIsEditingUsername] = useState(false);
   const [tempUsername, setTempUsername] = useState('');
 
@@ -181,14 +184,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         const profile = await db.user_profile.get('current');
         if (profile) {
           setUsername(profile.username);
-          setAvatar(profile.avatar);
+          setAvatar(profile.avatar === '👤' ? 'modern:cyber' : profile.avatar);
         } else {
           // Create default profile
           const now = new Date();
           await db.user_profile.put({
             key: 'current',
             username: 'User',
-            avatar: '👤',
+            avatar: 'modern:cyber',
             createdAt: now,
             updatedAt: now,
           });
@@ -210,7 +213,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
           ? (JSON.parse(savedSetting.value) as StoredBackgroundSetting)
           : null;
         const legacyBg = localStorage.getItem('selectedBackground');
-        const nextSetting = parsedSetting || toSelectedBackground(legacyBg || '/images/BG.png');
+        const nextSetting = parsedSetting || toSelectedBackground(legacyBg || '/bg.png');
 
         if (!parsedSetting && legacyBg) {
           await db.settings.put({
@@ -1275,7 +1278,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 <div className="sm-color-input-wrap" style={{ marginBottom: 12 }}>
                   <input type="color" value={clockColor} onChange={(e) => handleColorChange(e.target.value)} className="sm-color-swatch" style={{ backgroundColor: clockColor }} />
                   <input type="text" value={clockColor} onChange={(e) => handleColorChange(e.target.value)} className="sm-color-text-input" maxLength={7} placeholder="#ffffff" />
-                  <CosmicButton as="button" onClick={() => handleColorChange('#ffffff')} className="h-7 text-[11px] px-2.5">Reset</CosmicButton>
+                  <CosmicButton as="button" onClick={() => handleColorChange('#ffffff')} className="h-7 text-[11px] px-2.5 shrink-0">Reset</CosmicButton>
                 </div>
                 {colorHistory.length > 0 && (
                   <div>
@@ -1609,16 +1612,24 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                       status="Online"
                       avatarUrl={
                         cardAvatarUrl ||
-                        (avatar.startsWith('data:image') || avatar.startsWith('http')
+                        (avatar.startsWith('data:image') || avatar.startsWith('http') || avatar.startsWith('/')
                           ? avatar
+                          : avatar.startsWith('modern:') || avatar === '👤' || !avatar
+                          ? getModernIconSvgDataUri(avatar)
                           : `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${avatar}</text></svg>`)
                       }
-                      innerGradient="linear-gradient(145deg,#60496e8c 0%,#71C4FF44 100%)"
-                      behindGlowColor="rgba(125, 190, 255, 0.67)"
-                      behindGlowSize="50%"
-                      miniAvatarUrl={cardAvatarUrl || undefined}
-                      contactText="Message"
-                      onContactClick={() => { }}
+                      innerGradient="radial-gradient(circle at 50% 12%, rgba(0, 223, 129, 0.16) 0%, rgba(9, 12, 18, 0.96) 65%)"
+                      behindGlowColor="rgba(0, 223, 129, 0.35)"
+                      behindGlowSize="60%"
+                      miniAvatarUrl={
+                        cardAvatarUrl ||
+                        (avatar.startsWith('data:image') || avatar.startsWith('http') || avatar.startsWith('/')
+                          ? avatar
+                          : avatar.startsWith('modern:') || avatar === '👤' || !avatar
+                          ? getModernIconSvgDataUri(avatar)
+                          : undefined)
+                      }
+                      showContactButton={false}
                     />
                   </div>
                 </div>

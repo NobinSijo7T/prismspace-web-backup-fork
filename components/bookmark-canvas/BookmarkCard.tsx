@@ -9,6 +9,7 @@ import {
   ExternalLink,
   MoreHorizontal,
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import type { Bookmark } from '@/lib/bookmark-canvas/types';
 import {
   MIN_CARD_WIDTH,
@@ -23,6 +24,8 @@ interface BookmarkCardProps {
   bookmark: Bookmark;
   isSelected: boolean;
   scale: number;
+  isLocked?: boolean;
+  isPanMode?: boolean;
   onSelect: (id: number) => void;
   onDoubleClick: (bookmark: Bookmark) => void;
   onDragStop: (id: number, x: number, y: number) => void;
@@ -36,6 +39,8 @@ export const BookmarkCard = memo(function BookmarkCard({
   bookmark,
   isSelected,
   scale,
+  isLocked = false,
+  isPanMode = false,
   onSelect,
   onDoubleClick,
   onDragStop,
@@ -89,10 +94,12 @@ export const BookmarkCard = memo(function BookmarkCard({
       dragGrid={[GRID_SNAP, GRID_SNAP]}
       resizeGrid={[GRID_SNAP, GRID_SNAP]}
       scale={scale}
-      enableResizing
+      enableResizing={!isLocked && !isPanMode}
+      disableDragging={isLocked || isPanMode}
       bounds="parent"
       style={{
         zIndex: bookmark.pinned ? 20 : isSelected ? 15 : 10,
+        pointerEvents: isPanMode ? 'none' : 'auto',
       }}
       onDragStart={() => {
         setIsDragging(true);
@@ -126,7 +133,14 @@ export const BookmarkCard = memo(function BookmarkCard({
         onMouseLeave={() => setIsHovered(false)}
       >
         <div
-          className="w-full h-full flex flex-col overflow-hidden cursor-grab active:cursor-grabbing"
+          className={cn(
+            "w-full h-full flex flex-col overflow-hidden",
+            isPanMode
+              ? "cursor-grab"
+              : isLocked
+              ? "cursor-pointer"
+              : "cursor-grab active:cursor-grabbing"
+          )}
           style={{
             background: '#090c12',
             borderRadius: '12px',

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { usePathname } from 'next/navigation';
 import { AgentOrb } from '@/components/AgentOrb';
 import { getRemainingSeconds, loadPomodoroState } from '@/lib/pomodoro-state';
@@ -79,12 +79,7 @@ function formatDuration(totalSeconds: number): string {
 }
 
 const islandTransition = {
-  duration: 0.24,
-  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
-};
-
-const islandContentTransition = {
-  duration: 0.16,
+  duration: 0.32,
   ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
 };
 
@@ -102,13 +97,21 @@ export function DynamicIsland() {
   const hoverEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handlePointerEnter = useCallback(() => {
-    if (hoverEndTimerRef.current) clearTimeout(hoverEndTimerRef.current);
+    if (hoverEndTimerRef.current) {
+      clearTimeout(hoverEndTimerRef.current);
+      hoverEndTimerRef.current = null;
+    }
     setHovered(true);
   }, []);
 
   const handlePointerLeave = useCallback(() => {
-    if (hoverEndTimerRef.current) clearTimeout(hoverEndTimerRef.current);
-    hoverEndTimerRef.current = setTimeout(() => setHovered(false), 80);
+    if (hoverEndTimerRef.current) {
+      clearTimeout(hoverEndTimerRef.current);
+    }
+    hoverEndTimerRef.current = setTimeout(() => {
+      setHovered(false);
+      hoverEndTimerRef.current = null;
+    }, 150);
   }, []);
 
   useEffect(() => () => {
@@ -220,77 +223,204 @@ export function DynamicIsland() {
   const islandWidth = showEvent ? 340 : isExpanded ? (isPomodoroActive ? 370 : 300) : isPomodoroActive ? 224 : 130;
   const islandHeight = isExpanded ? 72 : 34;
 
+  // CSS opacity crossfade — no mount/unmount, no AnimatePresence
+  const collapsedStyle: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    opacity: isExpanded ? 0 : 1,
+    transition: 'opacity 0.15s ease',
+    pointerEvents: 'none',
+  };
+
+  const expandedStyle: React.CSSProperties = {
+    position: 'absolute',
+    inset: 0,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: '0 18px',
+    opacity: isExpanded ? 1 : 0,
+    transition: 'opacity 0.18s ease 0.06s',
+    pointerEvents: 'none',
+  };
+
   return (
     <div
       data-dynamic-island="true"
       id="dynamic-island-root"
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
       style={{
         position: 'fixed',
         top: '16px',
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 900,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '340px',
-        height: '72px',
+        pointerEvents: 'none',
       }}
       aria-label="Dynamic Island"
     >
       <motion.div
-        className="hud-capsule relative overflow-hidden"
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
         animate={{
           width: islandWidth,
           height: islandHeight,
-          borderRadius: isExpanded ? 24 : 9999,
+          borderRadius: isExpanded ? 24 : 17,
         }}
         transition={islandTransition}
         style={{
+          pointerEvents: 'auto',
           cursor: 'default',
+          // Solid background — no backdrop-filter, no GPU recompositing flicker
+          background: 'rgba(0, 0, 0, 0.94)',
+          border: '1px solid rgba(0, 223, 129, 0.6)',
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)',
+          overflow: 'hidden',
           transformOrigin: 'center top',
           willChange: 'width, height, border-radius',
-          isolation: 'isolate',
-          contain: 'layout paint',
+          transform: 'translateZ(0)',
           backfaceVisibility: 'hidden',
           WebkitBackfaceVisibility: 'hidden',
         }}
       >
-        {/* Collapsed: time only */}
-        <AnimatePresence initial={false}>
-          {!isExpanded && (
-            <motion.div
-              key="collapsed"
-              className="absolute inset-0 flex items-center justify-center gap-2"
-              initial={{ opacity: 0, y: -2 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 2 }}
-              transition={islandContentTransition}
-              style={{ pointerEvents: 'none' }}
-            >
+        {/* Collapsed: time only — always in DOM */}
+        <div style={collapsedStyle}>
+          <span
+            style={{
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: '13px',
+              fontWeight: 700,
+              color: 'rgba(255, 255, 255, 0.92)',
+              letterSpacing: '0.02em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {timeStr}
+          </span>
+          {isPomodoroActive && (
+            <>
+              <span
+                style={{
+                  width: '1px',
+                  height: '14px',
+                  background: 'rgba(0, 223, 129, 0.35)',
+                }}
+              />
               <span
                 style={{
                   fontFamily: "'JetBrains Mono', monospace",
-                  fontSize: '13px',
+                  fontSize: '11px',
                   fontWeight: 700,
-                  color: 'rgba(255, 255, 255, 0.92)',
+                  color: '#00df81',
+                  fontVariantNumeric: 'tabular-nums',
                   letterSpacing: '0.02em',
                   whiteSpace: 'nowrap',
                 }}
               >
-                {timeStr}
+                POMO {formatDuration(pomodoro.remainingSeconds)}
               </span>
-              {isPomodoroActive && (
-                <>
+            </>
+          )}
+        </div>
+
+        {/* Expanded: time + date / event — always in DOM */}
+        <div style={expandedStyle}>
+          {showEvent ? (
+            // Event notification layout
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {event.icon && (
+                  <span style={{ fontSize: '22px', lineHeight: 1 }}>{event.icon}</span>
+                )}
+                <div>
+                  <div
+                    style={{
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: 'rgba(255, 255, 255, 0.95)',
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {event.title}
+                  </div>
+                  {event.subtitle && (
+                    <div
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        fontSize: '11px',
+                        color: '#94a3b8',
+                        marginTop: '2px',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {event.subtitle}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    letterSpacing: '0.01em',
+                  }}
+                >
+                  {timeStr}
+                </div>
+              </div>
+            </>
+          ) : (
+            // Default expanded: time + date + status
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '22px',
+                    fontWeight: 700,
+                    color: 'rgba(255, 255, 255, 0.95)',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {timeStr}
+                </span>
+                <span
+                  style={{
+                    fontFamily: "'JetBrains Mono', monospace",
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    color: '#94a3b8',
+                    letterSpacing: '0.02em',
+                  }}
+                >
+                  {dateStr}
+                </span>
+              </div>
+
+              {/* Status pill — live-status-badge pattern */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
+                <div className="live-status-badge">
+                  <AgentOrb size="18px" provider="groq" />
                   <span
                     style={{
-                      width: '1px',
-                      height: '14px',
-                      background: 'rgba(0, 223, 129, 0.35)',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      whiteSpace: 'nowrap',
                     }}
-                  />
+                  >
+                    AGENT ACTIVE
+                  </span>
+                </div>
+                {isPomodoroActive && (
                   <span
                     style={{
                       fontFamily: "'JetBrains Mono', monospace",
@@ -298,142 +428,16 @@ export function DynamicIsland() {
                       fontWeight: 700,
                       color: '#00df81',
                       fontVariantNumeric: 'tabular-nums',
-                      letterSpacing: '0.02em',
-                      whiteSpace: 'nowrap',
+                      letterSpacing: '0.04em',
                     }}
                   >
-                    POMO {formatDuration(pomodoro.remainingSeconds)}
+                    POMODORO {formatDuration(pomodoro.remainingSeconds)}
                   </span>
-                </>
-              )}
-            </motion.div>
+                )}
+              </div>
+            </>
           )}
-        </AnimatePresence>
-
-        {/* Expanded: time + date / event */}
-        <AnimatePresence initial={false}>
-          {isExpanded && (
-            <motion.div
-              key="expanded"
-              className="absolute inset-0 flex items-center justify-between px-[18px]"
-              initial={{ opacity: 0, y: 3 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -3 }}
-              transition={islandContentTransition}
-              style={{ pointerEvents: 'none' }}
-            >
-              {showEvent ? (
-                // Event notification layout
-                <>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {event.icon && (
-                      <span style={{ fontSize: '22px', lineHeight: 1 }}>{event.icon}</span>
-                    )}
-                    <div>
-                      <div
-                        style={{
-                          fontFamily: "'Space Grotesk', sans-serif",
-                          fontSize: '13px',
-                          fontWeight: 700,
-                          color: 'rgba(255, 255, 255, 0.95)',
-                          lineHeight: 1.2,
-                        }}
-                      >
-                        {event.title}
-                      </div>
-                      {event.subtitle && (
-                        <div
-                          style={{
-                            fontFamily: "'JetBrains Mono', monospace",
-                            fontSize: '11px',
-                            color: '#94a3b8',
-                            marginTop: '2px',
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {event.subtitle}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: '14px',
-                        fontWeight: 700,
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        letterSpacing: '0.01em',
-                      }}
-                    >
-                      {timeStr}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                // Default expanded: time + date + status
-                <>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                    <span
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: '22px',
-                        fontWeight: 700,
-                        color: 'rgba(255, 255, 255, 0.95)',
-                        letterSpacing: '-0.02em',
-                        lineHeight: 1,
-                        fontVariantNumeric: 'tabular-nums',
-                      }}
-                    >
-                      {timeStr}
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "'JetBrains Mono', monospace",
-                        fontSize: '11px',
-                        fontWeight: 500,
-                        color: '#94a3b8',
-                        letterSpacing: '0.02em',
-                      }}
-                    >
-                      {dateStr}
-                    </span>
-                  </div>
-
-                  {/* Status pill — live-status-badge pattern */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '5px' }}>
-                    <div className="live-status-badge">
-                      <AgentOrb size="18px" provider="groq" />
-                      <span
-                        style={{
-                          fontSize: '10px',
-                          fontWeight: 700,
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        AGENT ACTIVE
-                      </span>
-                    </div>
-                    {isPomodoroActive && (
-                      <span
-                        style={{
-                          fontFamily: "'JetBrains Mono', monospace",
-                          fontSize: '11px',
-                          fontWeight: 700,
-                          color: '#00df81',
-                          fontVariantNumeric: 'tabular-nums',
-                          letterSpacing: '0.04em',
-                        }}
-                      >
-                        POMODORO {formatDuration(pomodoro.remainingSeconds)}
-                      </span>
-                    )}
-                  </div>
-                </>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
+        </div>
 
         {/* Subtle inner shine */}
         <div
@@ -452,3 +456,4 @@ export function DynamicIsland() {
     </div>
   );
 }
+

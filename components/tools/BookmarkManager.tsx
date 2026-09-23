@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { BookmarkIcon } from './ToolIcons';
+import { Toolbar as KokonutToolbar, type ToolbarItem } from '@/components/kokonutui/toolbar';
+import { Plus, Wand2, FileDown, Code2, RefreshCw } from 'lucide-react';
 
 interface Bookmark {
   id: string;
@@ -206,27 +208,72 @@ ${bookmarks.map(b => `<DT><A HREF="${b.url}">${b.title}</A>`).join('\n')}
     }
   };
 
+  const toolbarItems: ToolbarItem[] = [
+    {
+      id: 'add',
+      title: 'Add',
+      icon: Plus,
+      onClick: addBookmark,
+    },
+    {
+      id: 'autofill',
+      title: 'Autofill',
+      icon: Wand2,
+      onClick: () => setTitle(titleFromUrl(url)),
+    },
+    {
+      id: 'export-json',
+      title: 'Export JSON',
+      icon: FileDown,
+      onClick: exportJson,
+    },
+    {
+      id: 'export-html',
+      title: 'Export HTML',
+      icon: Code2,
+      onClick: exportHtml,
+    },
+    {
+      id: 'reset',
+      title: 'Reset Search',
+      icon: RefreshCw,
+      onClick: () => {
+        setSearchTerm('');
+        setSelectedTag('');
+      },
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-radial from-[#173145] via-[#0b0e13] to-[#0b0e13] text-white p-6">
-      <div className="mb-6 flex items-center gap-3.5">
-        <div
-          className="w-12 h-12 rounded-xl flex items-center justify-center relative"
-          style={{
-            background: 'linear-gradient(135deg, rgba(0, 223, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
-            border: '1px solid rgba(0, 223, 129, 0.25)',
-            boxShadow: '0 0 16px rgba(0, 223, 129, 0.15)',
-          }}
-        >
-          <BookmarkIcon size={26} glow />
+      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-3.5">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center relative"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0, 223, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)',
+              border: '1px solid rgba(0, 223, 129, 0.25)',
+              boxShadow: '0 0 16px rgba(0, 223, 129, 0.15)',
+            }}
+          >
+            <BookmarkIcon size={26} glow />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
+              Bookmark Manager
+            </h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Save, tag, search, import, and export local bookmarks. Works offline.
+            </p>
+          </div>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
-            Bookmark Manager
-          </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Save, tag, search, import, and export local bookmarks. Works offline.
-          </p>
-        </div>
+
+        {/* KokonutUI Toolbar */}
+        <KokonutToolbar
+          items={toolbarItems}
+          showToggle={false}
+          notificationMessage={(item) => `${item.title} activated`}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-5">
