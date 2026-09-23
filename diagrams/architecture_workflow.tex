@@ -89,7 +89,7 @@
 
     % Separator 1
     \coordinate (sep1) at ($(box1.south)!0.5!(box2.north)$);
-    \draw [dashed_line] (-6.5, 0 |- sep1) -- (7.5, 0 |- sep1);
+    \draw [dashed_line] (-6.5, 0 |- sep1) -- (9.4, 0 |- sep1);
 
     % =========================================================================
     % LAYER 3: FEATURE & ROUTING LAYER
@@ -107,7 +107,7 @@
 
     % Separator 2
     \coordinate (sep2) at ($(box2.south)!0.5!(box3a.north)$);
-    \draw [dashed_line] (-6.5, 0 |- sep2) -- (7.5, 0 |- sep2);
+    \draw [dashed_line] (-6.5, 0 |- sep2) -- (9.4, 0 |- sep2);
 
     % =========================================================================
     % LAYER 4: MULTI-AGENT ORCHESTRATION LAYER
@@ -131,10 +131,10 @@
 
     % Separator 3
     \coordinate (sep3) at ($(box3b.south)!0.5!(box4a.north)$);
-    \draw [dashed_line] (-6.5, 0 |- sep3) -- (7.5, 0 |- sep3);
+    \draw [dashed_line] (-6.5, 0 |- sep3) -- (9.4, 0 |- sep3);
 
-    % Metrics side-box positioned clearly on the right without overlapping
-    \node [rectangle, draw=black!60, dashed, fill=white, rounded corners=2pt, font=\scriptsize, align=left, inner sep=4pt] (metrics) at (7.6, 0 |- box4c) {
+    % Metrics side-box positioned clearly on the right with no overlap
+    \node [rectangle, draw=black!60, dashed, fill=white, rounded corners=2pt, font=\scriptsize, align=left, inner sep=4pt, anchor=west] (metrics) at ($(box4c.east) + (0.45cm, 0)$) {
         \textbf{Metrics:}\\
         $\bullet$ Accuracy, F1\\
         $\bullet$ ROC-AUC, ECE\\
@@ -157,7 +157,7 @@
 
     % Separator 4
     \coordinate (sep4) at ($(box4c.south)!0.5!(box5a.north)$);
-    \draw [dashed_line] (-6.5, 0 |- sep4) -- (7.5, 0 |- sep4);
+    \draw [dashed_line] (-6.5, 0 |- sep4) -- (9.4, 0 |- sep4);
 
     % =========================================================================
     % LAYER 6: DEPLOYMENT & PERSISTENCE LAYER
@@ -176,7 +176,7 @@
 
     % Separator 5
     \coordinate (sep5) at ($(box5a.south)!0.5!(box6a.north)$);
-    \draw [dashed_line] (-6.5, 0 |- sep5) -- (7.5, 0 |- sep5);
+    \draw [dashed_line] (-6.5, 0 |- sep5) -- (9.4, 0 |- sep5);
 
     % =========================================================================
     % ARROWS WITH CLEAN INTER-NODE ATTACHMENT
@@ -203,8 +203,22 @@
 
 \end{tikzpicture}
 
-\vspace{1.5em}
-{\Large \textbf{Figure 4.2: Different Layers.}}
+\vspace{1.2em}
+{\Large \textbf{Figure 4.2: Different Layers.}}\\[1.0em]
+
+\noindent\fcolorbox{black!50}{black!2}{
+\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}{
+\scriptsize
+\textbf{Glossary of Terms \& Abbreviations:}\\[0.25em]
+\begin{tabular}{@{}p{0.48\linewidth}@{\hspace{0.03\linewidth}}p{0.48\linewidth}@{}}
+$\bullet$ \textbf{FastAPI}: High-performance asynchronous Python web framework for backend APIs. & $\bullet$ \textbf{ReAct}: Reason + Act (agent loop alternating between reasoning and tool calls).\\
+$\bullet$ \textbf{REST}: Representational State Transfer (standard HTTP API design pattern). & $\bullet$ \textbf{ORPO}: Odds Ratio Preference Optimization (direct model alignment without reward model).\\
+$\bullet$ \textbf{SSE}: Server-Sent Events (persistent HTTP connection for real-time text streaming). & $\bullet$ \textbf{IndexedDB}: Transactional browser database for client-side persistence (\texttt{PrismDB}).\\
+$\bullet$ \textbf{MCP}: Model Context Protocol (open standard for agent tool and resource discovery). & $\bullet$ \textbf{Dexie.js / \texttt{useLiveQuery}}: Reactive JavaScript engine updating UI on DB changes.\\
+$\bullet$ \textbf{DAG}: Directed Acyclic Graph (execution plan with task dependency order, no cycles). & $\bullet$ \textbf{ROC-AUC / ECE}: Classification discrimination metric / Expected Calibration Error.
+\end{tabular}
+}
+}
 \end{center}
 
 \end{document}

@@ -269,6 +269,7 @@ export function SmoothCursor({
     return null
   }
 
+
   return (
     <motion.div
       style={{

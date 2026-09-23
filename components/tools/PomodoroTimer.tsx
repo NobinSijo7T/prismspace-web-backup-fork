@@ -3,6 +3,7 @@
 import NumberFlow from '@number-flow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus, Settings2, X, Check } from 'lucide-react';
+import { PomodoroIcon } from './ToolIcons';
 import { CosmicButton } from '@/components/ui/cosmic-button';
 import { useEffect, useRef, useState } from 'react';
 import { getRemainingSeconds, loadPomodoroState, savePomodoroState } from '@/lib/pomodoro-state';
@@ -580,7 +581,19 @@ export function PomodoroTimer({ onClose: _onClose }: PomodoroTimerProps) {
 
       {/* Top bar */}
       <div className="pt-topbar">
-        <span className="pt-kicker">{currentMode.kicker}</span>
+        <div className="flex items-center gap-2">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, rgba(0, 223, 129, 0.15) 0%, rgba(16, 185, 129, 0.08) 100%)',
+              border: '1px solid rgba(0, 223, 129, 0.25)',
+              boxShadow: '0 0 10px rgba(0, 223, 129, 0.15)',
+            }}
+          >
+            <PomodoroIcon size={16} glow />
+          </div>
+          <span className="pt-kicker">{currentMode.kicker}</span>
+        </div>
         <button className="pt-close-btn" onClick={() => setShowSettings(true)} title="Settings">
           <Settings2 size={13} />
         </button>

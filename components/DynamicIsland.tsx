@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { usePathname } from 'next/navigation';
 import { AgentOrb } from '@/components/AgentOrb';
 import { getRemainingSeconds, loadPomodoroState } from '@/lib/pomodoro-state';
 
@@ -88,6 +89,7 @@ const islandContentTransition = {
 };
 
 export function DynamicIsland() {
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [settings, setSettings] = useState<IslandSettings>(loadSettings);
   const [now, setNow] = useState(() => new Date());
@@ -199,7 +201,15 @@ export function DynamicIsland() {
     return () => clearInterval(interval);
   }, [pomodoro?.active, pomodoro?.endsAt]);
 
-  if (!mounted || !settings.enabled) return null;
+  const isBookmarkCanvas = Boolean(
+    pathname?.includes('bookmark') ||
+    (typeof window !== 'undefined' && (
+      window.location.pathname.includes('bookmark') ||
+      window.location.href.includes('bookmark')
+    ))
+  );
+
+  if (!mounted || !settings.enabled || isBookmarkCanvas) return null;
 
   const timeStr = formatTime(now, settings.clockFormat, settings.showSeconds);
   const dateStr = formatDate(now);
@@ -212,6 +222,8 @@ export function DynamicIsland() {
 
   return (
     <div
+      data-dynamic-island="true"
+      id="dynamic-island-root"
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
       style={{

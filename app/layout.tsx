@@ -8,6 +8,10 @@ import { DynamicIsland } from "@/components/DynamicIsland";
 export const metadata: Metadata = {
   title: "PrismSpace",
   description: "AI-Powered Developer Dashboard and Browser",
+  icons: {
+    icon: "/Logo/new_logo.png",
+    apple: "/Logo/new_logo.png",
+  },
 };
 
 export default function RootLayout({

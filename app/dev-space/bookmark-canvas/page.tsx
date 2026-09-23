@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function BookmarkCanvasPage() {
   return (
-    <main className="w-screen h-screen overflow-hidden" style={{ background: 'oklch(0.1 0.012 270)' }}>
+    <main className="w-screen h-screen overflow-hidden" style={{ background: '#00df81' }}>
       <BookmarkCanvas />
     </main>
   );

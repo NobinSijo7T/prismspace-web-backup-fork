@@ -149,20 +149,28 @@ export function BookmarkModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 20 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="relative z-[160] w-full max-w-lg rounded-2xl border border-white/10 overflow-hidden"
+            className="relative z-[160] w-full max-w-lg rounded-2xl border overflow-hidden"
             style={{
-              background: 'oklch(0.14 0.015 270)',
-              boxShadow: '0 24px 80px oklch(0 0 0 / 70%), 0 4px 16px oklch(0 0 0 / 40%)',
+              background: 'rgba(9, 12, 18, 0.95)',
+              backdropFilter: 'blur(20px) saturate(1.8)',
+              borderColor: 'rgba(255, 255, 255, 0.08)',
+              boxShadow: '0 24px 80px rgba(0, 0, 0, 0.7), 0 4px 16px rgba(0, 0, 0, 0.4)',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+            <div 
+              className="flex items-center justify-between px-6 py-4 border-b"
+              style={{ borderColor: 'rgba(255, 255, 255, 0.08)' }}
+            >
               <div className="flex items-center gap-3">
                 {previewFavicon ? (
-                  <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-white/10">
+                  <div 
+                    className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center"
+                    style={{ background: 'rgba(0, 223, 129, 0.12)' }}
+                  >
                     {loadingFavicon ? (
-                      <Loader2 size={14} className="text-white/40 animate-spin" />
+                      <Loader2 size={14} className="animate-spin" style={{ color: '#94a3b8' }} />
                     ) : (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -174,17 +182,36 @@ export function BookmarkModal({
                     )}
                   </div>
                 ) : (
-                  <div className="w-8 h-8 rounded-lg bg-white/8 flex items-center justify-center">
-                    <ExternalLink size={14} className="text-white/30" />
+                  <div 
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ background: 'rgba(255, 255, 255, 0.08)' }}
+                  >
+                    <ExternalLink size={14} style={{ color: '#94a3b8' }} />
                   </div>
                 )}
-                <h2 className="text-base font-semibold text-white">
+                <h2 
+                  className="text-base font-semibold"
+                  style={{
+                    color: '#ffffff',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    fontWeight: 700,
+                  }}
+                >
                   {editingBookmark ? 'Edit Bookmark' : 'Add Bookmark'}
                 </h2>
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-white/8 transition-colors text-white/50 hover:text-white"
+                className="p-1.5 rounded-lg transition-colors"
+                style={{ color: '#94a3b8' }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#ffffff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = '#94a3b8';
+                }}
               >
                 <X size={16} />
               </button>
@@ -193,8 +220,17 @@ export function BookmarkModal({
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {/* URL */}
               <div>
-                <label className="block text-xs font-medium text-white/50 mb-1.5">
-                  URL <span className="text-red-400">*</span>
+                <label 
+                  className="block text-xs font-medium mb-1.5"
+                  style={{
+                    color: '#94a3b8',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  URL <span style={{ color: '#f87171' }}>*</span>
                 </label>
                 <input
                   ref={urlRef}
@@ -203,19 +239,30 @@ export function BookmarkModal({
                   value={form.url}
                   onChange={(e) => set('url', e.target.value)}
                   onBlur={handleUrlBlur}
-                  className={`w-full px-3 py-2.5 rounded-xl text-sm bg-white/6 border text-white placeholder-white/25 focus:outline-none focus:ring-2 transition-all ${
-                    errors.url
-                      ? 'border-red-500/60 focus:ring-red-500/30'
-                      : 'border-white/10 focus:border-white/20 focus:ring-white/10'
-                  }`}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: errors.url ? '1px solid rgba(248, 113, 113, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: '#ffffff',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                  }}
                 />
-                {errors.url && <p className="mt-1 text-xs text-red-400">{errors.url}</p>}
+                {errors.url && <p className="mt-1 text-xs" style={{ color: '#f87171' }}>{errors.url}</p>}
               </div>
 
               {/* Title */}
               <div>
-                <label className="block text-xs font-medium text-white/50 mb-1.5">
-                  Title <span className="text-red-400">*</span>
+                <label 
+                  className="block text-xs font-medium mb-1.5"
+                  style={{
+                    color: '#94a3b8',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Title <span style={{ color: '#f87171' }}>*</span>
                 </label>
                 <input
                   ref={titleRef}
@@ -223,18 +270,29 @@ export function BookmarkModal({
                   placeholder="My Bookmark"
                   value={form.title}
                   onChange={(e) => set('title', e.target.value)}
-                  className={`w-full px-3 py-2.5 rounded-xl text-sm bg-white/6 border text-white placeholder-white/25 focus:outline-none focus:ring-2 transition-all ${
-                    errors.title
-                      ? 'border-red-500/60 focus:ring-red-500/30'
-                      : 'border-white/10 focus:border-white/20 focus:ring-white/10'
-                  }`}
+                  className="w-full px-3 py-2.5 rounded-xl text-sm transition-all focus:outline-none focus:ring-2"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: errors.title ? '1px solid rgba(248, 113, 113, 0.6)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: '#ffffff',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                  }}
                 />
-                {errors.title && <p className="mt-1 text-xs text-red-400">{errors.title}</p>}
+                {errors.title && <p className="mt-1 text-xs" style={{ color: '#f87171' }}>{errors.title}</p>}
               </div>
 
               {/* Category */}
               <div>
-                <label className="block text-xs font-medium text-white/50 mb-1.5">
+                <label 
+                  className="block text-xs font-medium mb-1.5"
+                  style={{
+                    color: '#94a3b8',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   Category
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -243,11 +301,36 @@ export function BookmarkModal({
                       type="button"
                       key={cat}
                       onClick={() => set('category', form.category === cat ? '' : cat)}
-                      className={`px-2.5 py-1 rounded-lg text-xs transition-all ${
+                      className="px-2.5 py-1 rounded-lg text-xs transition-all"
+                      style={
                         form.category === cat
-                          ? 'bg-violet-500/30 border border-violet-400/40 text-violet-200'
-                          : 'bg-white/6 border border-white/8 text-white/50 hover:text-white/80 hover:bg-white/10'
-                      }`}
+                          ? {
+                              background: 'rgba(0, 223, 129, 0.12)',
+                              border: '1px solid rgba(0, 223, 129, 0.3)',
+                              color: '#00df81',
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fontWeight: 700,
+                            }
+                          : {
+                              background: 'rgba(255, 255, 255, 0.03)',
+                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              color: '#94a3b8',
+                              fontFamily: 'JetBrains Mono, monospace',
+                              fontWeight: 600,
+                            }
+                      }
+                      onMouseEnter={(e) => {
+                        if (form.category !== cat) {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                          e.currentTarget.style.color = '#cbd5e1';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (form.category !== cat) {
+                          e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
+                          e.currentTarget.style.color = '#94a3b8';
+                        }
+                      }}
                     >
                       {cat}
                     </button>
@@ -257,20 +340,48 @@ export function BookmarkModal({
 
               {/* Notes */}
               <div>
-                <label className="block text-xs font-medium text-white/50 mb-1.5">Notes</label>
+                <label 
+                  className="block text-xs font-medium mb-1.5"
+                  style={{
+                    color: '#94a3b8',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 700,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Notes
+                </label>
                 <textarea
                   placeholder="Add notes, thoughts, or context..."
                   value={form.notes}
                   onChange={(e) => set('notes', e.target.value)}
                   rows={3}
-                  className="w-full px-3 py-2.5 rounded-xl text-sm bg-white/6 border border-white/10 text-white placeholder-white/25 focus:outline-none focus:border-white/20 focus:ring-2 focus:ring-white/10 transition-all resize-none"
+                  className="w-full px-3 py-2.5 rounded-xl text-sm transition-all resize-none focus:outline-none focus:ring-2"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                    color: '#ffffff',
+                    fontFamily: 'Space Grotesk, sans-serif',
+                  }}
                 />
               </div>
 
               {/* Color + Favorite row */}
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="block text-xs font-medium text-white/50 mb-2">Card Color</label>
+                  <label 
+                    className="block text-xs font-medium mb-2"
+                    style={{
+                      color: '#94a3b8',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Card Color
+                  </label>
                   <div className="flex gap-1.5">
                     {STICKY_COLORS.map((c) => (
                       <button
@@ -278,12 +389,12 @@ export function BookmarkModal({
                         key={c.value}
                         title={c.label}
                         onClick={() => set('color', c.value)}
-                        className={`w-6 h-6 rounded-full transition-all hover:scale-110 ${
-                          form.color === c.value
-                            ? 'ring-2 ring-white/70 ring-offset-2 ring-offset-transparent scale-110'
-                            : 'ring-1 ring-white/20'
-                        }`}
-                        style={{ background: c.value }}
+                        className="w-6 h-6 rounded-full transition-all hover:scale-110"
+                        style={{
+                          background: c.value,
+                          border: form.color === c.value ? '2px solid #ffffff' : '1px solid rgba(255, 255, 255, 0.2)',
+                          transform: form.color === c.value ? 'scale(1.1)' : 'scale(1)',
+                        }}
                       />
                     ))}
                   </div>
@@ -292,11 +403,24 @@ export function BookmarkModal({
                 <button
                   type="button"
                   onClick={() => set('favorite', !form.favorite)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-sm ${
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-sm"
+                  style={
                     form.favorite
-                      ? 'bg-amber-500/20 border-amber-500/30 text-amber-300'
-                      : 'bg-white/6 border-white/10 text-white/50 hover:text-white/80'
-                  }`}
+                      ? {
+                          background: 'rgba(251, 191, 36, 0.12)',
+                          borderColor: 'rgba(251, 191, 36, 0.3)',
+                          color: '#fbbf24',
+                          fontFamily: 'JetBrains Mono, monospace',
+                          fontWeight: 700,
+                        }
+                      : {
+                          background: 'rgba(255, 255, 255, 0.03)',
+                          borderColor: 'rgba(255, 255, 255, 0.08)',
+                          color: '#94a3b8',
+                          fontFamily: 'JetBrains Mono, monospace',
+                          fontWeight: 600,
+                        }
+                  }
                 >
                   <Star size={14} fill={form.favorite ? 'currentColor' : 'none'} />
                   Favorite
@@ -308,7 +432,21 @@ export function BookmarkModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm text-white/60 hover:text-white hover:bg-white/6 transition-all"
+                  className="flex-1 px-4 py-2.5 rounded-xl border text-sm transition-all"
+                  style={{
+                    borderColor: 'rgba(255, 255, 255, 0.08)',
+                    color: '#cbd5e1',
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 600,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#cbd5e1';
+                  }}
                 >
                   Cancel
                 </button>

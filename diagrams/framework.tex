@@ -197,30 +197,36 @@
     \node [swarm_node, minimum width=1.35cm, font=\tiny\bfseries] at (-0.25, -1.05) {Worker Agent};
     \node [tool_node, minimum width=1.35cm, font=\tiny] at (1.25, -1.05) {MCP Tool};
 
-    % Top Swarm Topological Nodes (Strictly non-overlapping positions)
-    \node [super_node, font=\tiny\bfseries, inner sep=2.5pt] (s_super) at (-0.25, -1.72) {Supervisor (Hub)};
-    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_plan)  at (-1.75, -1.55) {Planner};
-    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_brow)  at (-1.85, -2.35) {Browser};
-    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_res)   at (-1.05, -2.35) {Research};
-    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_fs)    at (-0.25, -2.35) {Filesystem};
-    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_code)  at (1.05, -1.55)  {Coding};
-    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_git)   at (1.05, -2.35)  {GitHub};
-    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_val)   at (2.05, -1.55)  {Validator};
-    \node [tool_node, font=\tiny, inner sep=2pt]  (t_mcp)   at (2.05, -2.35)  {MCP Tools};
+    % Top Swarm Topological Nodes (Symmetrically spaced, zero-overlap 3-tier constellation)
+    % Tier 1 (Agents): Planner, Research, Coding, Validator
+    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_plan)  at (-1.90, -1.48) {Planner};
+    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_res)   at (-0.80, -1.48) {Research};
+    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_code)  at (0.30, -1.48)  {Coding};
+    \node [swarm_node, font=\tiny\bfseries, inner sep=2pt] (w_val)   at (1.40, -1.48)  {Validator};
 
-    % Mesh Interconnections
+    % Tier 2 (Central Hub): Supervisor
+    \node [super_node, font=\tiny\bfseries, inner sep=2.5pt] (s_super) at (-0.25, -2.00) {Supervisor (Hub)};
+
+    % Tier 3 (MCP Tools): Browser, Filesystem, GitHub, MCP Tools
+    \node [tool_node, font=\tiny, inner sep=2pt] (w_brow)  at (-1.90, -2.52) {Browser};
+    \node [tool_node, font=\tiny, inner sep=2pt] (w_fs)    at (-0.80, -2.52) {Filesystem};
+    \node [tool_node, font=\tiny, inner sep=2pt] (w_git)   at (0.35, -2.52)  {GitHub};
+    \node [tool_node, font=\tiny, inner sep=2pt] (t_mcp)   at (1.45, -2.52)  {MCP Tools};
+
+    % Mesh Interconnections (Clean routing with no line cutting through any node)
     \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_plan);
-    \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_code);
     \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_res);
-    \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_fs);
+    \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_code);
     \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_val);
+    \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_fs);
+    \draw [draw=black!55, line width=0.5pt] (s_super) -- (w_git);
     \draw [draw=black!55, line width=0.5pt] (w_plan) -- (w_brow);
-    \draw [draw=black!55, line width=0.5pt] (w_brow) -- (w_res);
-    \draw [draw=black!55, line width=0.5pt] (w_code) -- (w_git);
+    \draw [draw=black!55, line width=0.5pt] (w_res) -- (w_brow);
     \draw [draw=black!55, line width=0.5pt] (w_code) -- (w_val);
     \draw [draw=black!55, line width=0.5pt] (w_code) -- (t_mcp);
+    \draw [draw=black!55, line width=0.5pt] (w_val) -- (t_mcp);
     \draw [draw=black!55, line width=0.5pt] (w_git) -- (t_mcp);
-    \draw [draw=black!55, line width=0.5pt] (w_fs) -- (t_mcp);
+    \draw [draw=black!55, line width=0.5pt] (w_fs) -- (w_git);
 
     % Bottom Graph visual area: Active Collaboration DAG (EXPANDED)
     \node [box, fill=white, minimum width=5.7cm, minimum height=2.85cm] (graph_box_bot) at (-0.25, -4.825) {};
@@ -497,6 +503,24 @@
     \node [dashed_container, line width=0.85pt, fit=(container_topleft) (container_botleft) (container_right) (detail_box), inner sep=0.25cm] (outer_all) {};
 
 \end{tikzpicture}
+
+\vspace{0.6em}
+\noindent\begin{minipage}{\textwidth}
+\centering
+\fcolorbox{black!50}{black!2}{
+\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}{
+\scriptsize
+\textbf{Glossary of Terms \& Abbreviations:}\\[0.25em]
+\begin{tabular}{@{}p{0.48\linewidth}@{\hspace{0.03\linewidth}}p{0.48\linewidth}@{}}
+$\bullet$ \textbf{LMSYS}: Large Model Systems Organization (collaborative AI benchmark arena). & $\bullet$ \textbf{ROC-AUC}: Area Under Receiver Operating Characteristic Curve.\\
+$\bullet$ \textbf{TF-IDF}: Term Frequency--Inverse Document Frequency (lexical feature extraction). & $\bullet$ \textbf{ECE}: Expected Calibration Error (gap between confidence and real accuracy).\\
+$\bullet$ \textbf{OOD}: Out-Of-Distribution (IsolationForest outlier/novelty detection). & $\bullet$ \textbf{MHA}: Multi-Head Attention (parallel attention heads for distinct task aspects).\\
+$\bullet$ \textbf{DAG}: Directed Acyclic Graph (finite graph of execution dependencies without cycles). & $\bullet$ \textbf{ORPO}: Odds Ratio Preference Optimization (reference-free preference alignment).\\
+$\bullet$ \textbf{MCP}: Model Context Protocol (open JSON-RPC standard for agent tool invocation). & $\bullet$ \textbf{PEFT / LoRA}: Parameter-Efficient Fine-Tuning via Low-Rank Adaptation.
+\end{tabular}
+}
+}
+\end{minipage}
 \end{center}
 
 \end{document}

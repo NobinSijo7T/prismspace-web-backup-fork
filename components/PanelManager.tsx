@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { NotepadPanel } from './tools/NotepadPanel';
+import { TodoPanel } from './tools/TodoPanel';
 import { ColorGenerator } from './tools/ColorGenerator';
 import { WebScraperTool } from './tools/WebScraperTool';
 import { PomodoroTimer } from './tools/PomodoroTimer';
 import { SQLPlayground } from './tools/SQLPlayground';
 import { AgentSwarm } from './AgentSwarm';
 
-type PanelType = 'notepad' |
+type PanelType = 'notepad' | 'todo' |
   'color-gen' | 'prompt-synthesizer' |
   'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
   'web-scraper' | 'pomodoro-timer' | 'agent-swarm' | 'sql-playground';
@@ -32,6 +33,13 @@ const panelConfigs: Record<PanelType, PanelConfig> = {
     position: 'left',
     width: '500px',
     component: NotepadPanel,
+  },
+  'todo': {
+    type: 'todo',
+    title: 'To-Do List',
+    position: 'left',
+    width: '480px',
+    component: TodoPanel,
   },
 
   'color-gen': {

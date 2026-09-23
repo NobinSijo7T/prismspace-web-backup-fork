@@ -55,6 +55,7 @@ Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
       <QuickActions
         onSettingsClick={() => setShowSettings(true)}
         onNotepadClick={() => openPanel('notepad')}
+        onTodoClick={() => openPanel('todo')}
       />
       {showSettings && (
         <SettingsModal onClose={() => setShowSettings(false)} />

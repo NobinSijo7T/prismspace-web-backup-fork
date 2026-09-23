@@ -20,7 +20,7 @@ export interface CardFlipProps {
   subtitle?: string;
   description?: string;
   features?: string[];
-  icon?: string;
+  icon?: React.ReactNode;
 }
 
 export default function CardFlip({
@@ -72,15 +72,18 @@ export default function CardFlip({
           />
 
           <div className="relative h-full overflow-hidden">
-            <div className="absolute inset-0 flex items-start justify-center pt-20">
+            <div className="absolute inset-0 flex items-start justify-center pt-16">
               {icon ? (
-                <div
-                  className="text-7xl drop-shadow-lg transition-transform duration-500 group-hover:scale-110"
-                  style={{
-                    filter: 'drop-shadow(0 0 20px rgba(0, 223, 129, 0.15))',
-                  }}
-                >
-                  {icon}
+                <div className="relative flex items-center justify-center">
+                  <div
+                    className="absolute -inset-4 rounded-full opacity-40 blur-xl transition-all duration-500 group-hover:opacity-80 group-hover:scale-125 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(circle, rgba(0, 223, 129, 0.3) 0%, rgba(6, 182, 212, 0.1) 60%, transparent 80%)',
+                    }}
+                  />
+                  <div className="relative transition-transform duration-500 group-hover:scale-110">
+                    {icon}
+                  </div>
                 </div>
               ) : (
                 <div className="relative flex h-[100px] w-[200px] items-center justify-center">

@@ -14,6 +14,7 @@ import { BookmarkCard } from './BookmarkCard';
 import { BookmarkModal } from './BookmarkModal';
 import { ContextMenu } from './ContextMenu';
 import { Toolbar } from './Toolbar';
+import { BookmarkIcon } from '@/components/tools/ToolIcons';
 import { useBookmarks } from '@/hooks/bookmark-canvas/useBookmarks';
 import { useCanvas } from '@/hooks/bookmark-canvas/useCanvas';
 import { useKeyboardShortcuts } from '@/hooks/bookmark-canvas/useKeyboardShortcuts';
@@ -262,14 +263,16 @@ export function BookmarkCanvas() {
         position="bottom-center"
         toastOptions={{
           style: {
-            background: 'oklch(0.18 0.015 270)',
-            color: 'white',
-            border: '1px solid oklch(1 0 0 / 10%)',
+            background: 'rgba(9, 12, 18, 0.92)',
+            color: '#ffffff',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '12px',
             fontSize: '13px',
+            fontFamily: 'Space Grotesk, sans-serif',
+            fontWeight: 600,
           },
           success: {
-            iconTheme: { primary: '#8b5cf6', secondary: 'white' },
+            iconTheme: { primary: '#00df81', secondary: '#000000' },
           },
         }}
       />
@@ -300,9 +303,7 @@ export function BookmarkCanvas() {
         ref={canvasRef}
         className="fixed inset-0 overflow-hidden"
         style={{
-          top: '56px',
-          background: 'oklch(0.1 0.012 270)',
-          cursor: 'default',
+          background: '#00df81',
         }}
         onClick={handleCanvasClick}
         onDoubleClick={handleCanvasDoubleClick}
@@ -310,7 +311,7 @@ export function BookmarkCanvas() {
         {/* Dot grid background */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ opacity: 0.4 }}
+          style={{ opacity: 0.15 }}
           aria-hidden
         >
           <defs>
@@ -325,8 +326,8 @@ export function BookmarkCanvas() {
               <circle
                 cx={1}
                 cy={1}
-                r={1}
-                fill="oklch(1 0 0 / 30%)"
+                r={1.2}
+                fill="rgba(0, 0, 0, 0.35)"
               />
             </pattern>
           </defs>
@@ -368,12 +369,41 @@ export function BookmarkCanvas() {
         {isEmpty && (
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none">
             <div className="text-center space-y-4">
-              <div className="text-6xl opacity-20">🔖</div>
+              <div className="flex justify-center opacity-30">
+                <BookmarkIcon size={56} glow />
+              </div>
               <div>
-                <p className="text-white/30 text-lg font-medium">Your canvas is empty</p>
-                <p className="text-white/20 text-sm mt-1">
+                <p 
+                  className="text-lg font-medium"
+                  style={{
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    color: '#06190e',
+                    fontWeight: 700,
+                  }}
+                >
+                  Your canvas is empty
+                </p>
+                <p 
+                  className="text-sm mt-1"
+                  style={{
+                    fontFamily: 'Space Grotesk, sans-serif',
+                    color: '#06190e',
+                    opacity: 0.6,
+                    fontWeight: 600,
+                  }}
+                >
                   Press{' '}
-                  <kbd className="px-1.5 py-0.5 rounded text-xs bg-white/10 text-white/40">Ctrl+N</kbd>
+                  <kbd 
+                    className="px-1.5 py-0.5 rounded text-xs"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.15)',
+                      color: '#000000',
+                      fontFamily: 'JetBrains Mono, monospace',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Ctrl+N
+                  </kbd>
                   {' '}or double-click anywhere to add a bookmark
                 </p>
               </div>
@@ -383,7 +413,15 @@ export function BookmarkCanvas() {
 
         {/* Hint strip */}
         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
-          <p className="text-white/15 text-xs text-center">
+          <p 
+            className="text-xs text-center"
+            style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              color: '#06190e',
+              opacity: 0.4,
+              fontWeight: 600,
+            }}
+          >
             Scroll to zoom · Space+drag to pan · Double-click canvas to add
           </p>
         </div>

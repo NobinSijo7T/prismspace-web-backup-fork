@@ -1174,7 +1174,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         {/* Sidebar */}
         <div className="sm-sidebar">
           <div className="sm-logo-wrap">
-            <Image src="/images/prism-logo.svg" alt="Prism" width={28} height={28} />
+            <Image
+              src="/Logo/new_logo.png"
+              alt="PrismSpace"
+              width={34}
+              height={28}
+              className="object-contain"
+            />
             <div>
               <div className="sm-logo-badge">PrismSpace</div>
               <div className="sm-logo-sub">OS v2.0</div>

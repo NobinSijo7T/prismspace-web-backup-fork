@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import CardFlip from './kokonutui/card-flip';
+import {
+  WebScraperIcon,
+  ColorGenIcon,
+  PomodoroIcon,
+  SQLIcon,
+  BookmarkIcon,
+  AgentSwarmIcon,
+} from './tools/ToolIcons';
 
 interface Tool {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   desc: string;
   action?: string;
@@ -13,7 +21,7 @@ interface Tool {
 
 const tools: Tool[] = [
   {
-    icon: '🎨',
+    icon: <ColorGenIcon size={64} glow />,
     title: 'Color Gen',
     desc: 'Interactive color palette generator',
     action: 'color-gen',
@@ -25,7 +33,7 @@ const tools: Tool[] = [
     ]
   },
   {
-    icon: '🧾',
+    icon: <WebScraperIcon size={64} glow />,
     title: 'Web Scraper',
     desc: 'Paste a link and export clean JSON or CSV',
     action: 'web-scraper',
@@ -36,9 +44,8 @@ const tools: Tool[] = [
       'Download JSON or CSV'
     ]
   },
-
   {
-    icon: '⏱️',
+    icon: <PomodoroIcon size={64} glow />,
     title: 'Pomodoro Timer',
     desc: 'Animated focus countdown with Number Flow',
     action: 'pomodoro-timer',
@@ -50,7 +57,7 @@ const tools: Tool[] = [
     ]
   },
   {
-    icon: '🗄️',
+    icon: <SQLIcon size={64} glow />,
     title: 'SQL Playground',
     desc: 'In-browser SQLite editor powered by WASM',
     action: 'sql-playground',
@@ -62,7 +69,7 @@ const tools: Tool[] = [
     ]
   },
   {
-    icon: '🔖',
+    icon: <BookmarkIcon size={64} glow />,
     title: 'Bookmark Manager',
     desc: 'Save, tag, search, import, export, and track visits',
     href: '/dev-space/bookmark-canvas',
@@ -74,7 +81,7 @@ const tools: Tool[] = [
     ]
   },
   {
-    icon: '🐝',
+    icon: <AgentSwarmIcon size={64} glow />,
     title: 'Agent Swarm',
     desc: 'Orchestrate multiple AI agents on a single task',
     action: 'agent-swarm',
@@ -85,7 +92,6 @@ const tools: Tool[] = [
       'Inspect per-agent logs'
     ]
   },
-
 ];
 
 interface DevSpaceProps {

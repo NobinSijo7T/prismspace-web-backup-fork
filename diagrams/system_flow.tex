@@ -1,6 +1,9 @@
 \documentclass[11pt,a4paper]{article}
-\usepackage[margin=0.8in]{geometry}
+\usepackage[margin=0.55in]{geometry}
 \usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{array}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc}
 \usepackage{times}
@@ -10,12 +13,12 @@
 \begin{document}
 
 \begin{center}
-{\LARGE \textbf{4.4\quad Overall end-to-end System flow}}\\[1.5em]
-{\huge \textbf{PrismSpace Architecture}}\\[1.6em]
+{\LARGE \textbf{4.4\quad Overall end-to-end System flow}}\\[1.0em]
+{\huge \textbf{PrismSpace Architecture}}\\[1.2em]
 
 \begin{tikzpicture}[
     auto,
-    node distance = 0.62cm,
+    node distance = 0.48cm,
     block/.style = {
         rectangle,
         draw=black!80,
@@ -23,7 +26,7 @@
         fill=black!4,
         rounded corners=2pt,
         text width=8.6cm,
-        minimum height=0.75cm,
+        minimum height=0.72cm,
         text centered,
         font=\small
     },
@@ -34,7 +37,7 @@
         fill=black!16,
         rounded corners=3pt,
         text width=8.6cm,
-        minimum height=1.65cm,
+        minimum height=1.55cm,
         align=center,
         font=\small
     },
@@ -82,7 +85,7 @@
         \footnotesize ORPO Preference Reward Scoring \& Telemetry Logging
     };
     
-    \node [shaded_block, below=of eval_layer, minimum height=0.9cm] (persist) {
+    \node [shaded_block, below=of eval_layer, minimum height=0.85cm] (persist) {
         \textbf{Local IndexedDB Persistence (\texttt{PrismDB})}\\
         \footnotesize Reactive Client Updates via \texttt{useLiveQuery()}
     };
@@ -101,8 +104,31 @@
 
 \end{tikzpicture}
 
-\vspace{2.0em}
+\vspace{1.2em}
 {\Large \textbf{Figure 4.3: System flow}}
 \end{center}
+
+\vspace{0.8em}
+\noindent\fcolorbox{black!50}{black!2}{%
+\parbox{\dimexpr\textwidth-2\fboxsep-2\fboxrule\relax}{%
+\small
+\textbf{\large System Flow Glossary \& Terminology Reference}\\[0.4em]
+\begin{tabular}{@{}p{0.48\linewidth}@{\hspace{0.03\linewidth}}p{0.48\linewidth}@{}}
+\textbf{TF-IDF}: Term Frequency--Inverse Document Frequency; statistical metric evaluating token relevance in user queries. &
+\textbf{ReAct}: Reasoning and Acting; loop alternating explicit chain-of-thought rationale with concrete tool actions.\\
+
+\textbf{IsolationForest}: Unsupervised decision tree ensemble identifying anomalous or out-of-distribution user inputs. &
+\textbf{MCP}: Model Context Protocol; open protocol enabling LLMs to safely invoke local/remote tools and data sources.\\
+
+\textbf{$\mathcal{M}_{\text{prism}}$}: Multi-Model Intelligence Engine; dynamically routes sub-tasks across Groq, NVIDIA, OpenAI, etc. &
+\textbf{SSE}: Server-Sent Events; HTTP streaming standard pushing real-time LLM token streams and execution telemetry.\\
+
+\textbf{Safety \& Approval Gate}: Calibrated classifier halting execution for human approval on high-risk operations. &
+\textbf{ORPO}: Odds Ratio Preference Optimization; reference-free preference alignment optimizing response quality.\\
+
+\textbf{DAG $\mathcal{G}(V,E)$}: Directed Acyclic Graph; orders execution plan where vertices $V$ are tasks and edges $E$ are dependencies. &
+\textbf{PrismDB / \texttt{useLiveQuery}}: Client-side IndexedDB database offering reactive, zero-latency UI re-rendering on updates.
+\end{tabular}
+}}
 
 \end{document}

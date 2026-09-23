@@ -1,17 +1,20 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { FileEdit, CheckSquare2, Maximize2 } from 'lucide-react';
 import ProfileDropdown from '@/components/kokonutui/profile-dropdown';
 import { useUserProfile } from '@/lib/hooks/useUserProfile';
 
 interface QuickActionsProps {
   onSettingsClick?: () => void;
   onNotepadClick?: () => void;
+  onTodoClick?: () => void;
 }
 
 export function QuickActions({
   onSettingsClick,
   onNotepadClick,
+  onTodoClick,
 }: QuickActionsProps) {
   const { profile } = useUserProfile();
 
@@ -25,7 +28,7 @@ export function QuickActions({
 
   return (
     <>
-      {/* ── Bottom-left: Notepad ── */}
+      {/* ── Bottom-left: Notepad & To-Do ── */}
       <motion.div
         className="fixed bottom-[30px] left-[30px] flex gap-3 items-center z-[100]"
         initial={{ opacity: 0, y: 20 }}
@@ -34,12 +37,22 @@ export function QuickActions({
       >
         <motion.button
           onClick={onNotepadClick}
-          className="prism-btn flex items-center justify-center w-12 h-12 text-[1.3rem]"
+          className="prism-btn flex items-center justify-center w-12 h-12 text-slate-300 hover:text-[#00df81] transition-colors"
           title="Notepad"
           whileHover={{ scale: 1.08, borderColor: '#00df81' }}
           whileTap={{ scale: 0.95 }}
         >
-          📝
+          <FileEdit size={20} />
+        </motion.button>
+        
+        <motion.button
+          onClick={onTodoClick}
+          className="prism-btn flex items-center justify-center w-12 h-12 text-slate-300 hover:text-[#00df81] transition-colors"
+          title="To-Do List"
+          whileHover={{ scale: 1.08, borderColor: '#00df81' }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <CheckSquare2 size={20} />
         </motion.button>
       </motion.div>
 
@@ -60,12 +73,12 @@ export function QuickActions({
 
         <motion.button
           onClick={toggleFullscreen}
-          className="prism-btn flex items-center justify-center w-12 h-12 text-[1.3rem]"
+          className="prism-btn flex items-center justify-center w-12 h-12 text-slate-300 hover:text-[#00df81] transition-colors"
           title="Toggle Fullscreen"
           whileHover={{ scale: 1.08, borderColor: '#00df81' }}
           whileTap={{ scale: 0.95 }}
         >
-          ⛶
+          <Maximize2 size={18} />
         </motion.button>
       </motion.div>
     </>
