@@ -221,6 +221,8 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<'all' | ByokProviderId>('all');
   const [showByokModal, setShowByokModal] = useState(false);
+  const [modelDropdownPlacement, setModelDropdownPlacement] = useState<'top' | 'bottom'>('top');
+  const [engineDropdownPlacement, setEngineDropdownPlacement] = useState<'top' | 'bottom'>('top');
   const [mounted, setMounted] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -386,8 +388,39 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [dropdownOpen, modelDropdownOpen, handleEngineSelect]);
 
+  const updatePlacements = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (modelDropdownRef.current) {
+      const rect = modelDropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      setModelDropdownPlacement(spaceBelow < 340 && spaceAbove > 180 ? 'top' : 'bottom');
+    }
+    if (dropdownRef.current) {
+      const rect = dropdownRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      setEngineDropdownPlacement(spaceBelow < 280 && spaceAbove > 180 ? 'top' : 'bottom');
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('resize', updatePlacements);
+    window.addEventListener('scroll', updatePlacements);
+    return () => {
+      window.removeEventListener('resize', updatePlacements);
+      window.removeEventListener('scroll', updatePlacements);
+    };
+  }, [updatePlacements]);
+
   const handleToggleDropdown = () => {
+    updatePlacements();
     setDropdownOpen((o) => !o);
+  };
+
+  const handleToggleModelDropdown = () => {
+    updatePlacements();
+    setModelDropdownOpen((o) => !o);
   };
 
   const handleModeToggle = (m: Mode) => {
@@ -559,12 +592,14 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                       border: '1px solid rgba(255, 255, 255, 0.1)',
                       boxShadow: '0 24px 60px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 223, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
                       width: '340px',
-                      top: 'calc(100% + 8px)',
+                      ...(engineDropdownPlacement === 'top'
+                        ? { bottom: 'calc(100% + 8px)', top: 'auto', transformOrigin: 'bottom left' }
+                        : { top: 'calc(100% + 8px)', bottom: 'auto', transformOrigin: 'top left' }),
                       left: 0,
                     }}
                     initial={{
                       opacity: 0,
-                      y: -8,
+                      y: engineDropdownPlacement === 'top' ? 8 : -8,
                       scale: 0.96,
                     }}
                     animate={{
@@ -574,7 +609,7 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                     }}
                     exit={{
                       opacity: 0,
-                      y: -8,
+                      y: engineDropdownPlacement === 'top' ? 8 : -8,
                       scale: 0.96,
                     }}
                     transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
@@ -706,7 +741,7 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
               <button
                 id="swarm-model-selector-btn"
                 type="button"
-                onClick={() => setModelDropdownOpen((o) => !o)}
+                onClick={handleToggleModelDropdown}
                 title={`Swarm Model: ${activeModelSpec.name} (${activeProviderConfig.name}). Click to change.`}
                 className="flex items-center gap-2 px-3 sm:px-3.5 py-3 rounded-l-[18px] transition-all duration-150 outline-none group cursor-pointer select-none"
                 style={{
@@ -771,33 +806,44 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                   <motion.div
                     role="listbox"
                     aria-labelledby="swarm-model-selector-btn"
-                    className="absolute z-[9999] rounded-[16px] overflow-hidden select-none"
+                    className="absolute z-[9999] rounded-[14px] overflow-hidden select-none flex flex-col"
                     style={{
-                      background: 'rgba(9, 12, 18, 0.98)',
+                      background: 'rgba(9, 12, 18, 0.97)',
                       backdropFilter: 'blur(24px)',
                       WebkitBackdropFilter: 'blur(24px)',
-                      border: '1px solid rgba(0, 223, 129, 0.25)',
+                      border: '1px solid rgba(0, 223, 129, 0.22)',
                       boxShadow:
-                        '0 24px 60px rgba(0, 0, 0, 0.85), 0 0 28px rgba(0, 223, 129, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
-                      width: '380px',
+                        '0 24px 60px rgba(0, 0, 0, 0.85), 0 0 24px rgba(0, 223, 129, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                      width: '320px',
                       maxWidth: 'calc(100vw - 32px)',
-                      top: 'calc(100% + 8px)',
+                      maxHeight: 'min(310px, calc(100vh - 120px))',
+                      ...(modelDropdownPlacement === 'top'
+                        ? { bottom: 'calc(100% + 8px)', top: 'auto', transformOrigin: 'bottom left' }
+                        : { top: 'calc(100% + 8px)', bottom: 'auto', transformOrigin: 'top left' }),
                       left: 0,
                     }}
-                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                    initial={{
+                      opacity: 0,
+                      y: modelDropdownPlacement === 'top' ? 8 : -8,
+                      scale: 0.96,
+                    }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                    exit={{
+                      opacity: 0,
+                      y: modelDropdownPlacement === 'top' ? 8 : -8,
+                      scale: 0.96,
+                    }}
                     transition={{ duration: 0.15, ease: 'easeOut' }}
                   >
                     {/* Header */}
-                    <div className="p-3 pb-2 border-b border-white/[0.08] flex items-center justify-between gap-2 bg-black/40">
+                    <div className="px-3 py-1.5 border-b border-white/[0.08] flex items-center justify-between gap-2 bg-black/40 flex-shrink-0">
                       <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-[#00df81] animate-pulse" />
-                        <span className="text-[11px] font-mono font-[700] tracking-wider uppercase text-white/90">
-                          Swarm Model
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#00df81] animate-pulse" />
+                        <span className="text-[10px] font-mono font-[700] tracking-wider uppercase text-white/90">
+                          Swarm Models
                         </span>
-                        <span className="text-[10px] font-mono text-white/40">
-                          ({filteredModels.length}/{availablePromptModels.length})
+                        <span className="text-[9px] font-mono text-white/40 px-1 py-[1px] rounded bg-white/[0.04]">
+                          {filteredModels.length}
                         </span>
                       </div>
                       <button
@@ -806,25 +852,25 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                           setShowByokModal(true);
                           setModelDropdownOpen(false);
                         }}
-                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono font-medium text-[#00df81] bg-[#00df81]/10 hover:bg-[#00df81]/20 border border-[#00df81]/25 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9.5px] font-mono font-medium text-[#00df81] bg-[#00df81]/10 hover:bg-[#00df81]/20 border border-[#00df81]/25 transition-all cursor-pointer"
                         title="Manage API Keys (BYOK)"
                       >
-                        <KeyRound className="size-2.5" />
+                        <KeyRound className="size-2" />
                         BYOK Keys
                       </button>
                     </div>
 
                     {/* Search inside Popover */}
-                    <div className="p-2 border-b border-white/[0.06] bg-black/20">
+                    <div className="px-2 py-1.5 border-b border-white/[0.06] bg-black/20 flex-shrink-0">
                       <div className="relative flex items-center">
-                        <SearchIconLucide className="absolute left-2.5 size-3.5 text-white/40 pointer-events-none" />
+                        <SearchIconLucide className="absolute left-2 size-3 text-white/40 pointer-events-none" />
                         <input
                           ref={modelSearchInputRef}
                           type="text"
                           value={modelSearchQuery}
                           onChange={(e) => setModelSearchQuery(e.target.value)}
-                          placeholder="Search models, providers (e.g. Sonnet, Nemotron)..."
-                          className="w-full bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/[0.08] focus:border-[#00df81]/50 rounded-lg pl-8 pr-7 py-1.5 text-[11px] font-mono text-white placeholder-white/40 outline-none transition-all"
+                          placeholder="Search 29+ models..."
+                          className="w-full bg-white/[0.04] hover:bg-white/[0.06] focus:bg-white/[0.08] border border-white/[0.08] focus:border-[#00df81]/50 rounded-md pl-6 pr-6 py-1 text-[10.5px] font-mono text-white placeholder-white/40 outline-none transition-all h-[26px]"
                         />
                         {modelSearchQuery && (
                           <button
@@ -832,17 +878,20 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                             onClick={() => setModelSearchQuery('')}
                             className="absolute right-2 text-white/40 hover:text-white"
                           >
-                            <X className="size-3" />
+                            <X className="size-2.5" />
                           </button>
                         )}
                       </div>
                     </div>
 
                     {/* Provider filter chips */}
-                    <div className="flex items-center gap-1 px-2.5 py-1.5 overflow-x-auto border-b border-white/[0.06] bg-black/10 no-scrollbar">
+                    <div className="flex items-center gap-1 px-2 py-1 overflow-x-auto border-b border-white/[0.06] bg-black/10 no-scrollbar flex-shrink-0">
                       {[
                         { id: 'all', label: 'All' },
-                        ...BYOK_PROVIDERS.map((p) => ({ id: p.id, label: p.name })),
+                        ...BYOK_PROVIDERS.map((p) => ({
+                          id: p.id,
+                          label: p.name.replace(' Claude', '').replace(' Cloud', ''),
+                        })),
                       ].map((p) => {
                         const isActive = providerFilter === p.id;
                         return (
@@ -850,11 +899,11 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                             key={p.id}
                             type="button"
                             onClick={() => setProviderFilter(p.id as any)}
-                            className="px-2 py-0.5 rounded text-[9.5px] font-mono font-[600] whitespace-nowrap transition-all cursor-pointer"
+                            className="px-1.5 py-0.5 rounded text-[8.5px] font-mono font-[600] whitespace-nowrap transition-all cursor-pointer leading-none"
                             style={{
-                              background: isActive ? 'rgba(0, 223, 129, 0.15)' : 'rgba(255, 255, 255, 0.04)',
-                              color: isActive ? '#00df81' : 'rgba(255, 255, 255, 0.6)',
-                              border: isActive ? '1px solid rgba(0, 223, 129, 0.35)' : '1px solid rgba(255, 255, 255, 0.06)',
+                              background: isActive ? 'rgba(0, 223, 129, 0.16)' : 'rgba(255, 255, 255, 0.03)',
+                              color: isActive ? '#00df81' : 'rgba(255, 255, 255, 0.55)',
+                              border: isActive ? '1px solid rgba(0, 223, 129, 0.35)' : '1px solid rgba(255, 255, 255, 0.05)',
                             }}
                           >
                             {p.label}
@@ -864,9 +913,9 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                     </div>
 
                     {/* Model Items List */}
-                    <div className="max-h-[220px] overflow-y-auto p-1.5 space-y-1">
+                    <div className="flex-1 min-h-0 overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
                       {filteredModels.length === 0 ? (
-                        <div className="py-6 text-center text-[11px] font-mono text-white/40">
+                        <div className="py-5 text-center text-[10.5px] font-mono text-white/40">
                           No models matching "{modelSearchQuery}"
                         </div>
                       ) : (
@@ -878,10 +927,10 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                               key={m.id}
                               type="button"
                               onClick={() => handleModelSelect(m.id)}
-                              className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-all group cursor-pointer"
+                              className="w-full flex items-center justify-between gap-1.5 px-2 py-1.5 rounded-[7px] text-left transition-all group cursor-pointer"
                               style={{
                                 background: isSelected ? 'rgba(0, 223, 129, 0.12)' : 'transparent',
-                                border: isSelected ? '1px solid rgba(0, 223, 129, 0.3)' : '1px solid transparent',
+                                border: isSelected ? '1px solid rgba(0, 223, 129, 0.28)' : '1px solid transparent',
                               }}
                               onMouseEnter={(e) => {
                                 if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'rgba(255, 255, 255, 0.04)';
@@ -890,14 +939,14 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                                 if (!isSelected) (e.currentTarget as HTMLElement).style.background = 'transparent';
                               }}
                             >
-                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                <div className="size-5 rounded flex items-center justify-center flex-shrink-0 bg-white/[0.04] border border-white/[0.08]">
+                              <div className="flex items-center gap-2 min-w-0 flex-1">
+                                <div className="size-4 rounded flex items-center justify-center flex-shrink-0 bg-white/[0.04] border border-white/[0.08]">
                                   {getModelIcon(m.id, m.provider)}
                                 </div>
                                 <div className="flex flex-col min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5">
+                                  <div className="flex items-center gap-1.5 leading-tight">
                                     <span
-                                      className="text-[12px] font-mono font-[600] truncate leading-tight"
+                                      className="text-[11px] font-mono font-[600] truncate"
                                       style={{ color: isSelected ? '#00df81' : '#f1f5f9' }}
                                     >
                                       {m.name}
@@ -905,24 +954,24 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                                     {m.hasCustomKey && (
                                       <span
                                         title="BYOK key configured"
-                                        className="inline-flex items-center gap-0.5 px-1 py-[1px] rounded text-[8px] font-mono font-[700] bg-[#00df81]/15 text-[#00df81] border border-[#00df81]/30 leading-none flex-shrink-0"
+                                        className="inline-flex items-center gap-0.5 px-1 py-[0.5px] rounded text-[7px] font-mono font-[700] bg-[#00df81]/15 text-[#00df81] border border-[#00df81]/30 leading-none flex-shrink-0"
                                       >
-                                        <KeyRound className="size-2" />
+                                        <KeyRound className="size-1.5" />
                                         BYOK
                                       </span>
                                     )}
                                   </div>
-                                  <div className="flex items-center gap-1.5 mt-0.5">
+                                  <div className="flex items-center gap-1 mt-0.5 leading-none">
                                     <span
-                                      className="text-[8.5px] font-mono font-[600] uppercase tracking-wider"
+                                      className="text-[8px] font-mono font-[600] uppercase tracking-wider"
                                       style={{ color: provConfig?.color || 'rgba(255,255,255,0.45)' }}
                                     >
                                       {provConfig?.name || m.provider}
                                     </span>
                                     {m.badge && (
                                       <>
-                                        <span className="text-white/20 text-[9px]">•</span>
-                                        <span className="text-[9px] font-mono text-white/40 truncate">
+                                        <span className="text-white/20 text-[8px]">•</span>
+                                        <span className="text-[8px] font-mono text-white/40 truncate">
                                           {m.badge}
                                         </span>
                                       </>
@@ -933,8 +982,8 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
 
                               <div className="flex items-center flex-shrink-0 ml-1">
                                 {isSelected ? (
-                                  <div className="w-4 h-4 rounded-full bg-[#00df81]/20 flex items-center justify-center border border-[#00df81]/40 shadow-[0_0_8px_rgba(0,223,129,0.3)]">
-                                    <Check className="size-2.5 text-[#00df81]" />
+                                  <div className="w-3.5 h-3.5 rounded-full bg-[#00df81]/20 flex items-center justify-center border border-[#00df81]/40 shadow-[0_0_6px_rgba(0,223,129,0.3)]">
+                                    <Check className="size-2 text-[#00df81]" />
                                   </div>
                                 ) : null}
                               </div>
@@ -945,7 +994,7 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                     </div>
 
                     {/* Footer Status Line */}
-                    <div className="px-3 py-1.5 bg-black/40 border-t border-white/[0.06] flex items-center justify-between text-[9px] font-mono text-white/40">
+                    <div className="px-2.5 py-1 bg-black/40 border-t border-white/[0.06] flex items-center justify-between text-[8.5px] font-mono text-white/40 flex-shrink-0">
                       <span className="flex items-center gap-1 truncate mr-2">
                         <span>Active:</span>
                         <span className="text-[#00df81] font-[600] truncate">
