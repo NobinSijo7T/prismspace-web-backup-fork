@@ -70,8 +70,8 @@ export function MainContainer() {
    * Opens the AgentSwarm panel and pre-fills the objective from the search bar.
    * Uses a custom event so we don't need to thread props down through page.tsx.
    */
-  const handleAgentSubmit = (query: string) => {
-    window.dispatchEvent(new CustomEvent('prism:open-agent-swarm', { detail: { query } }));
+  const handleAgentSubmit = (query: string, model?: string, provider?: string) => {
+    window.dispatchEvent(new CustomEvent('prism:open-agent-swarm', { detail: { query, model, provider } }));
   };
 
   return (

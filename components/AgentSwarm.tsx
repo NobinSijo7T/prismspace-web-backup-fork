@@ -367,10 +367,45 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
     setProvider(prov);
     try {
       localStorage.setItem(SWARM_MODEL_KEY, newModelId);
+      window.dispatchEvent(
+        new CustomEvent('prism:model-updated', {
+          detail: { model: newModelId, provider: prov },
+        })
+      );
     } catch {
       // ignore
     }
   }, []);
+
+  useEffect(() => {
+    const handleOpenSwarm = (e: Event) => {
+      const customEvent = e as CustomEvent<{ query?: string; model?: string; provider?: string }>;
+      if (customEvent.detail?.query) {
+        setObjective(customEvent.detail.query);
+      }
+      if (customEvent.detail?.model) {
+        handleModelChange(customEvent.detail.model, customEvent.detail.provider);
+      }
+      setActiveView('launch');
+    };
+
+    const handleModelUpdatedFromExternal = (e: Event) => {
+      const customEvent = e as CustomEvent<{ model?: string; provider?: string }>;
+      if (customEvent.detail?.model && customEvent.detail.model !== model) {
+        const targetModel = customEvent.detail.model;
+        const targetProv = (customEvent.detail.provider as ModelProvider) || getProviderForModel(targetModel);
+        setModel(targetModel);
+        setProvider(targetProv);
+      }
+    };
+
+    window.addEventListener('prism:open-agent-swarm', handleOpenSwarm);
+    window.addEventListener('prism:model-updated', handleModelUpdatedFromExternal);
+    return () => {
+      window.removeEventListener('prism:open-agent-swarm', handleOpenSwarm);
+      window.removeEventListener('prism:model-updated', handleModelUpdatedFromExternal);
+    };
+  }, [handleModelChange, model]);
 
   // Per-user Gmail MCP
   const [gmailEmail, setGmailEmail] = useState<string | null>(
