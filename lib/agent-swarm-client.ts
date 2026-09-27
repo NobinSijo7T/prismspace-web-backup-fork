@@ -78,6 +78,16 @@ export interface CreateAgentPayload {
   human_in_loop?: boolean;
   chat_history?: AgentChatContextMessage[];
   user_id?: string;
+  worker_models?: Array<{ model: string; provider: ModelProvider }>;
+}
+
+export interface SwarmIntelligence {
+  intent?: string | null;
+  recommended_provider?: ModelProvider;
+  recommended_agent?: string | null;
+  recommended_workers?: number;
+  provider_confidence?: number;
+  models_loaded?: number;
 }
 
 // Per-user Gmail owner stored after OAuth callback (?gmail_user_id=...)
@@ -124,6 +134,7 @@ export async function createAgent(payload: CreateAgentPayload): Promise<SwarmAge
       human_in_loop: payload.human_in_loop ?? true,
       chat_history: payload.chat_history ?? [],
       user_id: payload.user_id ?? getGmailUserId() ?? undefined,
+      worker_models: payload.worker_models ?? undefined,
     }),
   });
   if (!res.ok) throw new Error(`Failed to create agent: ${res.status}`);
@@ -134,6 +145,12 @@ export async function getAgent(id: string): Promise<SwarmAgent> {
   const res = await fetch(`${BASE}/agents/${id}`);
   if (!res.ok) throw new Error(`Agent not found: ${id}`);
   return res.json();
+}
+
+export async function analyzeSwarmIntelligence(text: string): Promise<SwarmIntelligence> {
+  const res = await fetch(`${BASE}/intelligence?text=${encodeURIComponent(text)}`, { cache: 'no-store' });
+  if (!res.ok) throw new Error(`Intelligence analysis failed: ${res.status}`);
+  return res.json() as Promise<SwarmIntelligence>;
 }
 
 export async function approveAgent(

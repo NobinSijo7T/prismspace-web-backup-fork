@@ -50,6 +50,7 @@ import {
   type ByokProviderId,
 } from '@/lib/byok-storage';
 import { ByokModal, getProviderIcon } from '@/components/ByokModal';
+import { SwarmModelSelect } from './SwarmModelSelect';
 import { cn } from '@/lib/utils';
 
 // ── Custom dark-themed Select component ─────────────────────────────────────
@@ -199,6 +200,7 @@ import {
   CreateAgentPayload,
   ModelProvider,
   createAgent,
+  analyzeSwarmIntelligence,
   listAgents,
   approveAgent,
   streamAgentLogs,
@@ -214,6 +216,7 @@ import {
   isTerminal,
   type McpServerStatus,
   type McpTokenStatus,
+  type SwarmIntelligence,
 } from '@/lib/agent-swarm-client';
 import { Toaster } from 'react-hot-toast';
 import toast from 'react-hot-toast';
@@ -317,6 +320,14 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   const [provider, setProvider] = useState<ModelProvider>('nvidia');
   const [model, setModel] = useState<string>('nvidia/nemotron-3.5-lightning-30b-a3b');
   const [maxAgents, setMaxAgents] = useState(3);
+  const [workerMode, setWorkerMode] = useState<'auto' | 'manual'>('manual');
+  const [workerModels, setWorkerModels] = useState<string[]>([
+    'nvidia/nemotron-3.5-lightning-30b-a3b',
+    'nvidia/nemotron-3.5-lightning-30b-a3b',
+    'nvidia/nemotron-3.5-lightning-30b-a3b',
+  ]);
+  const [autoSizing, setAutoSizing] = useState(false);
+  const [autoRecommendation, setAutoRecommendation] = useState<SwarmIntelligence | null>(null);
   const [hitl, setHitl] = useState(true);
   const [launching, setLaunching] = useState(false);
   const [runsSubTab, setRunsSubTab] = useState<'agents' | 'chat'>('agents');
@@ -347,6 +358,38 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   const configuredProviderCount = useMemo(() => {
     return BYOK_PROVIDERS.filter((p) => Boolean(storedKeys[p.id]?.trim())).length;
   }, [storedKeys]);
+
+  useEffect(() => {
+    if (!availablePromptModels.length) return;
+    const fallback = availablePromptModels[0].id;
+    setWorkerModels((current) => Array.from({ length: 3 }, (_, index) => current[index] && availablePromptModels.some((item) => item.id === current[index]) ? current[index] : fallback));
+  }, [availablePromptModels]);
+
+  const workerModelOptions = useMemo(() => availablePromptModels.map((item) => ({
+    value: item.id,
+    label: `${item.name} · ${item.provider || getProviderForModel(item.id)}`,
+  })), [availablePromptModels]);
+
+  const handleWorkerModelChange = useCallback((index: number, modelId: string) => {
+    setWorkerModels((current) => current.map((item, itemIndex) => itemIndex === index ? modelId : item));
+  }, []);
+
+  const handleWorkerModeChange = useCallback(async (mode: 'auto' | 'manual') => {
+    setWorkerMode(mode);
+    if (mode !== 'auto' || !objective.trim() || autoSizing) return;
+    setAutoSizing(true);
+    try {
+      const recommendation = await analyzeSwarmIntelligence(objective.trim());
+      const recommendedWorkers = Math.min(3, Math.max(1, recommendation.recommended_workers || 1));
+      setMaxAgents(recommendedWorkers);
+      setAutoRecommendation(recommendation);
+    } catch {
+      toast.error('Auto worker sizing needs the Agent Swarm backend online.');
+      setWorkerMode('manual');
+    } finally {
+      setAutoSizing(false);
+    }
+  }, [autoSizing, objective]);
 
   // Load saved model preference
   useEffect(() => {
@@ -683,6 +726,13 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
     setLaunching(true);
     let sessionIdForFailure: string | null = null;
     try {
+      let launchMaxAgents = maxAgents;
+      if (workerMode === 'auto') {
+        const recommendation = await analyzeSwarmIntelligence(trimmedObjective);
+        launchMaxAgents = Math.min(3, Math.max(1, recommendation.recommended_workers || 1));
+        setMaxAgents(launchMaxAgents);
+        setAutoRecommendation(recommendation);
+      }
       const sessionId = await ensureActiveSession(trimmedObjective);
       sessionIdForFailure = sessionId;
       const now = Date.now();
@@ -707,21 +757,26 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
         updatedAt: now,
       });
 
-      const launchModel = customModel || model;
-      const launchProvider = customProvider || provider || getProviderForModel(launchModel);
+      const launchWorkerModels = workerModels.slice(0, launchMaxAgents).map((workerModel, index) => ({
+        model: index === 0 && customModel ? customModel : workerModel,
+        provider: (index === 0 && customProvider ? customProvider : getProviderForModel(workerModel)) as ModelProvider,
+      }));
+      const launchModel = launchWorkerModels[0]?.model || customModel || model;
+      const launchProvider = launchWorkerModels[0]?.provider || customProvider || provider || getProviderForModel(launchModel);
       const byokApiKey = getStoredApiKey(launchProvider);
 
       const payload: CreateAgentPayload = {
         objective: trimmedObjective,
         provider: launchProvider,
         model: launchModel,
-        max_agents: maxAgents,
+        max_agents: launchMaxAgents,
         human_in_loop: hitl,
         api_key: byokApiKey || undefined,
         chat_history: priorMessages.slice(-16).map((message) => ({
           role: message.role,
           content: message.content,
         })),
+        worker_models: launchWorkerModels,
       };
       const agent = await createAgent(payload);
       await db.agent_chat_messages.add({
@@ -1042,6 +1097,64 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     </div>
                   )}
 
+                  <section className="mb-3 flex-shrink-0 rounded-2xl border border-[rgba(0,223,129,0.22)] bg-[linear-gradient(135deg,rgba(0,223,129,0.09),rgba(0,0,0,0.25))] p-3.5 shadow-[0_0_24px_rgba(0,223,129,0.06)]" aria-labelledby="worker-mesh-title">
+                    <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                      <div className="flex items-start gap-2.5">
+                        <div className="mt-0.5 flex size-8 items-center justify-center rounded-lg border border-[rgba(0,223,129,0.28)] bg-black/30 text-[#00df81]">
+                          <GitBranch className="size-4" />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h2 id="worker-mesh-title" className="text-sm font-semibold text-white">Worker mesh</h2>
+                            <span className="rounded-full bg-[#00df81]/15 px-2 py-0.5 text-[10px] font-mono font-bold text-[#00df81]">{maxAgents} NODE{maxAgents === 1 ? '' : 'S'}</span>
+                          </div>
+                          <p className="mt-0.5 text-[11px] text-white/55">Choose an API for each node before launch.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center rounded-lg border border-white/10 bg-black/25 p-0.5" role="group" aria-label="Worker sizing mode">
+                        <button type="button" onClick={() => handleWorkerModeChange('manual')} className={cn('rounded-md px-2.5 py-1.5 text-[10px] font-mono transition-colors', workerMode === 'manual' ? 'bg-white/10 text-white' : 'text-white/45 hover:text-white')}>Manual</button>
+                        <button type="button" onClick={() => handleWorkerModeChange('auto')} className={cn('rounded-md px-2.5 py-1.5 text-[10px] font-mono transition-colors', workerMode === 'auto' ? 'bg-[#00df81]/20 text-[#00df81]' : 'text-white/45 hover:text-white')} disabled={autoSizing}>{autoSizing ? 'Sizing...' : 'Auto'}</button>
+                      </div>
+                    </div>
+
+                    <div className="mb-3 flex items-center gap-2">
+                      <span className="text-[10px] font-mono uppercase tracking-[0.12em] text-white/40">Worker count</span>
+                      <div className="flex flex-1 items-center gap-1.5">
+                        {[1, 2, 3].map((count) => (
+                          <button key={count} type="button" onClick={() => { setWorkerMode('manual'); setMaxAgents(count); }} className={cn('flex-1 rounded-md border py-1 text-xs font-mono transition-colors', maxAgents === count ? 'border-[#00df81]/45 bg-[#00df81]/15 text-[#00df81]' : 'border-white/10 bg-black/20 text-white/45 hover:border-white/25 hover:text-white')}>{count}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      {workerModels.slice(0, maxAgents).map((workerModel, index) => {
+                        const worker = availablePromptModels.find((item) => item.id === workerModel);
+                        return (
+                          <div key={index} className="min-w-0">
+                            <div className="mb-1.5 flex items-center justify-between gap-1.5">
+                              <span className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-white/55">
+                                <span className="flex size-4 items-center justify-center rounded-full bg-white/10 text-[9px] text-white/80">{index + 1}</span>
+                                Node {index + 1}
+                              </span>
+                              <span className="block truncate text-[10px] font-mono text-[#00df81]/70">{worker?.provider || getProviderForModel(workerModel)} API</span>
+                            </div>
+                            <SwarmModelSelect
+                              value={workerModel}
+                              onChange={(value) => handleWorkerModelChange(index, value)}
+                              models={availablePromptModels}
+                              onOpenByok={() => setShowByokModal(true)}
+                              className="w-full"
+                              align={index === 0 ? 'start' : index === 2 ? 'end' : 'center'}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {workerMode === 'auto' && autoRecommendation && (
+                      <p className="mt-2 text-[10px] font-mono text-white/45">ML route: <span className="text-[#00df81]">{autoRecommendation.intent || 'general'}</span> · {autoRecommendation.recommended_provider || 'nvidia'} · {autoRecommendation.models_loaded || 0} models loaded</p>
+                    )}
+                  </section>
+
                   <AIPrompt
                     value={objective}
                     onChange={setObjective}
@@ -1055,6 +1168,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     selectedModel={model}
                     onModelChange={handleModelChange}
                     onOpenByok={() => setShowByokModal(true)}
+                    showModelSelector={true}
                     templates={[
                       { label: 'Research & Map', text: 'Research latest advancements and synthesize an architectural breakdown.' },
                       { label: 'Code Review & Audit', text: 'Audit recent commits, check for edge-case regressions, and formulate fixes.' },

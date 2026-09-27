@@ -191,6 +191,7 @@ class CreateAgentRequest(BaseModel):
     human_in_loop: bool = True
     chat_history: list[ChatContextMessage] = Field(default_factory=list)
     user_id: Optional[str] = None  # per-user Gmail MCP owner (Google sub)
+    worker_models: list[dict[str, str]] = Field(default_factory=list)
 
 
 class ApproveAgentRequest(BaseModel):
@@ -1497,8 +1498,9 @@ async def _run_hive_agent(agent_id: str, request: CreateAgentRequest) -> None:
         _log(agent_id, f"Spawning {request.max_agents} specialised sub-agents")
         sub_agents = [f"Agent-{chr(65+i)}" for i in range(request.max_agents)]
         agent["selected_agents"] = sub_agents
-        for sa in sub_agents:
-            _log(agent_id, f"   -> {sa} ready")
+        for i, sa in enumerate(sub_agents):
+            assignment = request.worker_models[i] if i < len(request.worker_models) else {"provider": request.provider, "model": request.model}
+            _log(agent_id, f"   -> {sa} ready ({assignment.get('provider', request.provider)}/{assignment.get('model', request.model)})")
             await asyncio.sleep(0.15)
 
         # --- Running phase ---
@@ -1757,6 +1759,7 @@ async def create_agent(
         "model": request.model,
         "provider": request.provider,
         "max_agents": request.max_agents,
+        "worker_models": request.worker_models,
         "human_in_loop": request.human_in_loop,
         "user_id": request.user_id,
         "status": "initialising",

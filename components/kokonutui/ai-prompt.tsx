@@ -6,7 +6,7 @@
  * @version: 2.0.0
  */
 
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import {
   ArrowRight,
   Bot,
@@ -19,6 +19,7 @@ import {
   Cpu,
   Loader2,
   KeyRound,
+  Search,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 import { cn } from "@/lib/utils";
+import { BYOK_PROVIDERS, getProviderForModel } from "@/lib/byok-storage";
 
 // ── Model Provider Icons (Authentic Vector Brand Marks) ─────────────────────
 export const NVIDIA_ICON = (
@@ -122,6 +124,7 @@ export interface AIPromptProps {
   selectedModel?: string;
   onModelChange?: (modelId: string, provider?: string) => void;
   onOpenByok?: () => void;
+  showModelSelector?: boolean;
   placeholder?: string;
   headerText?: string;
   headerSubtitle?: string;
@@ -174,6 +177,7 @@ export function AIPrompt({
   selectedModel: controlledModel,
   onModelChange,
   onOpenByok,
+  showModelSelector = true,
   placeholder = "Describe the objective or task you want the swarm to execute...",
   headerText,
   headerSubtitle,
@@ -209,6 +213,25 @@ export function AIPrompt({
   const activeModelObj =
     normalizedModels.find((m) => m.id === selectedModelId) ||
     normalizedModels[0] || { id: selectedModelId, name: selectedModelId };
+
+  const [providerTab, setProviderTab] = useState<string>("all");
+  const [modelSearch, setModelSearch] = useState<string>("");
+
+  const filteredNormalizedModels = useMemo(() => {
+    const q = modelSearch.toLowerCase().trim();
+    return normalizedModels.filter((m) => {
+      const prov = m.provider || getProviderForModel(m.id);
+      const matchesTab = providerTab === "all" || prov === providerTab;
+      if (!matchesTab) return false;
+      if (!q) return true;
+      return (
+        m.name.toLowerCase().includes(q) ||
+        m.id.toLowerCase().includes(q) ||
+        (m.badge && m.badge.toLowerCase().includes(q)) ||
+        prov.toLowerCase().includes(q)
+      );
+    });
+  }, [normalizedModels, providerTab, modelSearch]);
 
   const [attachedFile, setAttachedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -361,7 +384,7 @@ export function AIPrompt({
       <div className="flex items-center justify-between gap-2 px-3 py-2 bg-black/40 border-t border-[rgba(255,255,255,0.06)] flex-shrink-0">
         <div className="flex items-center gap-1.5">
           {/* Model Selector Dropdown */}
-          <DropdownMenu>
+          {showModelSelector && <DropdownMenu>
             <DropdownMenuTrigger
               type="button"
               className={cn(
@@ -395,59 +418,18 @@ export function AIPrompt({
               side="top"
               sideOffset={8}
               className={cn(
-                "z-[9999] min-w-[18rem] max-w-[22rem] p-1.5 rounded-xl border border-[rgba(255,255,255,0.12)]",
-                "bg-[#090c12]/98 shadow-2xl backdrop-blur-2xl text-white font-mono text-xs flex flex-col"
+                "z-[9999] min-w-[20rem] max-w-[24rem] p-0 rounded-2xl border border-[rgba(255,255,255,0.12)]",
+                "bg-[#090c12]/98 shadow-2xl backdrop-blur-2xl text-white font-mono text-xs flex flex-col overflow-hidden"
               )}
             >
-              <div className="flex items-center justify-between px-2 py-1 text-[10px] uppercase tracking-wider text-white/40 font-bold border-b border-white/[0.06] mb-1">
-                <span>Model Routing</span>
-                <span>{normalizedModels.length} Models</span>
-              </div>
-              <div className="max-h-[260px] overflow-y-auto space-y-0.5 pr-0.5">
-                {normalizedModels.map((m) => {
-                  const isSelected = m.id === selectedModelId;
-                  return (
-                    <DropdownMenuItem
-                      key={m.id}
-                      onClick={() => handleSelectModel(m)}
-                      onSelect={() => handleSelectModel(m)}
-                      className={cn(
-                        "flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors outline-none",
-                        isSelected
-                          ? "bg-[rgba(0,223,129,0.12)] text-[#00df81] font-semibold"
-                          : "text-white/80 hover:bg-white/[0.06] hover:text-white"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 min-w-0 flex-1">
-                        {m.icon || getModelIcon(m.id, m.provider)}
-                        <div className="truncate flex-1">
-                          <div className="truncate font-sans font-medium text-xs flex items-center gap-1.5">
-                            <span className="truncate">{m.name}</span>
-                            {m.hasCustomKey && (
-                              <span
-                                title="Custom BYOK key configured"
-                                className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-mono bg-[#00df81]/15 text-[#00df81] border border-[#00df81]/30 flex-none"
-                              >
-                                <KeyRound className="size-2.5" />
-                                BYOK
-                              </span>
-                            )}
-                          </div>
-                          {m.badge && (
-                            <div className="text-[10px] text-white/40 font-mono">{m.badge}</div>
-                          )}
-                        </div>
-                      </div>
-                      {isSelected && (
-                        <Check className="size-3.5 flex-none text-[#00df81]" />
-                      )}
-                    </DropdownMenuItem>
-                  );
-                })}
-              </div>
-
-              {onOpenByok && (
-                <div className="pt-1.5 mt-1 border-t border-white/[0.08]">
+              {/* Header */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.08] bg-black/40">
+                <div className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-[#00df81] animate-pulse" />
+                  <span className="text-[10px] uppercase tracking-wider text-white/90 font-bold">Model Routing</span>
+                  <span className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[9px] text-white/50">{filteredNormalizedModels.length}/{normalizedModels.length}</span>
+                </div>
+                {onOpenByok && (
                   <button
                     type="button"
                     onClick={(e) => {
@@ -455,21 +437,174 @@ export function AIPrompt({
                       e.stopPropagation();
                       onOpenByok();
                     }}
-                    className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium text-[#00df81] bg-[rgba(0,223,129,0.08)] hover:bg-[rgba(0,223,129,0.16)] transition-all border border-[rgba(0,223,129,0.2)] group/byok cursor-pointer"
+                    className="inline-flex items-center gap-1 rounded-md border border-[#00df81]/25 bg-[#00df81]/10 px-2 py-0.5 text-[10px] font-medium text-[#00df81] hover:bg-[#00df81]/20 transition-all cursor-pointer"
                   >
-                    <span className="flex items-center gap-1.5">
-                      <KeyRound className="size-3.5 group-hover/byok:rotate-12 transition-transform" />
-                      Manage API Keys (BYOK)
-                    </span>
-                    <span className="text-[10px] text-white/50 group-hover/byok:text-white/80 transition-colors">Keys →</span>
+                    <KeyRound className="size-2.5" />
+                    BYOK Keys
                   </button>
+                )}
+              </div>
+
+              {/* Provider Segregation Tabs */}
+              <div className="flex items-center gap-1 overflow-x-auto border-b border-white/[0.06] bg-black/25 px-2 py-1.5 no-scrollbar">
+                {[
+                  { id: "all", label: "All", color: "#00df81" },
+                  { id: "nvidia", label: "NVIDIA", color: "#76B900", icon: NVIDIA_ICON },
+                  { id: "groq", label: "Groq", color: "#F55036", icon: GROQ_ICON },
+                  { id: "openai", label: "OpenAI", color: "#10A37F", icon: OPENAI_ICON },
+                  { id: "anthropic", label: "Claude", color: "#D97706", icon: ANTHROPIC_ICON },
+                  { id: "google", label: "Google", color: "#4285F4", icon: GEMINI_ICON },
+                  { id: "deepseek", label: "DeepSeek", color: "#0284c7", icon: DEEPSEEK_ICON },
+                  { id: "openrouter", label: "OpenRouter", color: "#6366F1", icon: OPENROUTER_ICON },
+                ].map((tab) => {
+                  const isActive = providerTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setProviderTab(tab.id);
+                      }}
+                      className={cn(
+                        "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[9.5px] font-semibold whitespace-nowrap transition-all cursor-pointer leading-none",
+                        isActive
+                          ? "border shadow-[0_0_10px_rgba(0,223,129,0.15)] font-bold"
+                          : "border border-white/[0.05] bg-white/[0.02] text-white/55 hover:bg-white/[0.06] hover:text-white"
+                      )}
+                      style={{
+                        borderColor: isActive ? (tab.id === "all" ? "#00df81" : tab.color) : undefined,
+                        background: isActive ? `${tab.id === "all" ? "#00df81" : tab.color}20` : undefined,
+                        color: isActive ? (tab.id === "all" ? "#00df81" : tab.color) : undefined,
+                      }}
+                    >
+                      {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Search Bar */}
+              <div className="border-b border-white/[0.06] bg-black/15 p-2">
+                <div className="relative flex items-center">
+                  <Search className="pointer-events-none absolute left-2.5 size-3.5 text-white/40" />
+                  <input
+                    type="text"
+                    value={modelSearch}
+                    onChange={(e) => setModelSearch(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    placeholder="Filter by name, tags (e.g. 70b, sonnet, r1)..."
+                    className="h-7 w-full rounded-lg border border-white/[0.08] bg-white/[0.04] pl-8 pr-7 text-[11px] text-white placeholder-white/40 outline-none transition-all focus:border-[#00df81]/50 focus:bg-white/[0.07]"
+                  />
+                  {modelSearch && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setModelSearch("");
+                      }}
+                      className="absolute right-2 text-white/40 hover:text-white"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* Models List */}
+              <div className="max-h-[240px] overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
+                {filteredNormalizedModels.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-white/40">
+                    No models matching "{modelSearch}"
+                  </div>
+                ) : (
+                  filteredNormalizedModels.map((m) => {
+                    const isSelected = m.id === selectedModelId;
+                    const provId = m.provider || getProviderForModel(m.id);
+                    const provConfig = BYOK_PROVIDERS.find((p) => p.id === provId);
+
+                    return (
+                      <DropdownMenuItem
+                        key={m.id}
+                        onClick={() => handleSelectModel(m)}
+                        onSelect={() => handleSelectModel(m)}
+                        className={cn(
+                          "group/item flex w-full items-center justify-between gap-2 rounded-xl p-2 text-left transition-all cursor-pointer outline-none",
+                          isSelected
+                            ? "border border-[#00df81]/30 bg-[#00df81]/12 text-[#00df81]"
+                            : "border border-transparent hover:border-white/[0.08] hover:bg-white/[0.05] text-white/80 hover:text-white"
+                        )}
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-2.5">
+                          <div className="flex size-6 flex-shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/40">
+                            {m.icon || getModelIcon(m.id, provId)}
+                          </div>
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <div className="flex items-center gap-1.5 leading-tight">
+                              <span className={cn(
+                                "truncate font-medium text-xs",
+                                isSelected ? "text-[#00df81] font-bold" : "text-white"
+                              )}>
+                                {m.name}
+                              </span>
+                              {m.hasCustomKey && (
+                                <span
+                                  title="Custom BYOK key configured"
+                                  className="inline-flex flex-shrink-0 items-center gap-0.5 rounded border border-[#00df81]/30 bg-[#00df81]/15 px-1 py-[0.5px] font-mono text-[7.5px] font-bold text-[#00df81] leading-none"
+                                >
+                                  <KeyRound className="size-2" />
+                                  BYOK
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-0.5 leading-none">
+                              <span
+                                className="text-[8.5px] font-semibold uppercase tracking-wider"
+                                style={{ color: provConfig?.color || "#00df81" }}
+                              >
+                                {provConfig?.name || provId}
+                              </span>
+                              {m.badge && (
+                                <>
+                                  <span className="text-white/20 text-[8px]">•</span>
+                                  <span className="truncate text-[9px] text-white/45">
+                                    {m.badge}
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-shrink-0 items-center ml-1">
+                          {isSelected ? (
+                            <div className="flex size-4 items-center justify-center rounded-full border border-[#00df81]/40 bg-[#00df81]/20 shadow-[0_0_8px_rgba(0,223,129,0.3)]">
+                              <Check className="size-2.5 text-[#00df81]" />
+                            </div>
+                          ) : null}
+                        </div>
+                      </DropdownMenuItem>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="flex items-center justify-between border-t border-white/[0.06] bg-black/40 px-3 py-1.5 text-[9.5px] text-white/40">
+                <span className="truncate mr-2">
+                  Active: <span className="text-[#00df81] font-semibold">{activeModelObj.name}</span>
+                </span>
+                <span className="flex-shrink-0 text-white/30">Esc to close</span>
+              </div>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu>}
 
           {/* Divider */}
-          <div className="mx-1 h-3.5 w-px bg-white/10" />
+          {showModelSelector && <div className="mx-1 h-3.5 w-px bg-white/10" />}
 
           {/* Attachment button */}
           {showAttachment && (
