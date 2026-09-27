@@ -24,7 +24,7 @@ An AI-powered developer operating environment, browser dashboard, and multi-agen
 - [Dataset Directory Structure & Ingestion](#-dataset-directory-structure--ingestion)
 - [Quick Start: Run, Train & Test](#-quick-start-run-train--test)
   - [Prerequisites](#prerequisites)
-  - [1. Frontend & Backend Quick Start](#1-frontend--backend-quick-start)
+  - [1. Frontend & Backend Quick Start (Unified Runners)](#1-frontend--backend-quick-start-unified-runners)
   - [2. Machine Learning Environment Setup](#2-machine-learning-environment-setup)
   - [3. Training Commands](#3-training-commands)
   - [4. Model Testing & Inference Commands](#4-model-testing--inference-commands)
@@ -187,25 +187,53 @@ prismspace-web/
 
 ### Prerequisites
 - **Node.js**: 18.0+ & `npm` / `pnpm`
-- **Python**: 3.10+
+- **Python**: 3.11+
 - **NVIDIA GPU** (Optional): CUDA 12.6+ recommended for transformer fine-tuning and PyTorch acceleration.
 
 ---
 
-### 1. Frontend & Backend Quick Start
+### 1. Frontend & Backend Quick Start (Unified Runners)
 
+PrismSpace includes automated, colorful cross-platform runner scripts in [`run/`](run/) that perform pre-flight system diagnostics, provision virtual environments, check port availability, and launch both the **Next.js Frontend** and the **FastAPI Swarm Backend** concurrently with clean `Ctrl+C` multi-process shutdown.
+
+#### 🪟 Windows (PowerShell - Recommended)
 ```powershell
-# 1. Install frontend dependencies
-npm install
+# Run both Frontend & Backend concurrently:
+.\run\run.ps1
 
-# 2. Launch the Next.js Dev Server (runs on http://localhost:3000)
-npm run dev
-
-# 3. In a separate terminal, launch the Hive API Backend (runs on http://localhost:8000)
-.\backend\start.ps1
+# Or run individual services:
+.\run\run.ps1 -Service Frontend   # Next.js only (http://localhost:3000)
+.\run\run.ps1 -Service Backend    # FastAPI Swarm only (http://localhost:7433)
 ```
 
-*(On Linux / macOS, start the backend with: `uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload`)*
+#### 🖱️ Windows (Double-Click or Command Prompt)
+```cmd
+# Double-click or run from cmd:
+run\run.bat
+```
+
+#### 🐧 Linux / macOS / WSL / Git Bash
+```bash
+# Make executable and run both services:
+chmod +x run/*.sh
+./run/run.sh
+
+# Or run individual services:
+./run/run.sh --frontend           # Next.js only
+./run/run.sh --backend            # FastAPI Swarm only
+```
+
+#### 🌐 Service Port & Endpoints Map
+
+| Service | Address | Description |
+|---|---|---|
+| **Frontend Web** | [`http://localhost:3000`](http://localhost:3000) | Next.js 14 Developer OS & UI |
+| **Agent Swarm Dashboard** | [`http://localhost:3000/swarm`](http://localhost:3000/swarm) | Interactive Swarm Orchestration & Worker Mesh |
+| **Swarm Backend API** | [`http://localhost:7433`](http://localhost:7433) | FastAPI Multi-Agent Bridge & ML Intelligence |
+| **Interactive OpenAPI Docs** | [`http://localhost:7433/docs`](http://localhost:7433/docs) | Swagger UI for backend endpoints |
+| **Swarm Health Proxy Route** | [`http://localhost:3000/api/agent-swarm/health`](http://localhost:3000/api/agent-swarm/health) | Health status bridge |
+
+*(See [`run/README.md`](run/README.md) for full CLI flags, advanced options, and technical details.)*
 
 ---
 
@@ -329,6 +357,11 @@ prismspace-web/
 │   ├── predict.py               # Inference CLI entry point
 │   └── evaluate.py              # Model evaluation suite
 ├── public/                      # Static assets (fonts, images, wallpapers)
+├── run/                         # Cross-platform fullstack runners (.ps1, .sh, .bat)
+│   ├── run.ps1                  # PowerShell fullstack runner with cyber diagnostics
+│   ├── run.sh                   # Bash fullstack runner (Linux / macOS / WSL)
+│   ├── run.bat                  # Windows batch runner / double-click launcher
+│   └── README.md                # Runner documentation & flag reference
 ├── package.json                 # Node dependencies
 ├── tailwind.config.ts           # Tailwind CSS configuration
 └── tsconfig.json                # TypeScript configuration
@@ -338,6 +371,7 @@ prismspace-web/
 
 ## 📚 Documentation & References
 
+- **[run/README.md](run/README.md)** — Comprehensive runner guide, CLI options, and flag reference.
 - **[USAGE_GUIDE.md](USAGE_GUIDE.md)** — Step-by-step user guide for all 23 developer tools and clock settings.
 - **[FEATURES.md](FEATURES.md)** — Detailed specification of all 50+ built-in features.
 - **[MIGRATION_GUIDE.md](MIGRATION_GUIDE.md)** — Architectural design and customization manual.
