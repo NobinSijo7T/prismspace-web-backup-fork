@@ -10,7 +10,7 @@ from .dataset_loader import DatasetLoader
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Report files and rows the model trainer can use.")
-    parser.add_argument("--dataset-dir", default="model/datasets")
+    parser.add_argument("--dataset-dir", default="model/datasets/training")
     parser.add_argument("--max-rows-per-file", type=int, default=50_000)
     parser.add_argument("--no-documents", action="store_true")
     parser.add_argument("--include-test-datasets", action="store_true", help="Audit test_datasets as trainable inputs (normally excluded).")

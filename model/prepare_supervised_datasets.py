@@ -241,8 +241,8 @@ def _prepare_provider(root: Path, output: Path, max_per_provider: int = 350) -> 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dataset-dir", default="model/datasets")
-    parser.add_argument("--output-dir", default="model/datasets/curated")
+    parser.add_argument("--dataset-dir", default="model/datasets/training")
+    parser.add_argument("--output-dir", default="model/datasets/training/curated")
     args = parser.parse_args()
     root, output = Path(args.dataset_dir), Path(args.output_dir)
     report = {

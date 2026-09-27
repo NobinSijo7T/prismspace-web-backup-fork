@@ -37,7 +37,7 @@ def _confidences(model, features: pd.DataFrame, rows: int) -> list[float | None]
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate routing predictions for held-out benchmark files.")
-    parser.add_argument("--dataset-dir", default="model/datasets/test_datasets")
+    parser.add_argument("--dataset-dir", default="model/datasets/testing")
     parser.add_argument("--artifacts-dir", default="model/artifacts")
     parser.add_argument("--output-dir", default="model/artifacts/holdout_evaluation")
     parser.add_argument("--max-rows-per-file", type=int, default=50_000)

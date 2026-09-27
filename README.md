@@ -148,7 +148,7 @@ PrismSpace trains its ML subsystem across the following benchmarks and preferenc
 
 ## 📁 Dataset Directory Structure & Ingestion
 
-All training records are ingested by `model/dataset_loader.py` and curated by `model/prepare_supervised_datasets.py`. Place dataset files in subfolders under `model/datasets/`:
+Training records are ingested from `model/datasets/training/`; held-out test data lives in `model/datasets/testing/`, and validation benchmarks live in `model/datasets/validation/`. The loader and curation flow are implemented by `model/dataset_loader.py` and `model/prepare_supervised_datasets.py`.
 
 ```
 prismspace-web/
@@ -267,13 +267,13 @@ python -c "import torch; print('CUDA available:', torch.cuda.is_available()); pr
 #### A. Quick Smoke-Test Run (1,000 samples per source)
 Fast end-to-end dry run to verify dataset ingestion, feature engineering, and pipeline integrity:
 ```powershell
-python -m model.train --dataset-dir model\datasets --output-dir model\artifacts_test --max-rows-per-file 1000
+python -m model.train --dataset-dir model\datasets\training --output-dir model\artifacts_test --max-rows-per-file 1000
 ```
 
 #### B. Full Production Training Run
-Scans all datasets under `model/datasets/`, trains routing, planning, and safety models, and outputs `.joblib` model artifacts to `model/artifacts/`:
+Scans training datasets under `model/datasets/training/`, trains routing, planning, and safety models, and outputs `.joblib` model artifacts to `model/artifacts/`:
 ```powershell
-python -m model.train --dataset-dir model\datasets --output-dir model\artifacts --max-rows-per-file 50000
+python -m model.train --dataset-dir model\datasets\training --curated-dir model\datasets\training\curated --output-dir model\artifacts --max-rows-per-file 50000
 ```
 
 ---
