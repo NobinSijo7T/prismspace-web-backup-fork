@@ -12,10 +12,12 @@
  * - High-voltage cyber-glass styling matching PrismSpace design system
  */
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
 import {
   Check,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Search,
   KeyRound,
   X,
@@ -86,6 +88,29 @@ export function SwarmModelSelect({
   const [activeTab, setActiveTab] = useState<'all' | ByokProviderId>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const tabsContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 2);
+  }, []);
+
+  useEffect(() => {
+    updateScrollState();
+    const el = tabsContainerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [updateScrollState]);
+
+  const scrollTabs = (offset: number) => {
+    tabsContainerRef.current?.scrollBy({ left: offset, behavior: 'smooth' });
+  };
 
   // Normalize active model object
   const activeModelObj = useMemo(() => {
@@ -211,36 +236,88 @@ export function SwarmModelSelect({
           )}
         </div>
 
-        {/* ── Model Providers Segregation Tabs ── */}
-        <div className="flex items-center gap-1 overflow-x-auto border-b border-white/[0.06] bg-black/25 px-2 py-1.5 no-scrollbar">
-          {PROVIDER_TABS.map((tab) => {
-            const isActive = activeTab === tab.id;
-            return (
+        {/* ── Model Providers Segregation Tabs with Custom Horizontal Scrollbar ── */}
+        <div className="relative border-b border-white/[0.06] bg-black/25">
+          {/* Left scroll button & gradient fade */}
+          {canScrollLeft && (
+            <div className="pointer-events-none absolute left-0 top-0 bottom-0 z-10 flex items-center bg-gradient-to-r from-[#090c12] via-[#090c12]/90 to-transparent pl-1 pr-3">
               <button
-                key={tab.id}
                 type="button"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setActiveTab(tab.id);
+                  scrollTabs(-110);
                 }}
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[9.5px] font-semibold whitespace-nowrap transition-all cursor-pointer leading-none',
-                  isActive
-                    ? 'border shadow-[0_0_10px_rgba(0,223,129,0.15)] font-bold'
-                    : 'border border-white/[0.05] bg-white/[0.02] text-white/55 hover:bg-white/[0.06] hover:text-white'
-                )}
-                style={{
-                  borderColor: isActive ? (tab.id === 'all' ? '#00df81' : tab.color) : undefined,
-                  background: isActive ? `${tab.id === 'all' ? '#00df81' : tab.color}20` : undefined,
-                  color: isActive ? (tab.id === 'all' ? '#00df81' : tab.color) : undefined,
-                }}
+                className="pointer-events-auto flex size-4 items-center justify-center rounded-full border border-white/15 bg-[#090c12] text-white/70 hover:border-[#00df81]/60 hover:bg-[#00df81]/20 hover:text-[#00df81] transition-all cursor-pointer shadow-lg"
+                aria-label="Scroll left"
               >
-                {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
-                <span>{tab.shortLabel}</span>
+                <ChevronLeft className="size-2.5" />
               </button>
-            );
-          })}
+            </div>
+          )}
+
+          {/* Right scroll button & gradient fade */}
+          {canScrollRight && (
+            <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 flex items-center justify-end bg-gradient-to-l from-[#090c12] via-[#090c12]/90 to-transparent pr-1 pl-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  scrollTabs(110);
+                }}
+                className="pointer-events-auto flex size-4 items-center justify-center rounded-full border border-white/15 bg-[#090c12] text-white/70 hover:border-[#00df81]/60 hover:bg-[#00df81]/20 hover:text-[#00df81] transition-all cursor-pointer shadow-lg"
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="size-2.5" />
+              </button>
+            </div>
+          )}
+
+          <div
+            ref={tabsContainerRef}
+            onScroll={updateScrollState}
+            onWheel={(e) => {
+              if (e.deltaY !== 0) {
+                e.currentTarget.scrollLeft += e.deltaY;
+              }
+            }}
+            className="flex items-center gap-1 overflow-x-auto px-2 pt-1.5 pb-2 custom-horizontal-scrollbar select-none"
+          >
+            {PROVIDER_TABS.map((tab) => {
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveTab(tab.id);
+                    (e.currentTarget as HTMLElement).scrollIntoView({
+                      behavior: 'smooth',
+                      inline: 'nearest',
+                      block: 'nearest',
+                    });
+                  }}
+                  className={cn(
+                    'inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[9.5px] font-semibold whitespace-nowrap transition-all cursor-pointer leading-none flex-shrink-0',
+                    isActive
+                      ? 'border shadow-[0_0_10px_rgba(0,223,129,0.15)] font-bold'
+                      : 'border border-white/[0.05] bg-white/[0.02] text-white/55 hover:bg-white/[0.06] hover:text-white'
+                  )}
+                  style={{
+                    borderColor: isActive ? (tab.id === 'all' ? '#00df81' : tab.color) : undefined,
+                    background: isActive ? `${tab.id === 'all' ? '#00df81' : tab.color}20` : undefined,
+                    color: isActive ? (tab.id === 'all' ? '#00df81' : tab.color) : undefined,
+                  }}
+                >
+                  {tab.icon && <span className="flex-shrink-0">{tab.icon}</span>}
+                  <span>{tab.shortLabel}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* ── Search Input ── */}

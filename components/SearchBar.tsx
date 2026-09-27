@@ -885,7 +885,14 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                     </div>
 
                     {/* Provider filter chips */}
-                    <div className="flex items-center gap-1 px-2 py-1 overflow-x-auto border-b border-white/[0.06] bg-black/10 no-scrollbar flex-shrink-0">
+                    <div
+                      onWheel={(e) => {
+                        if (e.deltaY !== 0) {
+                          e.currentTarget.scrollLeft += e.deltaY;
+                        }
+                      }}
+                      className="flex items-center gap-1 px-2 pt-1 pb-1.5 overflow-x-auto border-b border-white/[0.06] bg-black/10 custom-horizontal-scrollbar flex-shrink-0"
+                    >
                       {[
                         { id: 'all', label: 'All' },
                         ...BYOK_PROVIDERS.map((p) => ({
