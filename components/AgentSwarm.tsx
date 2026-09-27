@@ -221,6 +221,16 @@ const SWARM_PROMPT_MODELS: AIPromptModel[] = [
   { id: 'mixtral-8x7b-32768', name: 'Groq Mixtral 8x7B', provider: 'groq', badge: 'Long Context' },
 ];
 
+function getProviderForModel(modelId: string): ModelProvider {
+  const found = SWARM_PROMPT_MODELS.find((m) => m.id === modelId);
+  if (found?.provider === 'groq' || found?.provider === 'nvidia') {
+    return found.provider as ModelProvider;
+  }
+  if (modelId.startsWith('nvidia/')) return 'nvidia';
+  return 'groq';
+}
+
+const SWARM_MODEL_KEY = 'prism.agentSwarm.selectedModel';
 const ACTIVE_SWARM_CHAT_KEY = 'prism.agentSwarm.activeChatId';
 
 function createChatId() {
@@ -274,11 +284,35 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   // New agent form
   const [objective, setObjective] = useState('');
   const [provider, setProvider] = useState<ModelProvider>('nvidia');
-  const [model, setModel] = useState(MODELS.nvidia[0]);
+  const [model, setModel] = useState<string>(SWARM_PROMPT_MODELS[0].id);
   const [maxAgents, setMaxAgents] = useState(3);
   const [hitl, setHitl] = useState(true);
   const [launching, setLaunching] = useState(false);
   const [runsSubTab, setRunsSubTab] = useState<'agents' | 'chat'>('agents');
+
+  // Load saved model preference
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SWARM_MODEL_KEY);
+      if (saved && SWARM_PROMPT_MODELS.some((m) => m.id === saved)) {
+        setModel(saved);
+        setProvider(getProviderForModel(saved));
+      }
+    } catch {
+      // ignore storage error
+    }
+  }, []);
+
+  const handleModelChange = useCallback((newModelId: string, newProvider?: string) => {
+    const prov = (newProvider as ModelProvider) || getProviderForModel(newModelId);
+    setModel(newModelId);
+    setProvider(prov);
+    try {
+      localStorage.setItem(SWARM_MODEL_KEY, newModelId);
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Per-user Gmail MCP
   const [gmailEmail, setGmailEmail] = useState<string | null>(
@@ -508,11 +542,21 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   }, [logLines]);
 
   // ── Launch new agent ──────────────────────────────────────────────────────
-  const handleLaunch = async (e?: React.FormEvent, customPrompt?: string) => {
+  const handleLaunch = async (
+    e?: React.FormEvent,
+    customPrompt?: string,
+    customModel?: string,
+    customProvider?: ModelProvider,
+  ) => {
     e?.preventDefault();
     const textToLaunch = customPrompt !== undefined ? customPrompt : objective;
     const trimmedObjective = textToLaunch.trim();
     if (!trimmedObjective || launching) return;
+
+    if (backendOnline === false) {
+      toast.error('Agent Swarm backend is offline. Start it with: .\\backend\\start.ps1');
+      return;
+    }
 
     setLaunching(true);
     let sessionIdForFailure: string | null = null;
@@ -541,10 +585,13 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
         updatedAt: now,
       });
 
+      const launchModel = customModel || model;
+      const launchProvider = customProvider || provider || getProviderForModel(launchModel);
+
       const payload: CreateAgentPayload = {
         objective: trimmedObjective,
-        provider,
-        model,
+        provider: launchProvider,
+        model: launchModel,
         max_agents: maxAgents,
         human_in_loop: hitl,
         chat_history: priorMessages.slice(-16).map((message) => ({
@@ -582,11 +629,6 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
     } finally {
       setLaunching(false);
     }
-  };
-
-  const handleProviderChange = (p: ModelProvider) => {
-    setProvider(p);
-    setModel(MODELS[p][0]);
   };
 
   const selectedAgent = agents.find((a) => a.id === selectedId);
@@ -856,22 +898,14 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     value={objective}
                     onChange={setObjective}
                     onSubmit={(val, selectedModelId, modelProvider) => {
-                      if (selectedModelId && selectedModelId !== model) {
-                        setModel(selectedModelId);
-                      }
-                      if (modelProvider && modelProvider !== provider) {
-                        setProvider(modelProvider as ModelProvider);
-                      }
-                      handleLaunch(undefined, val);
+                      const targetModel = selectedModelId || model;
+                      const targetProvider = (modelProvider as ModelProvider) || getProviderForModel(targetModel);
+                      handleModelChange(targetModel, targetProvider);
+                      handleLaunch(undefined, val, targetModel, targetProvider);
                     }}
                     models={SWARM_PROMPT_MODELS}
                     selectedModel={model}
-                    onModelChange={(newModelId, newProvider) => {
-                      setModel(newModelId);
-                      if (newProvider) {
-                        setProvider(newProvider as ModelProvider);
-                      }
-                    }}
+                    onModelChange={handleModelChange}
                     templates={[
                       { label: 'Research & Map', text: 'Research latest advancements and synthesize an architectural breakdown.' },
                       { label: 'Code Review & Audit', text: 'Audit recent commits, check for edge-case regressions, and formulate fixes.' },
@@ -893,7 +927,6 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     }
                     placeholder="Describe the outcome you want the swarm to produce... (e.g. build a data visualization pipeline, audit security, or synthesize documentation)"
                     loading={launching}
-                    disabled={!backendOnline}
                     submitLabel="Launch Swarm Orchestration"
                     submitLoadingLabel="Deploying Swarm Nodes..."
                     className="h-full flex-1 flex flex-col"
@@ -901,44 +934,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                 </div>
 
                 {/* Right: Controls (lg:col-span-5) */}
-                <div className="lg:col-span-5 flex flex-col gap-2 min-h-0 h-full justify-between">
-                  {/* Model Routing */}
-                  <div className="rounded-xl p-3" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
-                    <div className="mb-2 flex items-center justify-between">
-                      <span style={labelStyle} className="!mb-0">Model Routing</span>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded" style={{ background: 'rgba(0,223,129,0.08)', color: 'var(--prism-primary)' }}>
-                        Low Latency
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] font-mono block mb-1 text-white/40">Provider</label>
-                        <StyledSelect
-                          value={provider}
-                          onChange={(val) => handleProviderChange(val as ModelProvider)}
-                          options={[
-                            { value: 'nvidia', label: 'NVIDIA NIM' },
-                            { value: 'groq', label: 'Groq' },
-                          ]}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-mono block mb-1 text-white/40">Model</label>
-                        <StyledSelect
-                          value={model}
-                          onChange={setModel}
-                          options={MODELS[provider].map((m) => ({
-                            value: m,
-                            label: m === 'nvidia/nemotron-3.5-lightning-30b-a3b' ? 'Nemotron 3.5' : m.length > 15 ? `${m.slice(0, 13)}…` : m,
-                          }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
+                <div className="lg:col-span-5 flex flex-col gap-3 min-h-0 h-full justify-between">
                   {/* Worker Mesh & Checkpoint */}
-                  <div className="rounded-xl p-3" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
-                    <div className="mb-2 flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 sm:p-4" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
+                    <div className="mb-2.5 flex items-center justify-between">
                       <div>
                         <p className="text-xs font-semibold text-white">Worker Mesh Size</p>
                         <p className="text-[10.5px]" style={{ color: 'var(--prism-muted)' }}>Concurrent sub-agent nodes</p>
@@ -958,7 +957,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                       style={{ background: 'rgba(255,255,255,0.12)', accentColor: '#00df81' }}
                     />
                     <label
-                      className="mt-2.5 flex cursor-pointer items-center justify-between rounded-lg p-2 transition-colors"
+                      className="mt-3 flex cursor-pointer items-center justify-between rounded-lg p-2.5 transition-colors"
                       style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}
                     >
                       <div>
@@ -976,12 +975,12 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   </div>
 
                   {/* Tool Integrations: Gmail MCP */}
-                  <div className="rounded-xl p-3" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
-                    <div className="mb-2 flex items-center justify-between">
+                  <div className="rounded-xl p-3.5 sm:p-4" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
+                    <div className="mb-2.5 flex items-center justify-between">
                       <span style={labelStyle} className="!mb-0">Tool Integrations</span>
                       <span className="text-[10px] font-mono text-white/40">OAuth 2.0</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3 p-2.5 rounded-lg" style={{ background: 'var(--prism-board)', border: '1px solid var(--prism-border-card)' }}>
+                    <div className="flex items-center justify-between gap-3 p-3 rounded-lg" style={{ background: 'var(--prism-board)', border: '1px solid var(--prism-border-card)' }}>
                       <div className="min-w-0 flex-1">
                         <p className="text-xs font-semibold text-white">Google Workspace / Gmail</p>
                         <p className="text-[11px] truncate" style={{ color: gmailEmail ? 'var(--prism-primary)' : 'var(--prism-muted)' }}>
@@ -1033,7 +1032,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   </div>
 
                   {/* Architecture spec footer */}
-                  <div className="p-2.5 rounded-xl flex items-center justify-between text-xs" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--prism-border-card)' }}>
+                  <div className="p-3 rounded-xl flex items-center justify-between text-xs" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--prism-border-card)' }}>
                     <div className="flex items-center gap-2">
                       <span className="size-2 rounded-full" style={{ background: backendOnline ? '#00df81' : '#f87171' }} />
                       <span className="font-mono text-white/60 text-[11px]">
@@ -1167,17 +1166,14 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                       compact
                       models={SWARM_PROMPT_MODELS}
                       selectedModel={model}
-                      onModelChange={(newModelId, newProvider) => {
-                        setModel(newModelId);
-                        if (newProvider) {
-                          setProvider(newProvider as ModelProvider);
-                        }
-                      }}
+                      onModelChange={handleModelChange}
                       placeholder="Send follow-up objective or prompt to swarm..."
                       loading={launching}
-                      disabled={!backendOnline}
-                      onSubmit={(promptVal) => {
-                        handleLaunch(undefined, promptVal);
+                      onSubmit={(promptVal, selectedModelId, modelProvider) => {
+                        const targetModel = selectedModelId || model;
+                        const targetProvider = (modelProvider as ModelProvider) || getProviderForModel(targetModel);
+                        handleModelChange(targetModel, targetProvider);
+                        handleLaunch(undefined, promptVal, targetModel, targetProvider);
                       }}
                     />
                   </div>

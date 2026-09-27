@@ -292,7 +292,7 @@ export function AIPrompt({
           onChange={handleTextChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
-          disabled={loading || disabled}
+          disabled={loading}
           className={cn(
             "w-full flex-1 resize-none bg-transparent outline-none leading-relaxed transition-colors",
             "text-white placeholder:text-white/35 font-sans",
@@ -325,15 +325,11 @@ export function AIPrompt({
           {/* Model Selector Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger
-              render={
-                <button
-                  type="button"
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg border border-[rgba(255,255,255,0.08)] bg-white/[0.03] px-2.5 py-1 text-xs font-mono text-white/80 transition-all",
-                    "hover:border-[rgba(0,223,129,0.35)] hover:bg-[rgba(0,223,129,0.06)] hover:text-white"
-                  )}
-                />
-              }
+              type="button"
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg border border-[rgba(255,255,255,0.08)] bg-white/[0.03] px-2.5 py-1 text-xs font-mono text-white/80 transition-all cursor-pointer outline-none select-none",
+                "hover:border-[rgba(0,223,129,0.35)] hover:bg-[rgba(0,223,129,0.06)] hover:text-white focus-visible:border-[rgba(0,223,129,0.5)]"
+              )}
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -342,7 +338,7 @@ export function AIPrompt({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 2 }}
                   transition={{ duration: 0.15 }}
-                  className="flex items-center gap-1.5"
+                  className="flex items-center gap-1.5 pointer-events-none"
                 >
                   {activeModelObj.icon || getModelIcon(activeModelObj.id, activeModelObj.provider)}
                   <span className="font-semibold">{activeModelObj.name}</span>
@@ -358,8 +354,10 @@ export function AIPrompt({
 
             <DropdownMenuContent
               align="start"
+              side="top"
+              sideOffset={8}
               className={cn(
-                "min-w-[15rem] p-1.5 rounded-xl border border-[rgba(255,255,255,0.12)]",
+                "z-[9999] min-w-[16rem] p-1.5 rounded-xl border border-[rgba(255,255,255,0.12)]",
                 "bg-[#090c12]/98 shadow-2xl backdrop-blur-2xl text-white font-mono text-xs"
               )}
             >
@@ -371,9 +369,10 @@ export function AIPrompt({
                 return (
                   <DropdownMenuItem
                     key={m.id}
+                    onClick={() => handleSelectModel(m)}
                     onSelect={() => handleSelectModel(m)}
                     className={cn(
-                      "flex items-center justify-between gap-3 px-2 py-1.5 rounded-lg cursor-pointer transition-colors outline-none",
+                      "flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors outline-none",
                       isSelected
                         ? "bg-[rgba(0,223,129,0.12)] text-[#00df81] font-semibold"
                         : "text-white/80 hover:bg-white/[0.06] hover:text-white"
@@ -382,9 +381,9 @@ export function AIPrompt({
                     <div className="flex items-center gap-2 min-w-0">
                       {m.icon || getModelIcon(m.id, m.provider)}
                       <div className="truncate">
-                        <div className="truncate">{m.name}</div>
+                        <div className="truncate font-sans font-medium text-xs">{m.name}</div>
                         {m.badge && (
-                          <div className="text-[9px] text-white/40">{m.badge}</div>
+                          <div className="text-[10px] text-white/40 font-mono">{m.badge}</div>
                         )}
                       </div>
                     </div>
