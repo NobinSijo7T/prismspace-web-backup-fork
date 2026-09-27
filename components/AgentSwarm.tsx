@@ -1159,16 +1159,16 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     value={objective}
                     onChange={setObjective}
                     onSubmit={(val, selectedModelId, modelProvider) => {
-                      const targetModel = selectedModelId || model;
+                      const targetModel = selectedModelId || workerModels[0] || model;
                       const targetProvider = (modelProvider as ModelProvider) || getProviderForModel(targetModel);
                       handleModelChange(targetModel, targetProvider);
                       handleLaunch(undefined, val, targetModel, targetProvider);
                     }}
                     models={availablePromptModels}
-                    selectedModel={model}
+                    selectedModel={workerModels[0] || model}
                     onModelChange={handleModelChange}
                     onOpenByok={() => setShowByokModal(true)}
-                    showModelSelector={true}
+                    showModelSelector={false}
                     templates={[
                       { label: 'Research & Map', text: 'Research latest advancements and synthesize an architectural breakdown.' },
                       { label: 'Code Review & Audit', text: 'Audit recent commits, check for edge-case regressions, and formulate fixes.' },
