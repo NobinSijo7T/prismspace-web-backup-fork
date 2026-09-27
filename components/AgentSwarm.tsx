@@ -13,16 +13,23 @@ import { motion } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,
+  AlertCircle,
   ArrowRight,
   ArrowUpRight,
   Bot,
   Check,
+  CheckCircle2,
   ChevronDown,
   Clipboard,
+  Cpu,
   ExternalLink,
+  Eye,
+  EyeOff,
   GitBranch,
   KeyRound,
+  Layers,
   ListTree,
+  Lock,
   MessageSquare,
   Plus,
   Radio,
@@ -30,6 +37,7 @@ import {
   Search,
   Send,
   Settings,
+  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
   TerminalSquare,
@@ -52,6 +60,15 @@ import {
 import { ByokModal, getProviderIcon } from '@/components/ByokModal';
 import { SwarmModelSelect } from './SwarmModelSelect';
 import { cn } from '@/lib/utils';
+import {
+  MCP_SERVER_REGISTRY,
+  FEATURED_MCP_SERVERS,
+  ALL_MCP_SERVERS,
+  getMcpServerMeta,
+  getMcpServerForEnvKey,
+  renderMcpServerIcon,
+  type McpServerMeta,
+} from '@/lib/mcp-catalog';
 
 // ── Custom dark-themed Select component ─────────────────────────────────────
 interface SelectOption { value: string; label: ReactNode; }
@@ -314,6 +331,11 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   const [mcpMessage, setMcpMessage] = useState<string | null>(null);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [pendingRemoveKey, setPendingRemoveKey] = useState<string | null>(null);
+  const [showServerPicker, setShowServerPicker] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [connectingGmail, setConnectingGmail] = useState(false);
+  const [showToolsDrawer, setShowToolsDrawer] = useState(false);
 
   // New agent form & BYOK state
   const [objective, setObjective] = useState('');
@@ -813,20 +835,48 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   const selectedAgent = agents.find((a) => a.id === selectedId);
   const selectedMcpToken = mcpTokens.find((token) => token.key === mcpEnvKey);
 
+  const currentServerMeta = useMemo(
+    () => getMcpServerMeta(selectedMcpServer),
+    [selectedMcpServer],
+  );
+
+  const isServerConfigured = useCallback(
+    (server: McpServerMeta): boolean => {
+      if (server.id === 'filesystem') return true;
+      if (server.id === 'gmail' && gmailConnected) return true;
+      return server.envKeys.some((env) =>
+        mcpTokens.some((t) => t.key.toUpperCase() === env.key.toUpperCase() && t.configured),
+      );
+    },
+    [mcpTokens, gmailConnected],
+  );
+
   const handleMcpServerChange = (serverName: string) => {
-    const server = mcpServers.find((item) => item.name === serverName);
-    setSelectedMcpServer(serverName);
-    setMcpEnvKey(server?.env[0]?.key ?? (serverName === 'figma' ? 'FIGMA_API_TOKEN' : ''));
+    const meta = getMcpServerMeta(serverName);
+    setSelectedMcpServer(meta.id);
+    setMcpEnvKey(meta.primaryEnvKey);
     setMcpToken('');
     setMcpMessage(null);
   };
 
   const handleSelectMcpToken = (token: McpTokenStatus) => {
-    const serverName = token.used_by[0] ?? '';
+    const meta = getMcpServerForEnvKey(token.key) ?? (token.used_by[0] ? getMcpServerMeta(token.used_by[0]) : null);
+    if (meta) {
+      setSelectedMcpServer(meta.id);
+    }
     setMcpEnvKey(token.key);
-    setSelectedMcpServer(serverName);
     setMcpToken('');
     setMcpMessage(null);
+  };
+
+  const handleConnectGmail = async () => {
+    setConnectingGmail(true);
+    try {
+      await connectGmail();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Google OAuth connection failed');
+      setConnectingGmail(false);
+    }
   };
 
   const handleSaveMcpToken = async (e: React.FormEvent) => {
@@ -844,8 +894,8 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
       setMcpToken('');
       toast.success(
         selectedMcpServer
-          ? `${mcpEnvKey.trim().toUpperCase()} saved for ${selectedMcpServer}.`
-          : `${mcpEnvKey.trim().toUpperCase()} updated in .env.`,
+          ? `${mcpEnvKey.trim().toUpperCase()} saved for ${getMcpServerMeta(selectedMcpServer).displayName}.`
+          : `${mcpEnvKey.trim().toUpperCase()} updated in tools .env.`,
       );
       await refreshMcpServers();
     } catch (error) {
@@ -1986,241 +2036,650 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
               </div>
         </div>
 
-        {/* ═══════ SETTINGS VIEW (2-COLUMN ZERO-SCROLL) ═══════ */}
-        <div className={`h-full min-h-0 overflow-y-auto lg:overflow-hidden p-4 ${activeView === 'settings' ? 'block' : 'hidden'}`}>
-              <div className="mx-auto grid h-full grid-cols-1 lg:grid-cols-12 gap-4 min-h-0 max-w-none">
-                {/* Left Column: Active Tokens & Chat Sessions (7 cols) */}
-                <div className="lg:col-span-7 flex flex-col gap-2.5 min-h-0 h-full">
+        {/* ═══════ SETTINGS VIEW: EXTENSIVE MCP HUB ═══════ */}
+        <div className={`h-full min-h-0 overflow-y-auto p-4 flex flex-col gap-3.5 ${activeView === 'settings' ? 'flex' : 'hidden'}`}>
+          {/* Top Row: Primary 5 MCP Server Cards (Figma, Google Drive, Gmail, GitHub, Filesystem) */}
+          <div className="flex-shrink-0">
+            <div className="mb-2 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Cpu className="size-4 text-emerald-400" />
+                  Model Context Protocol (MCP) Hub
+                </h3>
+                <p className="text-[11px] text-white/50">
+                  Arrange and configure tool providers for swarm sub-agents. Click any server to inspect capabilities or attach credentials.
+                </p>
+              </div>
+              <div className="hidden sm:flex items-center gap-2 text-[11px] font-mono text-white/50">
+                <span className="inline-block size-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>5 Core MCPs Available</span>
+              </div>
+            </div>
+
+            {/* 5 Server Cards Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
+              {FEATURED_MCP_SERVERS.map((server) => {
+                const isSelected = selectedMcpServer === server.id;
+                const configured = isServerConfigured(server);
+                return (
                   <div
-                    className="flex-1 flex flex-col min-h-0 rounded-xl p-3"
-                    style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+                    key={server.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleMcpServerChange(server.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleMcpServerChange(server.id);
+                      }
+                    }}
+                    className={`group relative flex flex-col justify-between rounded-xl p-3 cursor-pointer transition-all duration-200 select-none ${
+                      isSelected
+                        ? 'ring-1 ring-emerald-500/80 shadow-[0_0_20px_rgba(0,223,129,0.18)] bg-gradient-to-b from-white/[0.08] to-white/[0.02]'
+                        : 'hover:border-white/20 bg-white/[0.02] hover:bg-white/[0.04]'
+                    }`}
+                    style={{
+                      border: isSelected ? '1px solid #00DF81' : '1px solid var(--prism-border-card)',
+                      backdropFilter: 'blur(8px)',
+                    }}
                   >
-                    <div className="mb-2.5 flex items-center justify-between gap-3 flex-shrink-0">
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">Active MCP Tokens</h3>
-                        <p className="mt-0.5 text-[11px]" style={{ color: 'var(--prism-muted)' }}>
-                          Configured in {mcpEnvFile ?? 'tools .env'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {mcpTokens.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setPendingRemoveKey('__CLEAR_ALL__');
-                              setShowRemoveConfirm(true);
-                            }}
-                            className="inline-flex h-7 items-center rounded-lg px-2 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
-                          >
-                            Clear All
-                          </button>
-                        )}
-                        <motion.button
-                          type="button"
-                          onClick={refreshMcpServers}
-                          className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px]"
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className="flex size-9 items-center justify-center rounded-lg flex-shrink-0 transition-transform group-hover:scale-105"
                           style={{
-                            border: '1px solid var(--prism-border-card)',
-                            background: 'var(--prism-board)',
-                            color: 'var(--prism-muted)',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            boxShadow: `0 0 15px ${server.glowColor}`,
                           }}
-                          whileHover={{ borderColor: 'rgba(0,223,129,0.3)', color: '#fff' }}
-                          whileTap={{ scale: 0.95 }}
                         >
-                          <RefreshCw className="size-3" />
-                          Refresh
-                        </motion.button>
+                          {renderMcpServerIcon(server.id, 'size-5')}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-bold text-white truncate flex items-center gap-1">
+                            {server.displayName}
+                          </div>
+                          <div className="text-[10px] text-white/40 truncate">
+                            {server.subtitle}
+                          </div>
+                        </div>
                       </div>
+                      <span
+                        className="rounded-full px-1.5 py-0.5 text-[9px] font-mono font-medium flex-shrink-0"
+                        style={{
+                          background: configured ? 'rgba(0,223,129,0.12)' : 'rgba(251,191,36,0.1)',
+                          color: configured ? 'var(--prism-primary)' : '#fbbf24',
+                          border: `1px solid ${configured ? 'rgba(0,223,129,0.25)' : 'rgba(251,191,36,0.25)'}`,
+                        }}
+                      >
+                        {configured ? (server.isBuiltIn ? 'Active' : 'Configured') : 'Setup'}
+                      </span>
                     </div>
 
-                    {/* Token List */}
-                    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-                      {mcpTokens.length === 0 && (
-                        <div
-                          className="rounded-xl p-4 text-xs text-center"
-                          style={{
-                            border: '1px dashed var(--prism-border-card)',
-                            background: 'var(--prism-board)',
-                            color: 'var(--prism-muted)',
-                          }}
-                        >
-                          No tool tokens found. Configure a token using the panel on the right.
-                        </div>
-                      )}
-                      {mcpTokens.map((token) => {
-                        const active = token.key === mcpEnvKey;
-                        return (
-                          <div
-                            key={token.key}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => handleSelectMcpToken(token)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                handleSelectMcpToken(token);
-                              }
-                            }}
-                            className={`layer-row cursor-pointer ${active ? 'highlighted' : ''}`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span
-                                className="min-w-0 flex-1 truncate text-xs font-semibold"
-                                style={{ fontFamily: "'JetBrains Mono', monospace", color: 'rgba(255,255,255,0.9)' }}
-                              >
-                                {token.key}
-                              </span>
-                              <div className="flex items-center gap-2">
+                    <p className="mt-2 text-[11px] leading-snug line-clamp-2 text-white/50">
+                      {server.description}
+                    </p>
+
+                    <div className="mt-2.5 flex items-center justify-between border-t border-white/[0.05] pt-2 text-[10px]">
+                      <span className="font-mono text-white/30">
+                        {server.tools.length} tools • {server.transport}
+                      </span>
+                      <span
+                        className="font-medium transition-colors"
+                        style={{ color: isSelected ? 'var(--prism-primary)' : 'rgba(255,255,255,0.6)' }}
+                      >
+                        {isSelected ? 'Selected ✓' : 'Configure →'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Bottom Grid: 2-Column Split (Vault & Chat on Left, Selected Server Config on Right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 flex-1 min-h-0">
+            {/* Left Column: Configured Tokens & Chat Sessions (7 cols) */}
+            <div className="lg:col-span-7 flex flex-col gap-2.5 min-h-0">
+              <div
+                className="flex-1 flex flex-col min-h-0 rounded-xl p-3.5"
+                style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+              >
+                <div className="mb-2.5 flex items-center justify-between gap-3 flex-shrink-0">
+                  <div>
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-1.5">
+                      <span>Active MCP Tokens</span>
+                      <span className="rounded-full bg-white/10 px-1.5 py-0.2 text-[10px] font-mono text-white/70">
+                        {mcpTokens.length}
+                      </span>
+                    </h3>
+                    <p className="mt-0.5 text-[11px]" style={{ color: 'var(--prism-muted)' }}>
+                      Persisted locally in {mcpEnvFile ?? 'backend/hive/tools/.env'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {mcpTokens.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPendingRemoveKey('__CLEAR_ALL__');
+                          setShowRemoveConfirm(true);
+                        }}
+                        className="inline-flex h-7 items-center rounded-lg px-2 text-[11px] text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        Clear All
+                      </button>
+                    )}
+                    <motion.button
+                      type="button"
+                      onClick={refreshMcpServers}
+                      className="inline-flex h-7 items-center gap-1.5 rounded-lg px-2 text-[11px]"
+                      style={{
+                        border: '1px solid var(--prism-border-card)',
+                        background: 'var(--prism-board)',
+                        color: 'var(--prism-muted)',
+                      }}
+                      whileHover={{ borderColor: 'rgba(0,223,129,0.3)', color: '#fff' }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <RefreshCw className="size-3" />
+                      Refresh
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Token List with Brand Logos */}
+                <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                  {mcpTokens.length === 0 && (
+                    <div
+                      className="rounded-xl p-6 text-xs text-center flex flex-col items-center justify-center gap-2"
+                      style={{
+                        border: '1px dashed var(--prism-border-card)',
+                        background: 'var(--prism-board)',
+                        color: 'var(--prism-muted)',
+                      }}
+                    >
+                      <KeyRound className="size-6 text-white/20" />
+                      <p className="font-semibold text-white/70">No MCP tokens configured yet</p>
+                      <p className="text-[11px] text-white/40 max-w-xs">
+                        Select one of the 5 servers above (Figma, Google Drive, Gmail, GitHub, Filesystem) or enter your API credentials on the right.
+                      </p>
+                    </div>
+                  )}
+                  {mcpTokens.map((token) => {
+                    const active = token.key === mcpEnvKey;
+                    const tokenServer =
+                      getMcpServerForEnvKey(token.key) ??
+                      (token.used_by[0] ? getMcpServerMeta(token.used_by[0]) : null);
+
+                    return (
+                      <div
+                        key={token.key}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleSelectMcpToken(token)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleSelectMcpToken(token);
+                          }
+                        }}
+                        className={`layer-row cursor-pointer transition-all ${active ? 'highlighted' : ''}`}
+                        style={{
+                          background: active ? 'rgba(0, 223, 129, 0.08)' : undefined,
+                          borderColor: active ? 'rgba(0, 223, 129, 0.4)' : undefined,
+                        }}
+                      >
+                        <div className="flex items-center justify-between gap-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div
+                              className="flex size-7 items-center justify-center rounded-lg flex-shrink-0"
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                border: '1px solid rgba(255, 255, 255, 0.08)',
+                              }}
+                            >
+                              {tokenServer ? (
+                                renderMcpServerIcon(tokenServer.id, 'size-4')
+                              ) : (
+                                <KeyRound className="size-3.5 text-white/50" />
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1 truncate">
+                              <div className="flex items-center gap-1.5 truncate">
                                 <span
-                                  className="rounded-full px-2 py-0.5 text-[10px]"
+                                  className="truncate text-xs font-semibold"
                                   style={{
                                     fontFamily: "'JetBrains Mono', monospace",
-                                    background: token.configured ? 'rgba(0,223,129,0.1)' : 'rgba(251,191,36,0.1)',
-                                    color: token.configured ? 'var(--prism-primary)' : '#fbbf24',
+                                    color: 'rgba(255,255,255,0.92)',
                                   }}
                                 >
-                                  {token.configured ? 'configured' : 'missing'}
+                                  {token.key}
                                 </span>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPendingRemoveKey(token.key);
-                                    setShowRemoveConfirm(true);
-                                  }}
-                                  className="text-white/30 hover:text-red-400 p-1 text-xs"
-                                  title="Delete token"
-                                >
-                                  ✕
-                                </button>
+                                {tokenServer && (
+                                  <span className="text-[9px] font-mono px-1 rounded bg-white/10 text-white/50 flex-shrink-0">
+                                    {tokenServer.displayName}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] font-mono text-white/40 truncate">
+                                {token.masked || '••••••••••••'}
                               </div>
                             </div>
                           </div>
-                        );
-                      })}
+
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <span
+                              className="rounded-full px-2 py-0.5 text-[10px]"
+                              style={{
+                                fontFamily: "'JetBrains Mono', monospace",
+                                background: token.configured ? 'rgba(0,223,129,0.1)' : 'rgba(251,191,36,0.1)',
+                                color: token.configured ? 'var(--prism-primary)' : '#fbbf24',
+                              }}
+                            >
+                              {token.configured ? 'configured' : 'missing'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPendingRemoveKey(token.key);
+                                setShowRemoveConfirm(true);
+                              }}
+                              className="text-white/30 hover:text-red-400 p-1 text-xs transition-colors"
+                              title="Delete token"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Chat sessions card */}
+              {chatSessions && chatSessions.length > 0 && (
+                <div
+                  className="rounded-xl p-3 flex flex-col max-h-[170px]"
+                  style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+                >
+                  <h4 className="text-xs font-semibold text-white mb-2 flex-shrink-0">Chat Sessions ({chatSessions.length})</h4>
+                  <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 min-h-0">
+                    {chatSessions.map((session) => (
+                      <div
+                        key={session.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          setActiveSessionId(session.id);
+                          localStorage.setItem(ACTIVE_SWARM_CHAT_KEY, session.id);
+                          setActiveView('runs');
+                        }}
+                        className={`layer-row !p-1.5 cursor-pointer ${activeSessionId === session.id ? 'highlighted' : ''}`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-xs font-semibold flex-1" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                            {session.title}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteChatSession(session.id);
+                            }}
+                            className="text-white/30 hover:text-red-400 p-1"
+                            aria-label="Delete chat"
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: Configure MCP Server Form (5 cols) */}
+            <div
+              className="lg:col-span-5 flex flex-col justify-between rounded-xl p-3.5 min-h-0"
+              style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+            >
+              <div>
+                {/* Server Header with Brand Logo */}
+                <div className="mb-3 flex items-start justify-between gap-2 border-b border-white/[0.06] pb-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className="flex size-9 items-center justify-center rounded-lg flex-shrink-0"
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.06)',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        boxShadow: `0 0 12px ${currentServerMeta.glowColor}`,
+                      }}
+                    >
+                      {renderMcpServerIcon(currentServerMeta.id, 'size-5')}
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
+                        <span>{currentServerMeta.displayName} MCP</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-white/70">
+                          {currentServerMeta.badgeText}
+                        </span>
+                      </h4>
+                      <p className="text-[11px] text-white/50 truncate">
+                        {currentServerMeta.subtitle}
+                      </p>
                     </div>
                   </div>
 
-                  {/* Chat sessions card */}
-                  {chatSessions && chatSessions.length > 0 && (
-                    <div
-                      className="rounded-xl p-3 flex flex-col max-h-[190px]"
-                      style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+                  {currentServerMeta.docsUrl && (
+                    <a
+                      href={currentServerMeta.docsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] text-white/40 hover:text-emerald-400 hover:bg-white/5 transition-colors flex-shrink-0"
+                      title="Open setup documentation"
                     >
-                      <h4 className="text-xs font-semibold text-white mb-2 flex-shrink-0">Chat Sessions ({chatSessions.length})</h4>
-                      <div className="space-y-1.5 overflow-y-auto pr-1 flex-1 min-h-0">
-                        {chatSessions.map((session) => (
-                          <div
-                            key={session.id}
-                            role="button"
-                            tabIndex={0}
-                            onClick={() => {
-                              setActiveSessionId(session.id);
-                              localStorage.setItem(ACTIVE_SWARM_CHAT_KEY, session.id);
-                              setActiveView('runs');
-                            }}
-                            className={`layer-row !p-1.5 cursor-pointer ${activeSessionId === session.id ? 'highlighted' : ''}`}
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="truncate text-xs font-semibold flex-1" style={{ color: 'rgba(255,255,255,0.85)' }}>
-                                {session.title}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteChatSession(session.id);
+                      Docs <ExternalLink className="size-3" />
+                    </a>
+                  )}
+                </div>
+
+                <form onSubmit={handleSaveMcpToken} className="space-y-3">
+                  {/* Target Server Selector with Brand Icons */}
+                  <div className="relative">
+                    <label style={labelStyle}>Target MCP Server</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowServerPicker(!showServerPicker)}
+                      className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition-all"
+                      style={{
+                        border: '1px solid var(--prism-border-card)',
+                        background: 'var(--prism-board)',
+                      }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex size-6 items-center justify-center rounded-md" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                          {renderMcpServerIcon(currentServerMeta.id, 'size-3.5')}
+                        </div>
+                        <div className="truncate">
+                          <span className="text-xs font-semibold text-white">
+                            {currentServerMeta.displayName}
+                          </span>
+                          <span className="ml-2 text-[10px] font-mono text-white/40">
+                            ({currentServerMeta.transport})
+                          </span>
+                        </div>
+                      </div>
+                      <ChevronDown className={`size-4 text-white/40 transition-transform ${showServerPicker ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Server Picker Dropdown */}
+                    {showServerPicker && (
+                      <div
+                        className="absolute left-0 right-0 top-full z-40 mt-1 max-h-64 overflow-y-auto rounded-xl p-1 shadow-2xl backdrop-blur-xl"
+                        style={{
+                          border: '1px solid var(--prism-border-card)',
+                          background: '#0d1117',
+                        }}
+                      >
+                        <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                          Available Integrations
+                        </div>
+                        {ALL_MCP_SERVERS.map((server) => {
+                          const configured = isServerConfigured(server);
+                          const active = selectedMcpServer === server.id;
+                          return (
+                            <button
+                              key={server.id}
+                              type="button"
+                              onClick={() => {
+                                handleMcpServerChange(server.id);
+                                setShowServerPicker(false);
+                              }}
+                              className={`flex w-full items-center justify-between gap-2.5 rounded-lg px-2.5 py-1.5 text-left transition-colors ${
+                                active
+                                  ? 'bg-emerald-500/15 text-white'
+                                  : 'hover:bg-white/5 text-white/80'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex size-6 items-center justify-center rounded-md" style={{ background: 'rgba(255,255,255,0.06)' }}>
+                                  {renderMcpServerIcon(server.id, 'size-3.5')}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="text-xs font-semibold text-white truncate">
+                                    {server.displayName}
+                                  </div>
+                                  <div className="text-[10px] text-white/40 truncate">
+                                    {server.subtitle}
+                                  </div>
+                                </div>
+                              </div>
+                              <span
+                                className="rounded-full px-1.5 py-0.2 text-[9px] font-mono"
+                                style={{
+                                  background: configured ? 'rgba(0,223,129,0.1)' : 'rgba(255,255,255,0.06)',
+                                  color: configured ? 'var(--prism-primary)' : 'rgba(255,255,255,0.4)',
                                 }}
-                                className="text-white/30 hover:text-red-400 p-1"
-                                aria-label="Delete chat"
                               >
-                                <Trash2 className="size-3" />
-                              </button>
+                                {configured ? 'Ready' : 'Setup'}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Environment Variable Key */}
+                  <div>
+                    <label style={labelStyle}>Environment Variable Key</label>
+                    <input
+                      type="text"
+                      value={mcpEnvKey}
+                      onChange={(e) => setMcpEnvKey(e.target.value.toUpperCase())}
+                      placeholder={currentServerMeta.primaryEnvKey}
+                      style={inputStyle}
+                    />
+
+                    {/* Quick-select pills for recommended keys */}
+                    {currentServerMeta.envKeys.length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {currentServerMeta.envKeys.map((env) => (
+                          <button
+                            key={env.key}
+                            type="button"
+                            onClick={() => setMcpEnvKey(env.key)}
+                            className={`rounded-md px-2 py-0.5 text-[10px] font-mono transition-all ${
+                              mcpEnvKey === env.key
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : 'bg-white/[0.04] text-white/50 border border-white/[0.06] hover:bg-white/10 hover:text-white'
+                            }`}
+                          >
+                            {env.key}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Secret Token Input */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label style={{ ...labelStyle, marginBottom: 0 }}>
+                        {selectedMcpServer === 'filesystem' ? 'Allowed Directories' : 'Secret API Token / Credential'}
+                      </label>
+                      {selectedMcpServer !== 'filesystem' && (
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="flex items-center gap-1 text-[10px] text-white/40 hover:text-white transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="size-3" /> : <Eye className="size-3" />}
+                          <span>{showPassword ? 'Hide' : 'Reveal'}</span>
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      type={showPassword || selectedMcpServer === 'filesystem' ? 'text' : 'password'}
+                      value={mcpToken}
+                      onChange={(e) => setMcpToken(e.target.value)}
+                      placeholder={
+                        currentServerMeta.envKeys[0]?.placeholder ||
+                        'Paste secret credentials or API token...'
+                      }
+                      style={inputStyle}
+                    />
+                  </div>
+
+                  {/* Gmail Special: 1-Click OAuth Connection */}
+                  {selectedMcpServer === 'gmail' && (
+                    <div
+                      className="rounded-xl p-3 text-xs"
+                      style={{
+                        border: '1px solid rgba(234, 67, 53, 0.25)',
+                        background: 'rgba(234, 67, 53, 0.05)',
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <span className="font-semibold text-white/90 flex items-center gap-1.5">
+                          {renderMcpServerIcon('gmail', 'size-4')}
+                          1-Click Google OAuth
+                        </span>
+                        {gmailConnected && (
+                          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                            Connected ✓
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-white/50 mb-2.5">
+                        Sign in with your Google account to grant direct email read, draft, and thread access.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={handleConnectGmail}
+                        disabled={connectingGmail}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all"
+                        style={{
+                          background: 'linear-gradient(135deg, #EA4335, #C5221F)',
+                          color: '#fff',
+                        }}
+                      >
+                        {connectingGmail ? (
+                          <RefreshCw className="size-3.5 animate-spin" />
+                        ) : (
+                          renderMcpServerIcon('gmail', 'size-3.5')
+                        )}
+                        <span>{gmailConnected ? 'Reconnect Google Account' : 'Connect with Google Account'}</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Filesystem Special: Built-in local workspace reminder */}
+                  {selectedMcpServer === 'filesystem' && (
+                    <div
+                      className="rounded-xl p-2.5 text-[11px] leading-relaxed"
+                      style={{
+                        border: '1px solid rgba(0, 223, 129, 0.2)',
+                        background: 'rgba(0, 223, 129, 0.05)',
+                        color: 'rgba(255, 255, 255, 0.8)',
+                      }}
+                    >
+                      <div className="font-semibold text-emerald-400 flex items-center gap-1 mb-0.5">
+                        <CheckCircle2 className="size-3.5" /> Workspace Sandboxing Active
+                      </div>
+                      Local files in the current repository are already accessible by default. Use this field if you want to explicitly restrict or whitelist custom directory paths.
+                    </div>
+                  )}
+
+                  {/* Collapsible Tool Capabilities */}
+                  <div className="border-t border-white/[0.05] pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowToolsDrawer(!showToolsDrawer)}
+                      className="flex w-full items-center justify-between text-[11px] text-white/50 hover:text-white transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5 font-medium">
+                        <Layers className="size-3 text-emerald-400" />
+                        Capabilities ({currentServerMeta.tools.length} Tools)
+                      </span>
+                      <span className="font-mono text-[10px] text-white/40">
+                        {showToolsDrawer ? 'Collapse ▲' : 'Inspect ▼'}
+                      </span>
+                    </button>
+
+                    {showToolsDrawer && (
+                      <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                        {currentServerMeta.tools.map((t) => (
+                          <div
+                            key={t.name}
+                            className="rounded-lg p-2 text-[10px]"
+                            style={{
+                              background: 'var(--prism-board)',
+                              border: '1px solid rgba(255,255,255,0.04)',
+                            }}
+                          >
+                            <div className="font-mono font-bold text-emerald-400 truncate">
+                              {t.name}
+                            </div>
+                            <div className="text-white/50 mt-0.5 truncate">{t.description}</div>
+                            <div className="mt-1 font-mono text-[9px] text-white/30 truncate">
+                              Example: {t.example}
                             </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Column: Configure Token Form (5 cols) */}
-                <div className="lg:col-span-5 flex flex-col justify-between rounded-xl p-3 min-h-0 h-full" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
-                  <div>
-                    <div className="mb-3">
-                      <h4 className="text-sm font-semibold text-white">Configure MCP Token</h4>
-                      <p className="text-[11px] mt-0.5" style={{ color: 'var(--prism-muted)' }}>
-                        Save API credentials directly into local tools environment.
-                      </p>
-                    </div>
-
-                    <form onSubmit={handleSaveMcpToken} className="space-y-2.5">
-                      <div>
-                        <label style={labelStyle}>Target Server</label>
-                        <StyledSelect
-                          value={selectedMcpServer}
-                          onChange={handleMcpServerChange}
-                          options={
-                            mcpServers.length
-                              ? mcpServers.map((s) => ({ value: s.name, label: s.name }))
-                              : [{ value: 'figma', label: 'figma' }]
-                          }
-                        />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Environment Variable Key</label>
-                        <input
-                          type="text"
-                          value={mcpEnvKey}
-                          onChange={(e) => setMcpEnvKey(e.target.value.toUpperCase())}
-                          placeholder="e.g. FIGMA_API_TOKEN"
-                          style={inputStyle}
-                        />
-                      </div>
-                      <div>
-                        <label style={labelStyle}>Secret API Token</label>
-                        <input
-                          type="password"
-                          value={mcpToken}
-                          onChange={(e) => setMcpToken(e.target.value)}
-                          placeholder="Paste API token value..."
-                          style={inputStyle}
-                        />
-                      </div>
-                      {mcpMessage && (
-                        <p
-                          className="rounded-lg p-2 text-xs"
-                          style={{
-                            fontFamily: "'JetBrains Mono', monospace",
-                            border: '1px solid rgba(0,223,129,0.2)',
-                            background: 'rgba(0,223,129,0.06)',
-                            color: 'var(--prism-primary)',
-                          }}
-                        >
-                          {mcpMessage}
-                        </p>
-                      )}
-                      <GradientButton
-                        type="submit"
-                        loading={savingMcpToken}
-                        disabled={savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()}
-                        variant="emerald"
-                        className="h-11 w-full text-sm font-bold mt-2"
-                        icon={<KeyRound className="size-4" />}
-                      >
-                        {savingMcpToken ? 'Saving Token...' : 'Save MCP Token'}
-                      </GradientButton>
-                    </form>
+                    )}
                   </div>
 
-                  <div className="p-3 rounded-lg border text-xs" style={{ background: 'var(--prism-board)', borderColor: 'rgba(255,255,255,0.05)' }}>
-                    <p className="font-semibold text-white/80 mb-1">Security note</p>
-                    <p className="text-[11px] leading-relaxed text-white/40">
-                      Tokens are persisted to your local <code>.env</code> file only and never leave your local workspace.
+                  {mcpMessage && (
+                    <p
+                      className="rounded-lg p-2 text-xs"
+                      style={{
+                        fontFamily: "'JetBrains Mono', monospace",
+                        border: '1px solid rgba(0,223,129,0.2)',
+                        background: 'rgba(0,223,129,0.06)',
+                        color: 'var(--prism-primary)',
+                      }}
+                    >
+                      {mcpMessage}
                     </p>
-                  </div>
+                  )}
+
+                  <GradientButton
+                    type="submit"
+                    loading={savingMcpToken}
+                    disabled={savingMcpToken || !mcpEnvKey.trim() || !mcpToken.trim()}
+                    variant="emerald"
+                    className="h-10 w-full text-xs font-bold mt-1"
+                    icon={<KeyRound className="size-3.5" />}
+                  >
+                    {savingMcpToken
+                      ? 'Saving Credentials...'
+                      : `Save ${currentServerMeta.displayName} Credentials`}
+                  </GradientButton>
+                </form>
+              </div>
+
+              {/* Security Footer Note */}
+              <div
+                className="p-2.5 rounded-lg border text-xs mt-3 flex items-start gap-2"
+                style={{ background: 'var(--prism-board)', borderColor: 'rgba(255,255,255,0.05)' }}
+              >
+                <ShieldCheck className="size-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-white/80 text-[11px] mb-0.5">Local Workspace Security</p>
+                  <p className="text-[10px] leading-relaxed text-white/40">
+                    Tokens are written directly to your local <code>tools .env</code> file and never sent to external servers or telemetry.
+                  </p>
                 </div>
               </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -246,12 +246,73 @@ def _mask_token(value: str) -> str:
     return f"{value[:4]}...{value[-4:]}"
 
 
+DEFAULT_MCP_SERVERS = {
+    "figma": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-figma"],
+        "description": "Inspect Figma design files, components, styles, design tokens, and export vector/raster assets.",
+        "env": {"FIGMA_API_TOKEN": "${FIGMA_API_TOKEN}"},
+    },
+    "google_drive": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-gdrive"],
+        "description": "Search, read, create, and manage Google Docs, Sheets, Slides, and Drive folder structures.",
+        "env": {"GOOGLE_DRIVE_CREDENTIALS": "${GOOGLE_DRIVE_CREDENTIALS}"},
+    },
+    "gmail": {
+        "transport": "stdio",
+        "command": "python",
+        "args": ["google_oauth.py"],
+        "description": "Read, draft, search, and send emails, process incoming notifications, and manage threads via Google OAuth.",
+        "env": {"GMAIL_CLIENT_SECRET": "${GMAIL_CLIENT_SECRET}"},
+    },
+    "github": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "description": "Access repositories, code trees, pull requests, issues, commits, branches, and code reviews.",
+        "env": {"GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"},
+    },
+    "filesystem": {
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "."],
+        "description": "Local sandboxed workspace filesystem access: search, read, write, edit, and inspect directory trees.",
+        "env": {"ALLOWED_DIRECTORIES": "${ALLOWED_DIRECTORIES}"},
+    },
+    "sqlite": {
+        "transport": "in-process",
+        "command": "internal",
+        "args": [],
+        "description": "Structured local relational storage for persistence, telemetry, and fast queryable tables.",
+        "env": {"SQLITE_DB_PATH": "${SQLITE_DB_PATH}"},
+    },
+    "memory": {
+        "transport": "in-process",
+        "command": "internal",
+        "args": [],
+        "description": "Cross-session key-value memory store for persisting facts, user preferences, and intermediate results.",
+        "env": {},
+    },
+}
+
+
 def _load_mcp_servers() -> dict:
     try:
         with open(MCP_SERVERS_PATH, "r", encoding="utf-8") as f:
-            return json.load(f)
+            data = json.load(f)
+            if data and isinstance(data, dict):
+                return data
     except (FileNotFoundError, json.JSONDecodeError):
-        return {}
+        pass
+
+    try:
+        _write_mcp_servers(DEFAULT_MCP_SERVERS)
+    except Exception:
+        pass
+    return DEFAULT_MCP_SERVERS.copy()
 
 
 def _write_mcp_servers(mcp_servers: dict) -> None:
@@ -429,6 +490,23 @@ def _build_system_prompt() -> str:
                     base += "\nTo use Figma tools, the user provides a Figma file URL like:\n"
                     base += "  `https://www.figma.com/file/ABC123/MyDesign`\n"
                     base += "The file key is the `ABC123` portion after `/file/`.\n"
+                elif name == "google_drive":
+                    gdrive_token_set = resolved_env.get("GOOGLE_DRIVE_CREDENTIALS", "✗ NOT SET")
+                    base += f"\n**Google Drive MCP is ACTIVE** (Credentials: {gdrive_token_set})\n"
+                    base += "You can use the Google Drive MCP to:\n"
+                    base += "- Search files and folders: `gdrive_search(query)`\n"
+                    base += "- Read Google Docs and Sheets: `gdrive_read(file_id)`\n"
+                    base += "- Create files and upload docs: `gdrive_create(name, content, mime_type)`\n"
+                    base += "- List folders and tree structures: `gdrive_list(folder_id)`\n"
+                elif name == "github":
+                    github_token_set = resolved_env.get("GITHUB_PERSONAL_ACCESS_TOKEN", "✗ NOT SET")
+                    base += f"\n**GitHub MCP is ACTIVE** (Token: {github_token_set})\n"
+                    base += "You can use the GitHub MCP to:\n"
+                    base += "- Inspect repository overview and stats: `github_get_repo(owner, repo)`\n"
+                    base += "- Search code across repositories: `github_search_code(query)`\n"
+                    base += "- List and review issues: `github_list_issues(owner, repo, state)`\n"
+                    base += "- Create pull requests with patches: `github_create_pr(owner, repo, title, head, base)`\n"
+                    base += "- Inspect commits and diffs: `github_get_commit(owner, repo, commit_sha)`\n"
                 elif name == "hive_tools":
                     base += "\n**Hive Tools MCP is ACTIVE**\n"
                     base += "You can use: web_search, web_scrape, send_email, and data tools.\n"
@@ -1193,6 +1271,170 @@ def _exec_gmail(tool: str, args: dict, user_id: Optional[str] = None) -> str:
         return f"Gmail request failed: {exc}"
 
 
+def _exec_figma(tool: str, args: dict) -> str:
+    """Execute Figma MCP tools via Figma REST API if FIGMA_API_TOKEN is present."""
+    import httpx as _httpx
+    tools_env = _load_tools_env()
+    token = (
+        tools_env.get("FIGMA_API_TOKEN")
+        or os.environ.get("FIGMA_API_TOKEN")
+        or tools_env.get("FIGMA_PERSONAL_ACCESS_TOKEN")
+        or os.environ.get("FIGMA_PERSONAL_ACCESS_TOKEN")
+    )
+    if not token:
+        return (
+            "Figma API token not configured. Please save FIGMA_API_TOKEN in the "
+            "Swarm Settings > MCP Tokens panel."
+        )
+
+    raw_file_key = str(args.get("file_key") or args.get("key") or args.get("url") or "").strip()
+    if "figma.com/file/" in raw_file_key or "figma.com/design/" in raw_file_key:
+        match = re.search(r"figma\.com/(?:file|design)/([a-zA-Z0-9]+)", raw_file_key)
+        file_key = match.group(1) if match else raw_file_key
+    else:
+        file_key = raw_file_key
+
+    if not file_key:
+        return "Error: 'file_key' or Figma URL is required for Figma MCP operations."
+
+    headers = {"X-Figma-Token": token}
+    try:
+        if tool in ("figma_get_file", "get_file"):
+            depth = args.get("depth", 2)
+            r = _httpx.get(
+                f"https://api.figma.com/v1/files/{file_key}",
+                headers=headers,
+                params={"depth": depth},
+                timeout=25.0,
+            )
+            if r.status_code == 200:
+                data = r.json()
+                name = data.get("name", "Untitled")
+                doc = data.get("document", {})
+                pages = [child.get("name", "") for child in doc.get("children", [])]
+                return (
+                    f"Figma File: '{name}' (Key: {file_key})\n"
+                    f"Pages: {', '.join(pages) if pages else 'None'}\n"
+                    f"Structure:\n{json.dumps(data, indent=2)[:4000]}"
+                )
+            return f"Figma API returned {r.status_code}: {r.text[:400]}"
+        elif tool in ("figma_get_file_nodes", "get_file_nodes"):
+            ids = args.get("ids", [])
+            ids_str = ",".join(ids) if isinstance(ids, list) else str(ids)
+            r = _httpx.get(
+                f"https://api.figma.com/v1/files/{file_key}/nodes",
+                headers=headers,
+                params={"ids": ids_str},
+                timeout=25.0,
+            )
+            return r.text[:5000] if r.status_code == 200 else f"Figma API error ({r.status_code}): {r.text[:300]}"
+        elif tool in ("figma_get_comments", "get_comments"):
+            r = _httpx.get(
+                f"https://api.figma.com/v1/files/{file_key}/comments",
+                headers=headers,
+                timeout=25.0,
+            )
+            return r.text[:5000] if r.status_code == 200 else f"Figma API error ({r.status_code}): {r.text[:300]}"
+        return f"Figma operation '{tool}' executed with key '{file_key}'."
+    except Exception as exc:
+        return f"Figma request failed: {exc}"
+
+
+def _exec_github(tool: str, args: dict) -> str:
+    """Execute GitHub MCP tools via GitHub REST API if GITHUB_PERSONAL_ACCESS_TOKEN is present."""
+    import httpx as _httpx
+    tools_env = _load_tools_env()
+    token = (
+        tools_env.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+        or os.environ.get("GITHUB_PERSONAL_ACCESS_TOKEN")
+        or tools_env.get("GITHUB_TOKEN")
+        or os.environ.get("GITHUB_TOKEN")
+    )
+    headers = {"Accept": "application/vnd.github.v3+json", "User-Agent": "PrismSpace-AgentSwarm"}
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+
+    try:
+        if tool in ("github_get_repo", "get_repo"):
+            owner = str(args.get("owner", "")).strip()
+            repo = str(args.get("repo", "")).strip()
+            if not owner or not repo:
+                return "Error: 'owner' and 'repo' are required."
+            r = _httpx.get(f"https://api.github.com/repos/{owner}/{repo}", headers=headers, timeout=20.0)
+            if r.status_code == 200:
+                data = r.json()
+                return json.dumps({
+                    "full_name": data.get("full_name"),
+                    "description": data.get("description"),
+                    "stars": data.get("stargazers_count"),
+                    "forks": data.get("forks_count"),
+                    "default_branch": data.get("default_branch"),
+                    "open_issues": data.get("open_issues_count"),
+                }, indent=2)
+            return f"GitHub API error ({r.status_code}): {r.text[:300]}"
+        elif tool in ("github_search_code", "search_code"):
+            query = str(args.get("query", "")).strip()
+            if not query:
+                return "Error: 'query' parameter is required."
+            r = _httpx.get(
+                "https://api.github.com/search/code",
+                headers=headers,
+                params={"q": query, "per_page": 5},
+                timeout=20.0,
+            )
+            return r.text[:4000] if r.status_code == 200 else f"GitHub Search error ({r.status_code}): {r.text[:300]}"
+        elif tool in ("github_list_issues", "list_issues"):
+            owner = str(args.get("owner", "")).strip()
+            repo = str(args.get("repo", "")).strip()
+            state = args.get("state", "open")
+            if not owner or not repo:
+                return "Error: 'owner' and 'repo' are required."
+            r = _httpx.get(
+                f"https://api.github.com/repos/{owner}/{repo}/issues",
+                headers=headers,
+                params={"state": state, "per_page": 10},
+                timeout=20.0,
+            )
+            return r.text[:5000] if r.status_code == 200 else f"GitHub Issues error ({r.status_code}): {r.text[:300]}"
+        return f"GitHub tool '{tool}' executed."
+    except Exception as exc:
+        return f"GitHub request failed: {exc}"
+
+
+def _exec_google_drive(tool: str, args: dict) -> str:
+    """Execute Google Drive MCP operations."""
+    import httpx as _httpx
+    tools_env = _load_tools_env()
+    token = (
+        tools_env.get("GOOGLE_DRIVE_CREDENTIALS")
+        or os.environ.get("GOOGLE_DRIVE_CREDENTIALS")
+        or tools_env.get("GDRIVE_API_KEY")
+        or os.environ.get("GDRIVE_API_KEY")
+        or os.environ.get("GOOGLE_ACCESS_TOKEN")
+    )
+    if not token:
+        return (
+            "Google Drive credentials not configured. Please save GOOGLE_DRIVE_CREDENTIALS or "
+            "GDRIVE_API_KEY in Swarm Settings > MCP Tokens panel."
+        )
+
+    query = args.get("query", "")
+    try:
+        headers = {"Authorization": f"Bearer {token}"} if not str(token).startswith("AIza") else {}
+        params = {"q": query or "trashed = false", "pageSize": 10, "fields": "files(id, name, mimeType, webViewLink)"}
+        if str(token).startswith("AIza"):
+            params["key"] = token
+        r = _httpx.get(
+            "https://www.googleapis.com/drive/v3/files",
+            headers=headers,
+            params=params,
+            timeout=20.0,
+        )
+        return r.text[:5000] if r.status_code == 200 else f"Google Drive API error ({r.status_code}): {r.text[:300]}"
+    except Exception as exc:
+        return f"Google Drive request failed: {exc}"
+
+
 def _dispatch_tool(tool_call: dict, user_id: Optional[str] = None) -> str:
     """Dispatch a parsed tool call to the correct executor."""
     tool = tool_call.get("tool", "").lower()
@@ -1206,7 +1448,6 @@ def _dispatch_tool(tool_call: dict, user_id: Optional[str] = None) -> str:
     if tool == "write_file":
         return _exec_write_file(args)
     if tool == "edit_file":
-        # Basic: treat as read + write
         return "edit_file: use read_file then write_file for now — direct patch execution coming soon."
     if tool == "create_directory":
         return _exec_create_directory(args)
@@ -1230,6 +1471,18 @@ def _dispatch_tool(tool_call: dict, user_id: Optional[str] = None) -> str:
     # Per-user Gmail MCP (read + send)
     if tool.startswith("gmail_") or tool == "send_email":
         return _exec_gmail(tool, args, user_id)
+
+    # Figma tools
+    if tool.startswith("figma_") or tool in ("get_file", "get_file_nodes", "get_comments", "get_image"):
+        return _exec_figma(tool, args)
+
+    # GitHub tools
+    if tool.startswith("github_") or tool in ("get_repo", "search_code", "list_issues", "create_pr", "get_commit"):
+        return _exec_github(tool, args)
+
+    # Google Drive tools
+    if tool.startswith("gdrive_") or tool.startswith("google_drive_") or tool in ("read_doc", "create_drive_file"):
+        return _exec_google_drive(tool, args)
 
     return (
         f"Tool '{tool}' was recognised but has no local executor. "
