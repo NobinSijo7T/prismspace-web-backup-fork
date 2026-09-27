@@ -83,18 +83,36 @@
 ]
 
     % =========================================================================
-    % TOP-LEFT PANEL: DATASET INGESTION & PREPROCESSING
+    % PANEL 0: FRONTEND UI (USER INTERACTION & CLIENT PRESENTATION)
+    % =========================================================================
+    \node [box, fill=black!5, text width=6.6cm, minimum height=0.92cm] (ui_in) at (-1.8, 7.35) {
+        \textbf{\small\strut [INPUT: User Interaction \& Task Objective]}\\[0.15em]
+        \scriptsize Natural Language Query $\;\vert\;$ Multi-Turn Context $\;\vert\;$ Workspace Files $\;\vert\;$ User Policy
+    };
+
+    \node [box, fill=black!10, text width=6.6cm, minimum height=0.92cm] (ui_out) at (5.4, 7.35) {
+        \textbf{\small\strut [OUTPUT: Streamed UI Delivery \& Artifacts]}\\[0.15em]
+        \scriptsize Real-Time SSE Token Stream $\;\vert\;$ Swarm Telemetry HUD $\;\vert\;$ Verified Deliverables $\;\vert\;$ IndexedDB
+    };
+
+    \draw [{Stealth[scale=0.6]}-{Stealth[scale=0.6]}, line width=0.6pt, black!65] (ui_in.east) -- node[above, font=\fontsize{4.8}{5.8}\selectfont\bfseries, inner sep=1pt]{Client Loop} (ui_out.west);
+
+    \node [dashed_container, fit=(ui_in) (ui_out), inner xsep=0.35cm, inner ysep=0.22cm] (container_ui) {};
+    \node [anchor=south west, font=\fontsize{6.5}{7.5}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] at ($(container_ui.north west)+(0.25, -0.05)$) {
+        [FRONTEND UI] Next.js React 19 Client Application \& Interactive Workspace
+    };
+
+    % =========================================================================
+    % TOP-LEFT PANEL: DATASET INGESTION & PREPROCESSING (TRAINING PHASE)
     % =========================================================================
     
-    % Left-side vertical pipeline in Top-Left
-    \node [box, minimum width=2.3cm, minimum height=0.6cm] (ds) at (-4.5, 5.2) {\textbf{Datasets}};
-    \node [box, minimum width=2.3cm, minimum height=0.6cm, below=0.35cm of ds] (loader) {\textbf{DatasetLoader}};
-    \node [box, minimum width=2.3cm, minimum height=0.65cm, below=0.35cm of loader] (raw_feat) {Raw Request\\Features};
-    \node [box, minimum width=2.3cm, minimum height=0.65cm, below=0.35cm of raw_feat] (pop_feat) {Telemetry \&\\Benchmark Trace};
-    \node [box, minimum width=2.3cm, minimum height=0.65cm, below=0.35cm of pop_feat] (sim_const) {Construction of\\Swarm Graph};
+    % Left-side vertical pipeline in Top-Left (DatasetLoader REMOVED)
+    \node [box, minimum width=2.4cm, minimum height=0.72cm] (ds) at (-4.5, 4.95) {\textbf{[TRAINING INPUT]}\\\textbf{Curated Datasets}};
+    \node [box, minimum width=2.4cm, minimum height=0.72cm] (raw_feat) at (-4.5, 3.70) {Raw Request\\Features};
+    \node [box, minimum width=2.4cm, minimum height=0.72cm] (pop_feat) at (-4.5, 2.40) {Telemetry \&\\Benchmark Trace};
+    \node [box, minimum width=2.4cm, minimum height=0.72cm] (sim_const) at (-4.5, 1.10) {\textbf{[TRAINED GRAPH]}\\Construction of\\Swarm Graph};
 
-    \draw [arrow] (ds) -- (loader);
-    \draw [arrow] (loader) -- (raw_feat);
+    \draw [arrow] (ds) -- (raw_feat);
     \draw [arrow] (raw_feat) -- (pop_feat);
     \draw [arrow] (pop_feat) -- (sim_const);
 
@@ -123,8 +141,11 @@
     \draw [arrow] (raw_feat.east) -- ++(0.22, 0) |- (prep_box.west);
     \draw [arrow] (pop_feat.east) -- ++(0.22, 0) |- (feat_box.west);
 
-    % Top-left container boundary
+    % Top-left container boundary with prominent title annotation badge
     \node [dashed_container, fit=(ds) (sim_const) (prep_box) (feat_box), inner sep=0.25cm] (container_topleft) {};
+    \node [anchor=south west, font=\fontsize{6.5}{7.5}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] at ($(container_topleft.north west)+(0.25, -0.05)$) {
+        [TRAINING PHASE] Offline Dataset Preprocessing \& Feature Engineering
+    };
 
     % Node styles for expanded Swarm Graph
     \tikzset{
@@ -234,13 +255,13 @@
     \node [font=\fontsize{4.8}{5.8}\selectfont\itshape, text=black!70] at (-0.25, -4.02) {Decomposition $\longrightarrow$ Parallel Execution $\longrightarrow$ Validation $\longrightarrow$ Delivery};
 
     % Active DAG Workflow Nodes (Symmetrically spaced, clean vertical layers, zero overlaps)
-    \node [box, fill=black!8, font=\tiny\bfseries, inner sep=2pt, minimum width=0.88cm] (d_req) at (-2.45, -5.15) {User Task\\\& Scope};
+    \node [box, fill=black!8, font=\fontsize{4.8}{5.8}\selectfont\bfseries, inner sep=2pt, minimum width=1.1cm] (d_req) at (-2.45, -5.15) {\textbf{[TASK INPUT]}\\User Task\\\& Scope};
     \node [super_node, font=\tiny\bfseries, inner sep=2pt, minimum width=0.88cm] (d_lead) at (-1.35, -5.15) {Supervisor\\Planner};
     \node [swarm_node, font=\tiny\bfseries, inner sep=2pt, minimum width=0.88cm] (d_res)  at (-0.25, -4.62) {Research\\Agent};
     \node [swarm_node, font=\tiny\bfseries, inner sep=2pt, minimum width=0.88cm] (d_code) at (-0.25, -5.68) {Coding\\Agent};
     \node [super_node, font=\tiny\bfseries, inner sep=2pt, minimum width=0.88cm] (d_gate) at (0.85, -4.62) {Safety \&\\Policy Gate};
     \node [tool_node, font=\tiny, inner sep=2pt, minimum width=0.88cm] (d_tool) at (0.85, -5.68) {MCP Tool\\Execution};
-    \node [box, fill=black!16, font=\tiny\bfseries, inner sep=2pt, minimum width=0.88cm] (d_out) at (1.95, -5.15) {Verified\\Delivery};
+    \node [box, fill=black!16, font=\fontsize{4.8}{5.8}\selectfont\bfseries, inner sep=2pt, minimum width=1.1cm] (d_out) at (1.95, -5.15) {\textbf{[DELIVERY]}\\Verified\\Output};
 
     % Active Directed Workflow Connections
     \draw [-{Stealth[scale=0.6]}, line width=0.6pt, black!85] (d_req) -- (d_lead);
@@ -253,6 +274,9 @@
 
     % Bottom-left container boundary
     \node [dashed_container, fit=(sim_graph_lbl) (eval_lbl) (graph_box_top) (graph_box_bot), inner sep=0.25cm] (container_botleft) {};
+    \node [anchor=south west, font=\fontsize{6.5}{7.5}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] at ($(container_botleft.north west)+(0.25, -0.05)$) {
+        [BACKEND: RUNTIME] Multi-Agent Swarm Orchestration \& Execution
+    };
 
     % =========================================================================
     % RIGHT PANEL: ML ROUTING & PLANNING PIPELINE
@@ -315,7 +339,8 @@
         \scriptsize LoRA / PEFT Causal Language Model
     };
 
-    \node [box, fill=black!16, text width=4.8cm, minimum height=0.56cm, below=0.22cm of fc] (sig) {
+    \node [box, fill=black!16, text width=4.8cm, minimum height=0.64cm, below=0.22cm of fc] (sig) {
+        \textbf{[OUTPUT: Policy Decision]}\\[0.08em]
         \textbf{Orchestration Policy Output}\\
         \scriptsize Softmax Decision \& DAG Plan Generation
     };

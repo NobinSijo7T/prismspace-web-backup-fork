@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { BackgroundManager } from "@/components/BackgroundManager";
-import { SmoothCursor } from "@/components/ui/smooth-cursor";
 import { DynamicIsland } from "@/components/DynamicIsland";
 
 export const metadata: Metadata = {
@@ -22,7 +21,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("dark font-sans")}>
       <body>
-        <SmoothCursor />
         <DynamicIsland />
         <BackgroundManager />
         {children}

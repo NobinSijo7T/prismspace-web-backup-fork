@@ -12,6 +12,7 @@ import {
   ZoomOut,
   Maximize2,
   ArrowLeft,
+  Palette,
 } from 'lucide-react';
 import Link from 'next/link';
 import { BookmarkIcon } from '@/components/tools/ToolIcons';
@@ -34,6 +35,8 @@ interface ToolbarProps {
   onResetZoom: () => void;
   totalCount: number;
   filteredCount: number;
+  backgroundColor: string;
+  onOpenBgPicker: () => void;
 }
 
 export function Toolbar({
@@ -54,6 +57,8 @@ export function Toolbar({
   onResetZoom,
   totalCount,
   filteredCount,
+  backgroundColor,
+  onOpenBgPicker,
 }: ToolbarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -254,6 +259,33 @@ export function Toolbar({
           <Maximize2 size={13} />
         </button>
       </div>
+
+      <div className="w-px h-5 bg-white/10 shrink-0" />
+
+      {/* Canvas Background / Theme */}
+      <button
+        onClick={onOpenBgPicker}
+        title="Canvas Background Theme"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs transition-all shrink-0 hover:border-white/20 active:scale-95"
+        style={{
+          background: 'rgba(255, 255, 255, 0.04)',
+          borderColor: 'rgba(255, 255, 255, 0.1)',
+          color: '#cbd5e1',
+          fontFamily: 'JetBrains Mono, monospace',
+          fontWeight: 600,
+        }}
+      >
+        <div
+          className="w-3.5 h-3.5 rounded-full border shrink-0"
+          style={{
+            backgroundColor,
+            borderColor: 'rgba(255, 255, 255, 0.35)',
+            boxShadow: '0 0 6px rgba(0, 0, 0, 0.4)',
+          }}
+        />
+        <Palette size={13} className="text-white/70" />
+        <span className="hidden xl:inline">Theme</span>
+      </button>
 
       <div className="w-px h-5 bg-white/10 shrink-0" />
 

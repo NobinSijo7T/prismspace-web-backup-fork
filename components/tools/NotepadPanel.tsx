@@ -86,6 +86,27 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Tab renaming state
+  const [editingTabIdx, setEditingTabIdx] = useState<number | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+  const isCommittingRef = useRef(false);
+
+  // Focus and select input text when entering rename mode
+  useEffect(() => {
+    if (editingTabIdx !== null) {
+      const focusAndSelect = () => {
+        if (editInputRef.current) {
+          editInputRef.current.focus();
+          editInputRef.current.select();
+        }
+      };
+      focusAndSelect();
+      const raf = requestAnimationFrame(focusAndSelect);
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [editingTabIdx]);
+
   // Load from localStorage
   useEffect(() => {
     const raw = localStorage.getItem('notepadTabs');
@@ -110,8 +131,10 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
     const timer = setTimeout(() => {
       setNotes((prev) => {
         const next = [...prev];
-        next[currentTab] = { ...next[currentTab], content };
-        localStorage.setItem('notepadTabs', JSON.stringify(next));
+        if (next[currentTab]) {
+          next[currentTab] = { ...next[currentTab], content };
+          localStorage.setItem('notepadTabs', JSON.stringify(next));
+        }
         return next;
       });
       setSaved(true);
@@ -122,16 +145,64 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
   }, [content]);
 
   const switchTab = (index: number) => {
+    if (editingTabIdx !== null && editingTabIdx !== index) {
+      commitRename(editingTabIdx, editingTitle);
+    }
     setNotes((prev) => {
       const next = [...prev];
-      next[currentTab] = { ...next[currentTab], content };
+      if (next[currentTab]) {
+        next[currentTab] = { ...next[currentTab], content };
+      }
       setCurrentTab(index);
-      setContent(next[index].content);
+      setContent(next[index]?.content ?? '');
       return next;
     });
   };
 
+  const startEditingTab = (index: number, currentTitle: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    if (index !== currentTab) {
+      switchTab(index);
+    }
+    setEditingTabIdx(index);
+    setEditingTitle(currentTitle);
+  };
+
+  const commitRename = (index: number, newTitle: string) => {
+    if (isCommittingRef.current) return;
+    isCommittingRef.current = true;
+    const trimmed = newTitle.trim();
+    const finalTitle = trimmed || notes[index]?.title || `Note ${index + 1}`;
+    setNotes((prev) => {
+      const next = [...prev];
+      if (next[index]) {
+        next[index] = {
+          ...next[index],
+          title: finalTitle,
+          ...(index === currentTab ? { content } : {}),
+        };
+        localStorage.setItem('notepadTabs', JSON.stringify(next));
+      }
+      return next;
+    });
+    setEditingTabIdx(null);
+    setTimeout(() => {
+      isCommittingRef.current = false;
+    }, 60);
+  };
+
+  const cancelRename = () => {
+    isCommittingRef.current = true;
+    setEditingTabIdx(null);
+    setTimeout(() => {
+      isCommittingRef.current = false;
+    }, 60);
+  };
+
   const addNewTab = () => {
+    setEditingTabIdx(null);
     const newNote: Note = {
       id: Date.now(),
       title: `Note ${notes.length + 1}`,
@@ -141,6 +212,7 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
       const next = [...prev, newNote];
       setCurrentTab(next.length - 1);
       setContent('');
+      localStorage.setItem('notepadTabs', JSON.stringify(next));
       return next;
     });
   };
@@ -148,12 +220,13 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
   const deleteTab = (index: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (notes.length === 1) return;
+    setEditingTabIdx(null);
     setNotes((prev) => {
       const next = prev.filter((_, i) => i !== index);
       localStorage.setItem('notepadTabs', JSON.stringify(next));
       const newIdx = Math.min(currentTab, next.length - 1);
       setCurrentTab(newIdx);
-      setContent(next[newIdx].content);
+      setContent(next[newIdx]?.content ?? '');
       return next;
     });
   };
@@ -250,6 +323,16 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
 
         .notepad-tab {
           transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .notepad-rename-input::selection {
+          background: rgba(0, 223, 129, 0.35);
+          color: #ffffff;
+        }
+
+        .notepad-rename-input:focus {
+          border-color: #00df81 !important;
+          box-shadow: 0 0 12px rgba(0, 223, 129, 0.4) !important;
         }
       `}</style>
 
@@ -529,21 +612,36 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
         <AnimatePresence mode="popLayout">
           {notes.map((note, idx) => {
             const isActive = idx === currentTab;
+            const isEditing = editingTabIdx === idx;
             return (
-              <motion.button
+              <motion.div
                 key={note.id}
+                role="tab"
+                tabIndex={0}
+                aria-selected={isActive}
+                title={isEditing ? undefined : 'Double-click to rename'}
                 layout
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                onClick={() => switchTab(idx)}
+                onClick={() => {
+                  if (!isEditing) {
+                    switchTab(idx);
+                  }
+                }}
+                onDoubleClick={(e) => startEditingTab(idx, note.title, e)}
+                onKeyDown={(e) => {
+                  if (!isEditing && (e.key === 'Enter' || e.key === ' ')) {
+                    switchTab(idx);
+                  }
+                }}
                 className="notepad-tab"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: 7,
-                  padding: '7px 13px',
+                  padding: isEditing ? '4px 8px' : '7px 13px',
                   borderRadius: 8,
                   border: isActive
                     ? '1px solid rgba(0, 223, 129, 0.25)'
@@ -554,22 +652,23 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
                   color: isActive ? '#00df81' : 'rgba(255, 255, 255, 0.45)',
                   fontSize: 12,
                   fontWeight: isActive ? 700 : 500,
-                  cursor: 'pointer',
+                  cursor: isEditing ? 'default' : 'pointer',
                   whiteSpace: 'nowrap',
                   fontFamily: "'Space Grotesk', sans-serif",
                   flexShrink: 0,
                   letterSpacing: '-0.01em',
                   position: 'relative',
+                  userSelect: isEditing ? 'text' : 'none',
                 }}
                 onMouseEnter={(e) => {
-                  if (!isActive) {
+                  if (!isActive && !isEditing) {
                     e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
                     e.currentTarget.style.color = 'rgba(255, 255, 255, 0.7)';
                     e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
                   }
                 }}
                 onMouseLeave={(e) => {
-                  if (!isActive) {
+                  if (!isActive && !isEditing) {
                     e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
                     e.currentTarget.style.color = 'rgba(255, 255, 255, 0.45)';
                     e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.06)';
@@ -590,11 +689,55 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
                     transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                   />
                 )}
-                <span>{note.title}</span>
-                {notes.length > 1 && (
+                {isEditing ? (
+                  <input
+                    ref={editInputRef}
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === 'Tab') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        commitRename(idx, editingTitle);
+                      } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        cancelRename();
+                      }
+                    }}
+                    onBlur={() => commitRename(idx, editingTitle)}
+                    onClick={(e) => e.stopPropagation()}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    maxLength={40}
+                    className="notepad-rename-input"
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.55)',
+                      border: '1px solid rgba(0, 223, 129, 0.5)',
+                      borderRadius: 5,
+                      color: '#00df81',
+                      fontSize: 12,
+                      fontWeight: 600,
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      padding: '2px 7px',
+                      outline: 'none',
+                      minWidth: 70,
+                      width: `${Math.max(70, Math.min(200, (editingTitle.length + 1) * 8.5))}px`,
+                      boxShadow: '0 0 10px rgba(0, 223, 129, 0.25)',
+                      caretColor: '#00df81',
+                    }}
+                  />
+                ) : (
+                  <span onDoubleClick={(e) => startEditingTab(idx, note.title, e)}>
+                    {note.title}
+                  </span>
+                )}
+                {notes.length > 1 && !isEditing && (
                   <span
                     role="button"
+                    title="Close tab"
                     onClick={(e) => deleteTab(idx, e)}
+                    onDoubleClick={(e) => e.stopPropagation()}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -619,7 +762,7 @@ export function NotepadPanel({ onClose }: NotepadPanelProps) {
                     <CloseIcon />
                   </span>
                 )}
-              </motion.button>
+              </motion.div>
             );
           })}
         </AnimatePresence>

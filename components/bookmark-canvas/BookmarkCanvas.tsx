@@ -20,11 +20,13 @@ import {
   Upload,
   Lock,
   Edit2,
+  Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { BookmarkCard } from './BookmarkCard';
 import { BookmarkModal } from './BookmarkModal';
 import { ContextMenu } from './ContextMenu';
+import { CanvasBgModal } from './CanvasBgModal';
 import { Toolbar } from './Toolbar';
 import { Toolbar as KokonutToolbar, type ToolbarItem } from '@/components/kokonutui/toolbar';
 import { BookmarkIcon } from '@/components/tools/ToolIcons';
@@ -32,6 +34,7 @@ import { useBookmarks } from '@/hooks/bookmark-canvas/useBookmarks';
 import { useCanvas } from '@/hooks/bookmark-canvas/useCanvas';
 import { useKeyboardShortcuts } from '@/hooks/bookmark-canvas/useKeyboardShortcuts';
 import type { Bookmark, BookmarkFormData, ContextMenuState } from '@/lib/bookmark-canvas/types';
+import { DEFAULT_CANVAS_BG, isLightColor } from '@/lib/bookmark-canvas/types';
 import { copyToClipboard } from '@/lib/bookmark-canvas/utils';
 
 export function BookmarkCanvas() {
@@ -44,6 +47,8 @@ export function BookmarkCanvas() {
   const [activeTool, setActiveTool] = useState<'select' | 'pan'>('select');
   const [isLocked, setIsLocked] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [bgModalOpen, setBgModalOpen] = useState(false);
+  const [backgroundColor, setBackgroundColor] = useState<string>(DEFAULT_CANVAS_BG);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     visible: false,
@@ -51,6 +56,29 @@ export function BookmarkCanvas() {
     y: 0,
     bookmarkId: null,
   });
+
+  // Load persisted background color on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('prism-bookmark-canvas-bg');
+      if (saved) {
+        setBackgroundColor(saved);
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+  }, []);
+
+  const handleBgChange = useCallback((color: string) => {
+    setBackgroundColor(color);
+    try {
+      localStorage.setItem('prism-bookmark-canvas-bg', color);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const isLight = useMemo(() => isLightColor(backgroundColor), [backgroundColor]);
 
   // Hooks
   const {
@@ -137,6 +165,12 @@ export function BookmarkCanvas() {
         icon: Star,
         badge: favoritesCount > 0 ? favoritesCount : undefined,
         onClick: () => setShowFavoritesOnly((prev) => !prev),
+      },
+      {
+        id: 'theme',
+        title: 'Theme',
+        icon: Palette,
+        onClick: () => setBgModalOpen(true),
       },
       {
         id: 'fit',
@@ -376,6 +410,8 @@ export function BookmarkCanvas() {
         onResetZoom={resetZoom}
         totalCount={allBookmarks.length}
         filteredCount={filteredBookmarks.length}
+        backgroundColor={backgroundColor}
+        onOpenBgPicker={() => setBgModalOpen(true)}
       />
 
       {/* Canvas wrapper */}
@@ -386,7 +422,7 @@ export function BookmarkCanvas() {
           activeTool === 'pan' ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
         )}
         style={{
-          background: '#00df81',
+          background: backgroundColor,
         }}
         onClick={handleCanvasClick}
         onDoubleClick={handleCanvasDoubleClick}
@@ -394,7 +430,7 @@ export function BookmarkCanvas() {
         {/* Dot grid background */}
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
-          style={{ opacity: 0.15 }}
+          style={{ opacity: isLight ? 0.35 : 0.22 }}
           aria-hidden
         >
           <defs>
@@ -410,7 +446,7 @@ export function BookmarkCanvas() {
                 cx={1}
                 cy={1}
                 r={1.2}
-                fill="rgba(0, 0, 0, 0.35)"
+                fill={isLight ? "rgba(0, 0, 0, 0.45)" : "rgba(255, 255, 255, 0.35)"}
               />
             </pattern>
           </defs>
@@ -462,7 +498,7 @@ export function BookmarkCanvas() {
                   className="text-lg font-medium"
                   style={{
                     fontFamily: 'Space Grotesk, sans-serif',
-                    color: '#06190e',
+                    color: isLight ? '#0f172a' : '#ffffff',
                     fontWeight: 700,
                   }}
                 >
@@ -472,8 +508,7 @@ export function BookmarkCanvas() {
                   className="text-sm mt-1"
                   style={{
                     fontFamily: 'Space Grotesk, sans-serif',
-                    color: '#06190e',
-                    opacity: 0.6,
+                    color: isLight ? '#475569' : 'rgba(255, 255, 255, 0.6)',
                     fontWeight: 600,
                   }}
                 >
@@ -481,8 +516,8 @@ export function BookmarkCanvas() {
                   <kbd 
                     className="px-1.5 py-0.5 rounded text-xs"
                     style={{
-                      background: 'rgba(0, 0, 0, 0.15)',
-                      color: '#000000',
+                      background: isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.15)',
+                      color: isLight ? '#0f172a' : '#ffffff',
                       fontFamily: 'JetBrains Mono, monospace',
                       fontWeight: 700,
                     }}
@@ -542,6 +577,7 @@ export function BookmarkCanvas() {
             if (item.id === 'pan') return 'Pan mode: drag canvas';
             if (item.id === 'add') return 'New bookmark';
             if (item.id === 'favorites') return showFavoritesOnly ? 'Showing all' : 'Showing favorites';
+            if (item.id === 'theme') return 'Canvas background';
             if (item.id === 'fit') return 'Centered 100%';
             if (item.id === 'export') return 'Exported JSON';
             if (item.id === 'import') return 'Import JSON';
@@ -565,6 +601,13 @@ export function BookmarkCanvas() {
         dropPosition={dropPositionRef.current}
         onConfirm={handleModalConfirm}
         onClose={closeModal}
+      />
+
+      <CanvasBgModal
+        isOpen={bgModalOpen}
+        onClose={() => setBgModalOpen(false)}
+        currentColor={backgroundColor}
+        onSelectColor={handleBgChange}
       />
 
       <ContextMenu

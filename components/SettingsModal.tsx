@@ -107,7 +107,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [customMediaType, setCustomMediaType] = useState<BackgroundMediaType>('image');
   const [dynamicGreetings, setDynamicGreetings] = useState(true);
   const [showGreetings, setShowGreetings] = useState(true);
-  const [customCursor, setCustomCursor] = useState(true);
   const [dynamicIsland, setDynamicIsland] = useState(true);
   const [dynamicIslandSeconds, setDynamicIslandSeconds] = useState(false);
   const [dynamicIslandExpand, setDynamicIslandExpand] = useState(true);
@@ -157,7 +156,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     const savedHistory = JSON.parse(localStorage.getItem('colorHistory') || '[]');
     const savedDynamicGreetings = localStorage.getItem('dynamicGreetings') !== 'false';
     const savedShowGreetings = localStorage.getItem('showGreetings') !== 'false';
-    const savedCustomCursor = localStorage.getItem('customCursor') !== 'false';
 
     setClockFormat(savedFormat);
     setClockStyle(savedStyle);
@@ -165,7 +163,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
     setColorHistory(savedHistory);
     setDynamicGreetings(savedDynamicGreetings);
     setShowGreetings(savedShowGreetings);
-    setCustomCursor(savedCustomCursor);
     setDynamicIsland(localStorage.getItem('dynamicIsland') !== 'false');
     setDynamicIslandSeconds(localStorage.getItem('dynamicIslandSeconds') === 'true');
     setDynamicIslandExpand(localStorage.getItem('dynamicIslandExpand') !== 'false');
@@ -1434,18 +1431,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                 Extras
               </div>
               <h2 className="sm-section-title">System Extras</h2>
-              <p className="sm-section-desc">Fine-tune cursor, Dynamic Island, and OS-level behaviour</p>
-
-              <div className="sm-panel" style={{ marginBottom: 16 }}>
-                <div className="sm-panel-title">Cursor</div>
-                <div className="sm-toggle-row">
-                  <div>
-                    <div className="sm-toggle-label">Custom Cursor</div>
-                    <div className="sm-toggle-desc">Animated smooth cursor instead of the system pointer</div>
-                  </div>
-                  <AppleSwitch checked={customCursor} onCheckedChange={(checked) => { setCustomCursor(checked); localStorage.setItem('customCursor', checked.toString()); window.dispatchEvent(new CustomEvent('prism:cursor-settings')); }} size="sm" aria-label="Custom Cursor" />
-                </div>
-              </div>
+              <p className="sm-section-desc">Fine-tune Dynamic Island and OS-level behaviour</p>
 
               <div className="sm-panel">
                 <div className="sm-panel-title">Dynamic Island</div>
