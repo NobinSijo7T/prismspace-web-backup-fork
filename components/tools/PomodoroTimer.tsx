@@ -4,7 +4,6 @@ import NumberFlow from '@number-flow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Plus, Settings2, X, Check } from 'lucide-react';
 import { PomodoroIcon } from './ToolIcons';
-import { CosmicButton } from '@/components/ui/cosmic-button';
 import { useEffect, useRef, useState } from 'react';
 import { getRemainingSeconds, loadPomodoroState, savePomodoroState } from '@/lib/pomodoro-state';
 
@@ -116,24 +115,22 @@ export function PomodoroTimer({ onClose: _onClose }: PomodoroTimerProps) {
     setTimeout(() => inputRef.current?.select(), 80);
   };
 
-  const applySettings = () => {
+  const applySettings = (e?: React.MouseEvent) => {
+    e?.preventDefault();
     const mins = Math.max(1, Math.min(99, draftMinutes));
+    const matchingMode = MODES.find((m) => m.minutes === mins);
+    if (matchingMode) setModeId(matchingMode.id);
     const newTotal = mins * 60;
-    setTotalSeconds(newTotal);
-    setCount(newTotal);
-    setIsPaused(true);
-    setShowSettings(false);
-    setResetTrigger((p) => p + 1);
-  };
+    const durationChanged = newTotal !== totalSeconds;
 
-  const switchMode = (id: ModeId) => {
-    const mode = MODES.find(m => m.id === id)!;
-    const newTotal = mode.minutes * 60;
-    setModeId(id);
-    setTotalSeconds(newTotal);
-    setCount(newTotal);
-    setIsPaused(true);
-    setResetTrigger((p) => p + 1);
+    if (durationChanged) {
+      setTotalSeconds(newTotal);
+      setCount(newTotal);
+      setIsPaused(true);
+      setResetTrigger((p) => p + 1);
+    }
+
+    setShowSettings(false);
   };
 
   const minutes    = Math.floor(count / 60);
@@ -227,44 +224,6 @@ export function PomodoroTimer({ onClose: _onClose }: PomodoroTimerProps) {
           color: #f43f5e;
         }
 
-        /* Mode tabs */
-        .pt-mode-tabs {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          background: rgba(0,0,0,0.35);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-radius: 10px;
-          padding: 4px;
-          margin-bottom: 36px;
-        }
-
-        .pt-mode-tab {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 10px;
-          font-weight: 700;
-          letter-spacing: 0.06em;
-          text-transform: uppercase;
-          padding: 6px 12px;
-          border-radius: 7px;
-          border: 1px solid transparent;
-          background: transparent;
-          color: #475569;
-          cursor: pointer;
-          transition: all 0.15s ease;
-          white-space: nowrap;
-        }
-
-        .pt-mode-tab:hover {
-          color: #94a3b8;
-          background: rgba(255,255,255,0.04);
-        }
-
-        .pt-mode-tab.active {
-          background: rgba(0,223,129,0.1);
-          border-color: rgba(0,223,129,0.25);
-          color: #00df81;
-        }
 
         /* Ring stage */
         .pt-ring-stage {
@@ -552,26 +511,35 @@ export function PomodoroTimer({ onClose: _onClose }: PomodoroTimerProps) {
 
         .pt-apply-btn {
           width: 100%;
-          padding: 11px;
-          background: #00df81;
-          color: #000;
+          padding: 12px 16px;
+          background: linear-gradient(135deg, #00df81 0%, #00b86b 100%);
+          color: #040d08;
           font-family: 'Space Grotesk', sans-serif;
           font-size: 13px;
           font-weight: 700;
-          border: none;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 10px;
           cursor: pointer;
-          letter-spacing: 0.01em;
-          transition: all 0.15s;
-          box-shadow: 0 0 16px rgba(0,223,129,0.3);
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          box-shadow: 0 4px 20px rgba(0, 223, 129, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
         }
 
         .pt-apply-btn:hover {
-          background: #00f590;
-          box-shadow: 0 0 24px rgba(0,223,129,0.5);
+          background: linear-gradient(135deg, #10f896 0%, #00df81 100%);
+          box-shadow: 0 6px 28px rgba(0, 223, 129, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+          transform: translateY(-1.5px);
         }
 
-        .pt-apply-btn:active { transform: scale(0.98); }
+        .pt-apply-btn:active {
+          transform: translateY(0.5px) scale(0.985);
+          box-shadow: 0 2px 10px rgba(0, 223, 129, 0.25);
+        }
 
         @media (prefers-reduced-motion: reduce) {
           .pt-colon { animation: none; }
@@ -601,19 +569,6 @@ export function PomodoroTimer({ onClose: _onClose }: PomodoroTimerProps) {
 
       {/* Ambient glow */}
       <div className="pt-glow-blob" style={{ opacity: isRunning ? 1 : 0.4 }} />
-
-      {/* Mode tabs */}
-      <div className="pt-mode-tabs">
-        {MODES.map(m => (
-          <button
-            key={m.id}
-            className={`pt-mode-tab${modeId === m.id ? ' active' : ''}`}
-            onClick={() => switchMode(m.id)}
-          >
-            {m.label}
-          </button>
-        ))}
-      </div>
 
       {/* Ring + digits */}
       <div className="pt-ring-stage">
@@ -841,13 +796,14 @@ export function PomodoroTimer({ onClose: _onClose }: PomodoroTimerProps) {
                 </div>
               </div>
 
-              <CosmicButton
-                as="button"
-                className="w-full text-xs font-bold tracking-wider uppercase"
+              <button
+                type="button"
+                className="pt-apply-btn"
                 onClick={applySettings}
               >
-                Apply & Reset
-              </CosmicButton>
+                <Check size={14} strokeWidth={2.5} />
+                Apply Settings
+              </button>
             </motion.div>
           </>
         )}

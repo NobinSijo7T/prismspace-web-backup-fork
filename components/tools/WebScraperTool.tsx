@@ -174,15 +174,9 @@ export function WebScraperTool({ onClose }: WebScraperToolProps) {
           </div>
 
           <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-base font-bold text-white tracking-[-0.02em] leading-tight">
-                Web Scraper
-              </h1>
-              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-mono font-semibold tracking-wider uppercase bg-[#00df81]/10 border border-[#00df81]/25 text-[#00df81]">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00df81] animate-pulse" />
-                Live Extractor
-              </span>
-            </div>
+            <h1 className="text-base font-bold text-white tracking-[-0.02em] leading-tight">
+              Web Scraper
+            </h1>
             <p className="text-xs text-slate-400 mt-0.5">
               Clean markdown, structured JSON, or CSV document extraction
             </p>

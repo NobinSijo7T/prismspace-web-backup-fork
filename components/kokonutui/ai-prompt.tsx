@@ -18,6 +18,7 @@ import {
   X,
   Cpu,
   Loader2,
+  KeyRound,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import {
@@ -29,45 +30,70 @@ import {
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 import { cn } from "@/lib/utils";
 
-// ── Model Provider Icons ───────────────────────────────────────────────────
+// ── Model Provider Icons (Authentic Vector Brand Marks) ─────────────────────
 export const NVIDIA_ICON = (
-  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#76B900">
-    <path d="M8.948 7.391c0-.12.046-.22.138-.302.779-.702 1.83-1.077 2.96-1.057 1.874.037 3.535 1.058 4.334 2.664.256.516.388 1.087.388 1.678 0 1.258-.6 2.456-1.637 3.238-.344.26-.74.457-1.168.58-.22.062-.37.26-.37.49v.033c0 .28.228.508.508.508h.04c.73-.016 1.442-.236 2.066-.642 1.488-.971 2.378-2.615 2.378-4.394 0-.853-.2-1.685-.58-2.438-1.127-2.228-3.414-3.64-5.918-3.69-1.57-.03-3.03.49-4.135 1.47-.13.116-.2.285-.19.458.01.173.1.33.24.422l.628.414a.434.434 0 0 0 .323.069zm-2.022 1.94c.02-.15-.04-.3-.15-.41l-.57-.46a.44.44 0 0 0-.47-.06c-1.39.73-2.48 1.92-3.08 3.36-.6 1.45-.63 3.06-.08 4.54.55 1.47 1.61 2.68 2.99 3.42 1.38.74 2.99.93 4.51.53 1.53-.4 2.87-1.33 3.79-2.6.91-1.28 1.32-2.84 1.15-4.42a.43.43 0 0 0-.34-.38l-.72-.15a.44.44 0 0 0-.47.24c-.58 1.12-1.54 1.94-2.7 2.3-1.16.36-2.41.22-3.47-.39-1.07-.6-1.85-1.59-2.21-2.77-.36-1.18-.25-2.46.3-3.54.38-.75.98-1.38 1.7-1.83.15-.09.24-.25.26-.43z" />
+  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#76B900" fillRule="evenodd">
+    <title>NVIDIA</title>
+    <path d="M10.212 8.976V7.62c.127-.01.256-.017.388-.021 3.596-.117 5.957 3.184 5.957 3.184s-2.548 3.647-5.282 3.647a3.227 3.227 0 01-1.063-.175v-4.109c1.4.174 1.681.812 2.523 2.258l1.873-1.627a4.905 4.905 0 00-3.67-1.846 6.594 6.594 0 00-.729.044m0-4.476v2.025c.13-.01.259-.019.388-.024 5.002-.174 8.261 4.226 8.261 4.226s-3.743 4.69-7.643 4.69c-.338 0-.675-.031-1.007-.092v1.25c.278.038.558.057.838.057 3.629 0 6.253-1.91 8.794-4.169.421.347 2.146 1.193 2.501 1.564-2.416 2.083-8.048 3.763-11.24 3.763-.308 0-.603-.02-.894-.048V19.5H24v-15H10.21zm0 9.756v1.068c-3.356-.616-4.287-4.21-4.287-4.21a7.173 7.173 0 014.287-2.138v1.172h-.005a3.182 3.182 0 00-2.502 1.178s.615 2.276 2.507 2.931m-5.961-3.3c1.436-1.935 3.604-3.148 5.961-3.336V6.523C5.81 6.887 2 10.723 2 10.723s2.158 6.427 8.21 7.015v-1.166C5.77 16 4.25 10.958 4.25 10.958h-.002z" />
   </svg>
 );
 
 export const GROQ_ICON = (
-  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="none" stroke="#F55036" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#F55036" fillRule="evenodd">
+    <title>Groq</title>
+    <path d="M12.036 2c-3.853-.035-7 3-7.036 6.781-.035 3.782 3.055 6.872 6.908 6.907h2.42v-2.566h-2.292c-2.407.028-4.38-1.866-4.408-4.23-.029-2.362 1.901-4.298 4.308-4.326h.1c2.407 0 4.358 1.915 4.365 4.278v6.305c0 2.342-1.944 4.25-4.323 4.279a4.375 4.375 0 01-3.033-1.252l-1.851 1.818A7 7 0 0012.029 22h.092c3.803-.056 6.858-3.083 6.879-6.816v-6.5C18.907 4.963 15.817 2 12.036 2z" />
   </svg>
 );
 
 export const GEMINI_ICON = (
-  <svg className="size-3.5 flex-none" viewBox="0 0 24 24">
+  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fillRule="evenodd">
+    <title>Google Gemini</title>
     <defs>
-      <linearGradient id="lobe-icons-gemini-fill" x1="0%" y1="100%" x2="68.73%" y2="30.395%">
+      <linearGradient id="prism-gemini-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
         <stop offset="0%" stopColor="#1C7DFF" />
-        <stop offset="52.021%" stopColor="#1C69FF" />
-        <stop offset="100%" stopColor="#F0DCD6" />
+        <stop offset="50%" stopColor="#7B61FF" />
+        <stop offset="100%" stopColor="#FA7268" />
       </linearGradient>
     </defs>
     <path
-      d="M12 24A14.304 14.304 0 000 12 14.304 14.304 0 0012 0a14.305 14.305 0 0012 12 14.305 14.305 0 00-12 12"
-      fill="url(#lobe-icons-gemini-fill)"
-      fillRule="nonzero"
+      d="M20.616 10.835a14.147 14.147 0 01-4.45-3.001 14.111 14.111 0 01-3.678-6.452.503.503 0 00-.975 0 14.134 14.134 0 01-3.679 6.452 14.155 14.155 0 01-4.45 3.001c-.65.28-1.318.505-2.002.678a.502.502 0 000 .975c.684.172 1.35.397 2.002.677a14.147 14.147 0 014.45 3.001 14.112 14.112 0 013.679 6.453.502.502 0 00.975 0c.172-.685.397-1.351.677-2.003a14.145 14.145 0 013.001-4.45 14.113 14.113 0 016.453-3.678.503.503 0 000-.975 13.245 13.245 0 01-2.003-.678z"
+      fill="url(#prism-gemini-gradient)"
     />
+  </svg>
+);
+
+export const CLAUDE_ICON = (
+  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#D97706" fillRule="evenodd">
+    <title>Claude</title>
+    <path d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z" />
   </svg>
 );
 
 export const ANTHROPIC_ICON = (
   <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#D97706" fillRule="evenodd">
+    <title>Anthropic</title>
     <path d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-7.258 0h3.767L16.906 20h-3.674l-1.343-3.461H5.017l-1.344 3.46H0L6.57 3.522zm4.132 9.959L8.453 7.687 6.205 13.48H10.7z" />
   </svg>
 );
 
 export const OPENAI_ICON = (
-  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M22.28 9.87a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.62-2.82 5.98 5.98 0 0 0-4.46-2 6.06 6.06 0 0 0-5.78 4.21 6.02 6.02 0 0 0-4.04 2.92 6.06 6.06 0 0 0 .76 7.15 6 6 0 0 0 .52 4.9 6.05 6.05 0 0 0 6.62 2.82 5.99 5.99 0 0 0 4.46 2 6.06 6.06 0 0 0 5.78-4.21 6.01 6.01 0 0 0 4.04-2.92 6.06 6.06 0 0 0-.76-7.14zm-9.08 12.7a4.5 4.5 0 0 1-2.9-1.05l.14-.08 4.82-2.78a.8.8 0 0 0 .4-.69v-6.8l2.04 1.18a.08.08 0 0 1 .04.05v5.63a4.54 4.54 0 0 1-4.54 4.54zm-9.75-4.17a4.5 4.5 0 0 1-.54-3.04l.14.09 4.83 2.78a.8.8 0 0 0 .79 0l5.89-3.4v2.35a.08.08 0 0 1-.03.06l-4.88 2.82a4.53 4.53 0 0 1-6.2-1.66zm-1.63-8.8a4.52 4.52 0 0 1 2.39-2l-.01.16v5.57a.8.8 0 0 0 .39.68l5.86 3.39-2.04 1.18a.08.08 0 0 1-.07 0l-4.88-2.82a4.54 4.54 0 0 1-1.64-6.16zm16.74 3.89l-5.88-3.42 2.04-1.18a.08.08 0 0 1 .07 0l4.88 2.82a4.54 4.54 0 0 1-.68 8.18v-5.72a.8.8 0 0 0-.43-.68zm2.03-3.05l-.14-.08-4.82-2.8a.8.8 0 0 0-.79 0l-5.89 3.4V7.41a.08.08 0 0 1 .03-.06l4.88-2.82a4.54 4.54 0 0 1 6.73 4.7zm-9.58 2.45l-2.63-1.52 2.63-1.52 2.63 1.52v3.04l-2.63 1.52-2.63-1.52z" />
+  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#10A37F" fillRule="evenodd">
+    <title>OpenAI</title>
+    <path d="M9.205 8.658v-2.26c0-.19.072-.333.238-.428l4.543-2.616c.619-.357 1.356-.523 2.117-.523 2.854 0 4.662 2.212 4.662 4.566 0 .167 0 .357-.024.547l-4.71-2.759a.797.797 0 00-.856 0l-5.97 3.473zm10.609 8.8V12.06c0-.333-.143-.57-.429-.737l-5.97-3.473 1.95-1.118a.433.433 0 01.476 0l4.543 2.617c1.309.76 2.189 2.378 2.189 3.948 0 1.808-1.07 3.473-2.76 4.163zM7.802 12.703l-1.95-1.142c-.167-.095-.239-.238-.239-.428V5.899c0-2.545 1.95-4.472 4.591-4.472 1 0 1.927.333 2.712.928L8.23 5.067c-.285.166-.428.404-.428.737v6.898zM12 15.128l-2.795-1.57v-3.33L12 8.658l2.795 1.57v3.33L12 15.128zm1.796 7.23c-1 0-1.927-.332-2.712-.927l4.686-2.712c.285-.166.428-.404.428-.737v-6.898l1.974 1.142c.167.095.238.238.238.428v5.233c0 2.545-1.974 4.472-4.614 4.472zm-5.637-5.303l-4.544-2.617c-1.308-.761-2.188-2.378-2.188-3.948A4.482 4.482 0 014.21 6.327v5.423c0 .333.143.571.428.738l5.947 3.449-1.95 1.118a.432.432 0 01-.476 0zm-.262 3.9c-2.688 0-4.662-2.021-4.662-4.519 0-.19.024-.38.047-.57l4.686 2.71c.286.167.571.167.856 0l5.97-3.448v2.26c0 .19-.07.333-.237.428l-4.543 2.616c-.619.357-1.356.523-2.117.523zm5.899 2.83a5.947 5.947 0 005.827-4.756C22.287 18.339 24 15.84 24 13.296c0-1.665-.713-3.282-1.998-4.448.119-.5.19-.999.19-1.498 0-3.401-2.759-5.947-5.946-5.947-.642 0-1.26.095-1.88.31A5.962 5.962 0 0010.205 0a5.947 5.947 0 00-5.827 4.757C1.713 5.447 0 7.945 0 10.49c0 1.666.713 3.283 1.998 4.448-.119.5-.19 1-.19 1.499 0 3.401 2.759 5.946 5.946 5.946.642 0 1.26-.095 1.88-.309a5.96 5.96 0 004.162 1.713z" />
+  </svg>
+);
+
+export const DEEPSEEK_ICON = (
+  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#4D6BFE" fillRule="evenodd">
+    <title>DeepSeek</title>
+    <path d="M23.748 4.482c-.254-.124-.364.113-.512.234-.051.039-.094.09-.137.136-.372.397-.806.657-1.373.626-.829-.046-1.537.214-2.163.848-.133-.782-.575-1.248-1.247-1.548-.352-.156-.708-.311-.955-.65-.172-.241-.219-.51-.305-.774-.055-.16-.11-.323-.293-.35-.2-.031-.278.136-.356.276-.313.572-.434 1.202-.422 1.84.027 1.436.633 2.58 1.838 3.393.137.093.172.187.129.323-.082.28-.18.552-.266.833-.055.179-.137.217-.329.14a5.526 5.526 0 01-1.736-1.18c-.857-.828-1.631-1.742-2.597-2.458a11.365 11.365 0 00-.689-.471c-.985-.957.13-1.743.388-1.836.27-.098.093-.432-.779-.428-.872.004-1.67.295-2.687.684a3.055 3.055 0 01-.465.137 9.597 9.597 0 00-2.883-.102c-1.885.21-3.39 1.102-4.497 2.623C.082 8.606-.231 10.684.152 12.85c.403 2.284 1.569 4.175 3.36 5.653 1.858 1.533 3.997 2.284 6.438 2.14 1.482-.085 3.133-.284 4.994-1.86.47.234.962.327 1.78.397.63.059 1.236-.03 1.705-.128.735-.156.684-.837.419-.961-2.155-1.004-1.682-.595-2.113-.926 1.096-1.296 2.746-2.642 3.392-7.003.05-.347.007-.565 0-.845-.004-.17.035-.237.23-.256a4.173 4.173 0 001.545-.475c1.396-.763 1.96-2.015 2.093-3.517.02-.23-.004-.467-.247-.588zM11.581 18c-2.089-1.642-3.102-2.183-3.52-2.16-.392.024-.321.471-.235.763.09.288.207.486.371.739.114.167.192.416-.113.603-.673.416-1.842-.14-1.897-.167-1.361-.802-2.5-1.86-3.301-3.307-.774-1.393-1.224-2.887-1.298-4.482-.02-.386.093-.522.477-.592a4.696 4.696 0 011.529-.039c2.132.312 3.946 1.265 5.468 2.774.868.86 1.525 1.887 2.202 2.891.72 1.066 1.494 2.082 2.48 2.914.348.292.625.514.891.677-.802.09-2.14.11-3.054-.614zm1-6.44a.306.306 0 01.415-.287.302.302 0 01.2.288.306.306 0 01-.31.307.303.303 0 01-.304-.308zm3.11 1.596c-.2.081-.399.151-.59.16a1.245 1.245 0 01-.798-.254c-.274-.23-.47-.358-.552-.758a1.73 1.73 0 01.016-.588c.07-.327-.008-.537-.239-.727-.187-.156-.426-.199-.688-.199a.559.559 0 01-.254-.078c-.11-.054-.2-.19-.114-.358.028-.054.16-.186.192-.21.356-.202.767-.136 1.146.016.352.144.618.408 1.001.782.391.451.462.576.685.914.176.265.336.537.445.848.067.195-.019.354-.25.452z" />
+  </svg>
+);
+
+export const OPENROUTER_ICON = (
+  <svg className="size-3.5 flex-none" viewBox="0 0 24 24" fill="#6366F1" fillRule="evenodd">
+    <title>OpenRouter</title>
+    <path d="M18.654 3.87a5.087 5.087 0 110 10.174L23.7 19.09c.64.641.187 1.737-.72 1.737H8.48a8.479 8.479 0 010-16.958h10.175zM8.479 7.26a5.087 5.087 0 100 10.176 5.087 5.087 0 000-10.175z" />
   </svg>
 );
 
@@ -77,6 +103,7 @@ export interface AIPromptModel {
   provider?: string;
   badge?: string;
   icon?: React.ReactNode;
+  hasCustomKey?: boolean;
 }
 
 export interface AIPromptTemplate {
@@ -94,6 +121,7 @@ export interface AIPromptProps {
   defaultModel?: string;
   selectedModel?: string;
   onModelChange?: (modelId: string, provider?: string) => void;
+  onOpenByok?: () => void;
   placeholder?: string;
   headerText?: string;
   headerSubtitle?: string;
@@ -101,6 +129,7 @@ export interface AIPromptProps {
   templates?: AIPromptTemplate[];
   loading?: boolean;
   disabled?: boolean;
+  submitDisabled?: boolean;
   compact?: boolean;
   submitLabel?: string;
   submitLoadingLabel?: string;
@@ -113,18 +142,25 @@ export interface AIPromptProps {
 const DEFAULT_MODELS: AIPromptModel[] = [
   { id: "nvidia/nemotron-3.5-lightning-30b-a3b", name: "Nemotron 3.5 30B", provider: "nvidia", badge: "NVIDIA NIM" },
   { id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", provider: "groq", badge: "Groq Cloud" },
-  { id: "llama3-70b-8192", name: "Llama 3 70B (8k)", provider: "groq", badge: "Groq Cloud" },
-  { id: "mixtral-8x7b-32768", name: "Mixtral 8x7B (32k)", provider: "groq", badge: "Groq Cloud" },
+  { id: "gpt-4o", name: "GPT-4o", provider: "openai", badge: "OpenAI" },
+  { id: "claude-3-7-sonnet-latest", name: "Claude 3.7 Sonnet", provider: "anthropic", badge: "Anthropic" },
+  { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "google", badge: "Google" },
+  { id: "deepseek-chat", name: "DeepSeek-V3", provider: "deepseek", badge: "DeepSeek" },
+  { id: "anthropic/claude-3.7-sonnet", name: "Claude 3.7 (OpenRouter)", provider: "openrouter", badge: "OpenRouter" },
+  { id: "deepseek/deepseek-r1", name: "DeepSeek R1 (OpenRouter)", provider: "openrouter", badge: "OpenRouter" },
 ];
 
 export function getModelIcon(modelId: string, provider?: string): React.ReactNode {
   const p = (provider || "").toLowerCase();
   const id = modelId.toLowerCase();
+  if (p === "openrouter" || id.startsWith("openrouter/")) return OPENROUTER_ICON;
   if (p === "nvidia" || id.includes("nvidia") || id.includes("nemotron")) return NVIDIA_ICON;
-  if (p === "groq" || id.includes("llama") || id.includes("mixtral")) return GROQ_ICON;
-  if (p === "openai" || id.includes("gpt")) return OPENAI_ICON;
+  if (p === "groq" || id.includes("llama") || id.includes("mixtral") || id.includes("gemma")) return GROQ_ICON;
+  if (p === "openai" || id.includes("gpt") || id.startsWith("o1") || id.startsWith("o3")) return OPENAI_ICON;
   if (p === "anthropic" || id.includes("claude")) return ANTHROPIC_ICON;
   if (p === "google" || id.includes("gemini")) return GEMINI_ICON;
+  if (p === "deepseek" || id.includes("deepseek")) return DEEPSEEK_ICON;
+  if (id.includes("/") && !id.startsWith("meta/") && !id.startsWith("deepseek-ai/")) return OPENROUTER_ICON;
   return <Bot className="size-3.5 text-[#00df81]" />;
 }
 
@@ -137,6 +173,7 @@ export function AIPrompt({
   defaultModel,
   selectedModel: controlledModel,
   onModelChange,
+  onOpenByok,
   placeholder = "Describe the objective or task you want the swarm to execute...",
   headerText,
   headerSubtitle,
@@ -144,6 +181,7 @@ export function AIPrompt({
   templates = [],
   loading = false,
   disabled = false,
+  submitDisabled = false,
   compact = false,
   submitLabel = "Launch Swarm Orchestration",
   submitLoadingLabel = "Deploying Swarm Nodes...",
@@ -357,42 +395,76 @@ export function AIPrompt({
               side="top"
               sideOffset={8}
               className={cn(
-                "z-[9999] min-w-[16rem] p-1.5 rounded-xl border border-[rgba(255,255,255,0.12)]",
-                "bg-[#090c12]/98 shadow-2xl backdrop-blur-2xl text-white font-mono text-xs"
+                "z-[9999] min-w-[18rem] max-w-[22rem] p-1.5 rounded-xl border border-[rgba(255,255,255,0.12)]",
+                "bg-[#090c12]/98 shadow-2xl backdrop-blur-2xl text-white font-mono text-xs flex flex-col"
               )}
             >
-              <div className="px-2 py-1 text-[10px] uppercase tracking-wider text-white/40 font-bold border-b border-white/[0.06] mb-1">
-                Model Routing
+              <div className="flex items-center justify-between px-2 py-1 text-[10px] uppercase tracking-wider text-white/40 font-bold border-b border-white/[0.06] mb-1">
+                <span>Model Routing</span>
+                <span>{normalizedModels.length} Models</span>
               </div>
-              {normalizedModels.map((m) => {
-                const isSelected = m.id === selectedModelId;
-                return (
-                  <DropdownMenuItem
-                    key={m.id}
-                    onClick={() => handleSelectModel(m)}
-                    onSelect={() => handleSelectModel(m)}
-                    className={cn(
-                      "flex items-center justify-between gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors outline-none",
-                      isSelected
-                        ? "bg-[rgba(0,223,129,0.12)] text-[#00df81] font-semibold"
-                        : "text-white/80 hover:bg-white/[0.06] hover:text-white"
-                    )}
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      {m.icon || getModelIcon(m.id, m.provider)}
-                      <div className="truncate">
-                        <div className="truncate font-sans font-medium text-xs">{m.name}</div>
-                        {m.badge && (
-                          <div className="text-[10px] text-white/40 font-mono">{m.badge}</div>
-                        )}
+              <div className="max-h-[260px] overflow-y-auto space-y-0.5 pr-0.5">
+                {normalizedModels.map((m) => {
+                  const isSelected = m.id === selectedModelId;
+                  return (
+                    <DropdownMenuItem
+                      key={m.id}
+                      onClick={() => handleSelectModel(m)}
+                      onSelect={() => handleSelectModel(m)}
+                      className={cn(
+                        "flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors outline-none",
+                        isSelected
+                          ? "bg-[rgba(0,223,129,0.12)] text-[#00df81] font-semibold"
+                          : "text-white/80 hover:bg-white/[0.06] hover:text-white"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {m.icon || getModelIcon(m.id, m.provider)}
+                        <div className="truncate flex-1">
+                          <div className="truncate font-sans font-medium text-xs flex items-center gap-1.5">
+                            <span className="truncate">{m.name}</span>
+                            {m.hasCustomKey && (
+                              <span
+                                title="Custom BYOK key configured"
+                                className="inline-flex items-center gap-0.5 px-1 py-0.2 rounded text-[9px] font-mono bg-[#00df81]/15 text-[#00df81] border border-[#00df81]/30 flex-none"
+                              >
+                                <KeyRound className="size-2.5" />
+                                BYOK
+                              </span>
+                            )}
+                          </div>
+                          {m.badge && (
+                            <div className="text-[10px] text-white/40 font-mono">{m.badge}</div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    {isSelected && (
-                      <Check className="size-3.5 flex-none text-[#00df81]" />
-                    )}
-                  </DropdownMenuItem>
-                );
-              })}
+                      {isSelected && (
+                        <Check className="size-3.5 flex-none text-[#00df81]" />
+                      )}
+                    </DropdownMenuItem>
+                  );
+                })}
+              </div>
+
+              {onOpenByok && (
+                <div className="pt-1.5 mt-1 border-t border-white/[0.08]">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onOpenByok();
+                    }}
+                    className="w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg text-[11px] font-mono font-medium text-[#00df81] bg-[rgba(0,223,129,0.08)] hover:bg-[rgba(0,223,129,0.16)] transition-all border border-[rgba(0,223,129,0.2)] group/byok cursor-pointer"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <KeyRound className="size-3.5 group-hover/byok:rotate-12 transition-transform" />
+                      Manage API Keys (BYOK)
+                    </span>
+                    <span className="text-[10px] text-white/50 group-hover/byok:text-white/80 transition-colors">Keys →</span>
+                  </button>
+                </div>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -432,7 +504,7 @@ export function AIPrompt({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!value.trim() || loading || disabled}
+              disabled={!value.trim() || loading || disabled || submitDisabled}
               className={cn(
                 "inline-flex size-7 items-center justify-center rounded-lg font-bold transition-all",
                 "bg-[#00df81] text-[#06190e] shadow-[0_0_12px_rgba(0,223,129,0.3)] hover:shadow-[0_0_18px_rgba(0,223,129,0.5)] hover:scale-105 active:scale-95",
@@ -449,7 +521,7 @@ export function AIPrompt({
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={!value.trim() || loading || disabled}
+              disabled={!value.trim() || loading || disabled || submitDisabled}
               className={cn(
                 "inline-flex h-9 items-center justify-center gap-2 rounded-xl px-4 text-xs font-bold transition-all",
                 "bg-gradient-to-r from-[#00df81] to-[#00b368] text-[#06190e]",

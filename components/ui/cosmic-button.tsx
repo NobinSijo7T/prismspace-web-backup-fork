@@ -82,6 +82,7 @@ export const CosmicButton = forwardRef<HTMLElement, CosmicButtonProps<any>>(
     return (
       <button
         ref={ref as React.Ref<HTMLButtonElement>}
+        type={(props as any).type ?? "button"}
         className={baseClassName}
         {...(props as ComponentPropsWithoutRef<"button">)}
       >

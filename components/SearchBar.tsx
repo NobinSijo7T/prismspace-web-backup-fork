@@ -27,6 +27,12 @@ interface Engine {
   url: (q: string) => string;
   color: string;       // brand accent for the active indicator
   logo: React.ReactNode;
+  tag: string;
+  tagColor: string;
+  tagBg: string;
+  tagBorder: string;
+  shortcut: string;
+  description: string;
 }
 
 // ── Engine favicon helper (uses each site's own favicon for pixel-perfect logos) ──
@@ -107,27 +113,12 @@ const ENGINES: Engine[] = [
     url: (q) => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
     color: '#4285F4',
     logo: <EngineLogo domain="google.com" name="Google" color="#4285F4" />,
-  },
-  {
-    id: 'brave',
-    name: 'Brave',
-    url: (q) => `https://search.brave.com/search?q=${encodeURIComponent(q)}`,
-    color: '#FB542B',
-    logo: <EngineLogo domain="brave.com" name="Brave" color="#FB542B" />,
-  },
-  {
-    id: 'duckduckgo',
-    name: 'DuckDuckGo',
-    url: (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
-    color: '#DE5833',
-    logo: <EngineLogo domain="duckduckgo.com" name="DuckDuckGo" color="#DE5833" />,
-  },
-  {
-    id: 'bing',
-    name: 'Bing',
-    url: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}`,
-    color: '#0078D4',
-    logo: <EngineLogo domain="bing.com" name="Bing" color="#0078D4" />,
+    tag: 'Web',
+    tagColor: '#60a5fa',
+    tagBg: 'rgba(59, 130, 246, 0.12)',
+    tagBorder: 'rgba(59, 130, 246, 0.25)',
+    shortcut: '1',
+    description: 'Global web index',
   },
   {
     id: 'perplexity',
@@ -135,6 +126,51 @@ const ENGINES: Engine[] = [
     url: (q) => `https://www.perplexity.ai/search?q=${encodeURIComponent(q)}`,
     color: '#20B2AA',
     logo: <EngineLogo domain="perplexity.ai" name="Perplexity" color="#20B2AA" />,
+    tag: 'AI Search',
+    tagColor: '#20B2AA',
+    tagBg: 'rgba(32, 178, 170, 0.14)',
+    tagBorder: 'rgba(32, 178, 170, 0.35)',
+    shortcut: '2',
+    description: 'Direct cited answers',
+  },
+  {
+    id: 'brave',
+    name: 'Brave',
+    url: (q) => `https://search.brave.com/search?q=${encodeURIComponent(q)}`,
+    color: '#FB542B',
+    logo: <EngineLogo domain="brave.com" name="Brave" color="#FB542B" />,
+    tag: 'Shield',
+    tagColor: '#fb923c',
+    tagBg: 'rgba(251, 84, 43, 0.12)',
+    tagBorder: 'rgba(251, 84, 43, 0.25)',
+    shortcut: '3',
+    description: 'Independent index',
+  },
+  {
+    id: 'bing',
+    name: 'Bing',
+    url: (q) => `https://www.bing.com/search?q=${encodeURIComponent(q)}`,
+    color: '#0078D4',
+    logo: <EngineLogo domain="bing.com" name="Bing" color="#0078D4" />,
+    tag: 'Copilot',
+    tagColor: '#38bdf8',
+    tagBg: 'rgba(0, 120, 212, 0.12)',
+    tagBorder: 'rgba(0, 120, 212, 0.25)',
+    shortcut: '4',
+    description: 'Microsoft Copilot',
+  },
+  {
+    id: 'duckduckgo',
+    name: 'DuckDuckGo',
+    url: (q) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
+    color: '#DE5833',
+    logo: <EngineLogo domain="duckduckgo.com" name="DuckDuckGo" color="#DE5833" />,
+    tag: 'Private',
+    tagColor: '#f87171',
+    tagBg: 'rgba(222, 88, 51, 0.12)',
+    tagBorder: 'rgba(222, 88, 51, 0.25)',
+    shortcut: '5',
+    description: 'Zero tracking queries',
   },
   {
     id: 'kagi',
@@ -142,6 +178,12 @@ const ENGINES: Engine[] = [
     url: (q) => `https://kagi.com/search?q=${encodeURIComponent(q)}`,
     color: '#F6C14E',
     logo: <EngineLogo domain="kagi.com" name="Kagi" color="#F6C14E" />,
+    tag: 'Ad-Free',
+    tagColor: '#facc15',
+    tagBg: 'rgba(246, 193, 78, 0.12)',
+    tagBorder: 'rgba(246, 193, 78, 0.25)',
+    shortcut: '6',
+    description: 'Premium fast results',
   },
 ];
 
@@ -182,6 +224,43 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
 
   const activeEngine = ENGINES.find((e) => e.id === engineId) ?? ENGINES[0];
 
+  const handleEngineSelect = useCallback((id: EngineId) => {
+    setEngineId(id);
+    localStorage.setItem('searchEngine', id);
+    setDropdownOpen(false);
+    inputRef.current?.focus();
+  }, []);
+
+  // Keyboard hotkeys: 1-6 selects engine immediately when open, Esc closes
+  useEffect(() => {
+    if (!dropdownOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const num = parseInt(e.key, 10);
+      if (!isNaN(num) && num >= 1 && num <= ENGINES.length) {
+        e.preventDefault();
+        const selected = ENGINES[num - 1];
+        if (selected) {
+          handleEngineSelect(selected.id);
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setDropdownOpen(false);
+        inputRef.current?.focus();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [dropdownOpen, handleEngineSelect]);
+
+  const handleToggleDropdown = () => {
+    setDropdownOpen((o) => !o);
+  };
+
   const handleModeToggle = (m: Mode) => {
     if (m === mode) return;
     setMode(m);
@@ -189,13 +268,6 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
     setTimeout(() => {
       inputRef.current?.focus({ preventScroll: true });
     }, 50);
-  };
-
-  const handleEngineSelect = (id: EngineId) => {
-    setEngineId(id);
-    localStorage.setItem('searchEngine', id);
-    setDropdownOpen(false);
-    inputRef.current?.focus();
   };
 
   const handleSubmit = useCallback(() => {
@@ -310,83 +382,181 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
               transition={{ duration: 0.2 }}
             >
               <button
-                onClick={() => setDropdownOpen((o) => !o)}
-                title="Change search engine"
-                className="flex items-center gap-2 px-4 py-3.5 rounded-l-[18px] transition-all duration-150 outline-none group"
+                onClick={handleToggleDropdown}
+                title={`Search engine: ${activeEngine.name} (Click or press 1-6 to change)`}
+                className="flex items-center gap-2 px-4 py-3.5 rounded-l-[18px] transition-all duration-150 outline-none group cursor-pointer"
                 style={{
                   borderRight: '1px solid rgba(255, 255, 255, 0.06)',
-                  background: dropdownOpen ? 'rgba(255, 255, 255, 0.05)' : 'transparent',
+                  background: dropdownOpen ? 'rgba(0, 223, 129, 0.08)' : 'transparent',
                 }}
                 aria-expanded={dropdownOpen}
                 aria-haspopup="listbox"
                 id="engine-selector-btn"
               >
-                {activeEngine.logo}
+                <div className="relative flex items-center justify-center">
+                  {activeEngine.logo}
+                  {dropdownOpen && (
+                    <span className="absolute -inset-1 rounded-full bg-[#00df81]/25 blur-[4px] pointer-events-none" />
+                  )}
+                </div>
                 <svg
                   viewBox="0 0 10 6"
                   width="10"
                   height="6"
                   className="transition-transform duration-200"
-                  style={{ transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  style={{
+                    transform: dropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                    stroke: dropdownOpen ? '#00df81' : 'rgba(255,255,255,0.3)',
+                  }}
                 >
-                  <path d="M1 1l4 4 4-4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+                  <path d="M1 1l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
                 </svg>
               </button>
 
-              {/* Dropdown */}
+              {/* 2-Column HUD Popover */}
               <AnimatePresence>
                 {dropdownOpen && (
                   <motion.div
                     role="listbox"
                     aria-labelledby="engine-selector-btn"
-                    className="absolute z-[9999] rounded-[10px] overflow-hidden"
+                    className="absolute z-[9999] rounded-[14px] overflow-hidden select-none"
                     style={{
-                      background: '#090c12',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
-                      boxShadow: '0 8px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04)',
-                      width: '180px',
-                      top: 'calc(100% + 4px)',
+                      background: 'rgba(9, 12, 18, 0.96)',
+                      backdropFilter: 'blur(20px)',
+                      WebkitBackdropFilter: 'blur(20px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 24px 60px rgba(0, 0, 0, 0.8), 0 0 24px rgba(0, 223, 129, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                      width: '340px',
+                      top: 'calc(100% + 8px)',
                       left: 0,
                     }}
-                    initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                    transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                    initial={{
+                      opacity: 0,
+                      y: -8,
+                      scale: 0.96,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                      scale: 1,
+                    }}
+                    exit={{
+                      opacity: 0,
+                      y: -8,
+                      scale: 0.96,
+                    }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
                   >
-                    {ENGINES.map((eng) => (
-                      <button
-                        key={eng.id}
-                        role="option"
-                        aria-selected={eng.id === engineId}
-                        onClick={() => handleEngineSelect(eng.id)}
-                        className="flex items-center gap-3 w-full px-4 py-2.5 text-[12px] font-mono text-left transition-colors duration-150 outline-none"
-                        style={{
-                          background:
-                            eng.id === engineId
-                              ? 'rgba(0, 223, 129, 0.08)'
-                              : 'transparent',
-                          color: eng.id === engineId ? '#00df81' : 'rgba(255, 255, 255, 0.55)',
-                          borderLeft: eng.id === engineId
-                            ? '2px solid #00df81'
-                            : '2px solid transparent',
-                        }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255, 255, 255, 0.04)';
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLButtonElement).style.background =
-                            eng.id === engineId ? 'rgba(0, 223, 129, 0.08)' : 'transparent';
-                        }}
-                      >
-                        <span className="flex-shrink-0">{eng.logo}</span>
-                        <span className="font-[600]">{eng.name}</span>
-                        {eng.id === engineId && (
-                          <svg className="ml-auto" viewBox="0 0 12 12" width="12" height="12">
-                            <path d="M2 6l3 3 5-5" stroke="#00df81" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </button>
-                    ))}
+                    {/* 2-Column Grid */}
+                    <div className="grid grid-cols-2 gap-1.5 p-2">
+                      {ENGINES.map((eng) => {
+                        const isSelected = eng.id === engineId;
+                        return (
+                          <button
+                            key={eng.id}
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => handleEngineSelect(eng.id)}
+                            className="group relative flex items-center justify-between p-2 rounded-[9px] text-left transition-all duration-150 outline-none cursor-pointer"
+                            style={{
+                              background: isSelected
+                                ? 'rgba(0, 223, 129, 0.1)'
+                                : 'rgba(255, 255, 255, 0.02)',
+                              border: isSelected
+                                ? '1px solid rgba(0, 223, 129, 0.45)'
+                                : '1px solid rgba(255, 255, 255, 0.06)',
+                              boxShadow: isSelected
+                                ? '0 0 16px rgba(0, 223, 129, 0.18), inset 0 0 10px rgba(0, 223, 129, 0.05)'
+                                : 'none',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) {
+                                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255, 255, 255, 0.06)';
+                                (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) {
+                                (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255, 255, 255, 0.02)';
+                                (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255, 255, 255, 0.06)';
+                              }
+                            }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div
+                                className="w-6 h-6 rounded-[6px] flex items-center justify-center flex-shrink-0"
+                                style={{
+                                  background: 'rgba(0, 0, 0, 0.4)',
+                                  border: isSelected
+                                    ? '1px solid rgba(0, 223, 129, 0.3)'
+                                    : '1px solid rgba(255, 255, 255, 0.08)',
+                                }}
+                              >
+                                {eng.logo}
+                              </div>
+                              <div className="flex flex-col min-w-0">
+                                <span
+                                  className="text-[12px] font-mono font-[600] tracking-tight leading-tight truncate"
+                                  style={{
+                                    color: isSelected ? '#00df81' : '#f1f5f9',
+                                  }}
+                                >
+                                  {eng.name}
+                                </span>
+                                <span
+                                  className="text-[8px] font-mono font-[700] uppercase tracking-wider px-1 py-[1px] rounded mt-0.5 inline-block w-fit leading-none"
+                                  style={{
+                                    color: eng.tagColor,
+                                    background: eng.tagBg,
+                                    border: `1px solid ${eng.tagBorder}`,
+                                  }}
+                                >
+                                  {eng.tag}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Shortcut badge or active check */}
+                            <div className="flex items-center flex-shrink-0 ml-1">
+                              {isSelected ? (
+                                <div className="w-4 h-4 rounded-full bg-[#00df81]/20 flex items-center justify-center border border-[#00df81]/40 shadow-[0_0_8px_rgba(0,223,129,0.3)]">
+                                  <svg viewBox="0 0 12 12" width="10" height="10">
+                                    <path
+                                      d="M2.5 6.2l2.3 2.3 4.7-4.7"
+                                      stroke="#00df81"
+                                      strokeWidth="1.8"
+                                      fill="none"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </div>
+                              ) : (
+                                <kbd
+                                  className="font-mono text-[9px] font-[600] px-1.5 py-0.5 rounded text-white/35 group-hover:text-white/70 transition-colors"
+                                  style={{
+                                    background: 'rgba(255, 255, 255, 0.04)',
+                                    border: '1px solid rgba(255, 255, 255, 0.08)',
+                                  }}
+                                >
+                                  {eng.shortcut}
+                                </kbd>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Footer Status Line */}
+                    <div className="px-3 py-1.5 bg-black/40 border-t border-white/[0.05] flex items-center justify-between text-[9px] font-mono text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <span className="text-white/40">Active:</span>
+                        <span className="text-[#00df81] font-[600]">{activeEngine.name}</span>
+                        <span className="text-white/30 font-normal">({activeEngine.description})</span>
+                      </span>
+                      <span className="text-white/30 hidden sm:inline">Press 1-6 · ESC</span>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

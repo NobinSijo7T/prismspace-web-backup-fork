@@ -256,6 +256,8 @@ PROVIDER_MAP = {
     "openai": "openai",
     "anthropic": "anthropic",
     "google": "google",
+    "openrouter": "openrouter",
+    "deepseek": "deepseek",
     "meta": "nvidia",       # Meta models typically served via NVIDIA NIM
     "mistral": "nvidia",    # Mistral models served via NVIDIA NIM
     "huggingface": "nvidia",

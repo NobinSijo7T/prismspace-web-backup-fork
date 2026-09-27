@@ -185,7 +185,8 @@ class ChatContextMessage(BaseModel):
 class CreateAgentRequest(BaseModel):
     objective: str
     model: str = "nvidia/nemotron-3.5-lightning-30b-a3b"  # NVIDIA NIM
-    provider: str = "nvidia"           # nvidia | groq
+    provider: str = "nvidia"           # nvidia | groq | openai | anthropic | google | openrouter | deepseek
+    api_key: Optional[str] = None      # BYOK user key
     max_agents: int = 3
     human_in_loop: bool = True
     chat_history: list[ChatContextMessage] = Field(default_factory=list)
@@ -511,11 +512,15 @@ def _normalise_chat_history(chat_history: list[ChatContextMessage]) -> list[dict
 async def _call_groq(
     model: str, 
     objective: str, 
-    chat_history: list[ChatContextMessage] | list[dict[str, str]]
+    chat_history: list[ChatContextMessage] | list[dict[str, str]],
+    api_key: Optional[str] = None
 ) -> str:
     """Call Groq API with stop sequences to enforce ReAct pattern."""
     from groq import AsyncGroq
-    client = AsyncGroq(api_key=os.environ.get("GROQ_API_KEY"))
+    key = api_key or os.environ.get("GROQ_API_KEY")
+    if not key:
+        raise ValueError("GROQ_API_KEY is not configured. Please provide your Groq API key (BYOK).")
+    client = AsyncGroq(api_key=key)
     
     # Handle both ChatContextMessage objects and raw dicts
     if chat_history and isinstance(chat_history[0], dict):
@@ -544,11 +549,15 @@ async def _call_groq(
 async def _call_openai(
     model: str, 
     objective: str, 
-    chat_history: list[ChatContextMessage] | list[dict[str, str]]
+    chat_history: list[ChatContextMessage] | list[dict[str, str]],
+    api_key: Optional[str] = None
 ) -> str:
     """Call OpenAI API with stop sequences to enforce ReAct pattern."""
     from openai import AsyncOpenAI
-    client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+    key = api_key or os.environ.get("OPENAI_API_KEY")
+    if not key:
+        raise ValueError("OPENAI_API_KEY is not configured. Please provide your OpenAI API key (BYOK).")
+    client = AsyncOpenAI(api_key=key)
     
     # Handle both ChatContextMessage objects and raw dicts
     if chat_history and isinstance(chat_history[0], dict):
@@ -577,11 +586,15 @@ async def _call_openai(
 async def _call_anthropic(
     model: str, 
     objective: str, 
-    chat_history: list[ChatContextMessage] | list[dict[str, str]]
+    chat_history: list[ChatContextMessage] | list[dict[str, str]],
+    api_key: Optional[str] = None
 ) -> str:
     """Call Anthropic API with stop sequences to enforce ReAct pattern."""
     import anthropic
-    client = anthropic.AsyncAnthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+    key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+    if not key:
+        raise ValueError("ANTHROPIC_API_KEY is not configured. Please provide your Anthropic API key (BYOK).")
+    client = anthropic.AsyncAnthropic(api_key=key)
     
     # Handle both ChatContextMessage objects and raw dicts
     if chat_history and isinstance(chat_history[0], dict):
@@ -609,11 +622,15 @@ async def _call_anthropic(
 async def _call_google(
     model: str, 
     objective: str, 
-    chat_history: list[ChatContextMessage] | list[dict[str, str]]
+    chat_history: list[ChatContextMessage] | list[dict[str, str]],
+    api_key: Optional[str] = None
 ) -> str:
     """Call Google Gemini API and return the response text."""
     from google import genai
-    client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+    key = api_key or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    if not key:
+        raise ValueError("GEMINI_API_KEY is not configured. Please provide your Google Gemini API key (BYOK).")
+    client = genai.Client(api_key=key)
     
     # Handle both ChatContextMessage objects and raw dicts
     if chat_history and isinstance(chat_history[0], dict):
@@ -642,13 +659,15 @@ async def _call_google(
 async def _call_nvidia(
     model: str,
     objective: str,
-    chat_history: list[ChatContextMessage] | list[dict[str, str]]
+    chat_history: list[ChatContextMessage] | list[dict[str, str]],
+    api_key: Optional[str] = None
 ) -> str:
     """Call NVIDIA NIM API (OpenAI-compatible) for nvidia/nemotron-3.5-lightning-30b-a3b with thinking."""
     from openai import AsyncOpenAI
+    key = api_key or os.environ.get("NVIDIA_API_KEY", "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")
     client = AsyncOpenAI(
         base_url="https://integrate.api.nvidia.com/v1",
-        api_key=os.environ.get("NVIDIA_API_KEY", "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"),
+        api_key=key,
     )
 
     # Retired models -> remap to Lightning (nemotron-3-nano EOL 2026-09-01, gemma-4 too slow)
@@ -689,6 +708,87 @@ async def _call_nvidia(
             chunks.append(delta.content)
     result = "".join(chunks)
     return result if result.strip() else "(No response generated)"
+
+
+async def _call_openrouter(
+    model: str,
+    objective: str,
+    chat_history: list[ChatContextMessage] | list[dict[str, str]],
+    api_key: Optional[str] = None
+) -> str:
+    """Call OpenRouter unified API."""
+    from openai import AsyncOpenAI
+    key = api_key or os.environ.get("OPENROUTER_API_KEY")
+    if not key:
+        raise ValueError("OPENROUTER_API_KEY is not configured. Please provide your OpenRouter API key (BYOK).")
+    
+    clean_model = model.removeprefix("openrouter/") if model.startswith("openrouter/") else model
+
+    client = AsyncOpenAI(
+        base_url="https://openrouter.ai/api/v1",
+        api_key=key,
+        default_headers={
+            "HTTP-Referer": "https://prismspace.app",
+            "X-Title": "PrismSpace",
+        },
+    )
+
+    if chat_history and isinstance(chat_history[0], dict):
+        messages = chat_history
+    else:
+        messages = _normalise_chat_history(chat_history)
+
+    final_messages = [{"role": "system", "content": _build_system_prompt()}]
+    final_messages.extend(messages)
+
+    if objective:
+        final_messages.append({"role": "user", "content": objective})
+
+    response = await client.chat.completions.create(
+        model=clean_model,
+        messages=final_messages,
+        temperature=0.7,
+        max_tokens=4096,
+        stop=["```\n\n", "```\n", "\n\n\n"],
+    )
+    return response.choices[0].message.content or "(No response generated)"
+
+
+async def _call_deepseek(
+    model: str,
+    objective: str,
+    chat_history: list[ChatContextMessage] | list[dict[str, str]],
+    api_key: Optional[str] = None
+) -> str:
+    """Call DeepSeek native API."""
+    from openai import AsyncOpenAI
+    key = api_key or os.environ.get("DEEPSEEK_API_KEY")
+    if not key:
+        raise ValueError("DEEPSEEK_API_KEY is not configured. Please provide your DeepSeek API key (BYOK).")
+    client = AsyncOpenAI(
+        base_url="https://api.deepseek.com",
+        api_key=key,
+    )
+
+    if chat_history and isinstance(chat_history[0], dict):
+        messages = chat_history
+    else:
+        messages = _normalise_chat_history(chat_history)
+
+    final_messages = [{"role": "system", "content": _build_system_prompt()}]
+    final_messages.extend(messages)
+
+    if objective:
+        final_messages.append({"role": "user", "content": objective})
+
+    response = await client.chat.completions.create(
+        model=model,
+        messages=final_messages,
+        temperature=0.7,
+        max_tokens=4096,
+        stop=["```\n\n", "```\n", "\n\n\n"],
+    )
+    return response.choices[0].message.content or "(No response generated)"
 
 
 # ---------------------------------------------------------------------------
@@ -1240,15 +1340,19 @@ async def _tool_use_loop(
                 
                 try:
                     if provider == "groq":
-                        current_response = await _call_groq(request.model, "", conversation_history)
+                        current_response = await _call_groq(request.model, "", conversation_history, api_key=request.api_key)
                     elif provider == "nvidia":
-                        current_response = await _call_nvidia(request.model, "", conversation_history)
+                        current_response = await _call_nvidia(request.model, "", conversation_history, api_key=request.api_key)
                     elif provider == "openai":
-                        current_response = await _call_openai(request.model, "", conversation_history)
+                        current_response = await _call_openai(request.model, "", conversation_history, api_key=request.api_key)
                     elif provider == "anthropic":
-                        current_response = await _call_anthropic(request.model, "", conversation_history)
-                    elif provider == "google":
-                        current_response = await _call_google(request.model, "", conversation_history)
+                        current_response = await _call_anthropic(request.model, "", conversation_history, api_key=request.api_key)
+                    elif provider in ("google", "gemini"):
+                        current_response = await _call_google(request.model, "", conversation_history, api_key=request.api_key)
+                    elif provider == "openrouter":
+                        current_response = await _call_openrouter(request.model, "", conversation_history, api_key=request.api_key)
+                    elif provider == "deepseek":
+                        current_response = await _call_deepseek(request.model, "", conversation_history, api_key=request.api_key)
                     else:
                         _log(agent_id, f"⚠️ Unknown provider: {provider}, giving up")
                         return current_response
@@ -1336,15 +1440,19 @@ async def _tool_use_loop(
         
         try:
             if provider == "groq":
-                current_response = await _call_groq(request.model, "", conversation_history)
+                current_response = await _call_groq(request.model, "", conversation_history, api_key=request.api_key)
             elif provider == "nvidia":
-                current_response = await _call_nvidia(request.model, "", conversation_history)
+                current_response = await _call_nvidia(request.model, "", conversation_history, api_key=request.api_key)
             elif provider == "openai":
-                current_response = await _call_openai(request.model, "", conversation_history)
+                current_response = await _call_openai(request.model, "", conversation_history, api_key=request.api_key)
             elif provider == "anthropic":
-                current_response = await _call_anthropic(request.model, "", conversation_history)
-            elif provider == "google":
-                current_response = await _call_google(request.model, "", conversation_history)
+                current_response = await _call_anthropic(request.model, "", conversation_history, api_key=request.api_key)
+            elif provider in ("google", "gemini"):
+                current_response = await _call_google(request.model, "", conversation_history, api_key=request.api_key)
+            elif provider == "openrouter":
+                current_response = await _call_openrouter(request.model, "", conversation_history, api_key=request.api_key)
+            elif provider == "deepseek":
+                current_response = await _call_deepseek(request.model, "", conversation_history, api_key=request.api_key)
             else:
                 _log(agent_id, f"⚠️ Unknown provider: {provider}, breaking loop")
                 return current_response
@@ -1425,15 +1533,19 @@ async def _run_hive_agent(agent_id: str, request: CreateAgentRequest) -> None:
 
         provider = request.provider.lower()
         if provider == "groq":
-            result_text = await _call_groq(request.model, request.objective, request.chat_history)
+            result_text = await _call_groq(request.model, request.objective, request.chat_history, api_key=request.api_key)
         elif provider == "nvidia":
-            result_text = await _call_nvidia(request.model, request.objective, request.chat_history)
+            result_text = await _call_nvidia(request.model, request.objective, request.chat_history, api_key=request.api_key)
         elif provider == "openai":
-            result_text = await _call_openai(request.model, request.objective, request.chat_history)
+            result_text = await _call_openai(request.model, request.objective, request.chat_history, api_key=request.api_key)
         elif provider == "anthropic":
-            result_text = await _call_anthropic(request.model, request.objective, request.chat_history)
-        elif provider == "google":
-            result_text = await _call_google(request.model, request.objective, request.chat_history)
+            result_text = await _call_anthropic(request.model, request.objective, request.chat_history, api_key=request.api_key)
+        elif provider in ("google", "gemini"):
+            result_text = await _call_google(request.model, request.objective, request.chat_history, api_key=request.api_key)
+        elif provider == "openrouter":
+            result_text = await _call_openrouter(request.model, request.objective, request.chat_history, api_key=request.api_key)
+        elif provider == "deepseek":
+            result_text = await _call_deepseek(request.model, request.objective, request.chat_history, api_key=request.api_key)
         else:
             raise ValueError(f"Unsupported provider: {request.provider}")
 
@@ -1634,6 +1746,10 @@ async def create_agent(
                     request.human_in_loop = True
         except Exception as exc:
             intelligence = {"error": str(exc)}
+
+    # Explicit openrouter model prefix routes to openrouter
+    if request.model.startswith("openrouter/"):
+        request.provider = "openrouter"
 
     agent = {
         "id": agent_id,

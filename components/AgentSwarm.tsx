@@ -8,15 +8,18 @@
  * Shows live agent status, log streaming, HITL controls, and a task launcher.
  */
 
-import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,
+  ArrowRight,
+  ArrowUpRight,
   Bot,
   Check,
   ChevronDown,
   Clipboard,
+  ExternalLink,
   GitBranch,
   KeyRound,
   ListTree,
@@ -24,8 +27,10 @@ import {
   Plus,
   Radio,
   RefreshCw,
+  Search,
   Send,
   Settings,
+  SlidersHorizontal,
   Sparkles,
   TerminalSquare,
   Trash2,
@@ -34,6 +39,18 @@ import {
 import { StatefulButton } from '@/components/ui/stateful-button';
 import { GradientButton } from '@/components/kokonutui/gradient-button';
 import { AIPrompt, type AIPromptModel } from '@/components/kokonutui/ai-prompt';
+import {
+  BYOK_PROVIDERS,
+  getAllStoredApiKeys,
+  getStoredApiKey,
+  getAllPromptModels,
+  getProviderForModel as getByokProviderForModel,
+  maskApiKey,
+  isProviderConfigured,
+  type ByokProviderId,
+} from '@/lib/byok-storage';
+import { ByokModal, getProviderIcon } from '@/components/ByokModal';
+import { cn } from '@/lib/utils';
 
 // ── Custom dark-themed Select component ─────────────────────────────────────
 interface SelectOption { value: string; label: ReactNode; }
@@ -210,24 +227,26 @@ interface AgentSwarmProps {
 }
 
 const MODELS: Record<ModelProvider, string[]> = {
-  nvidia: ['nvidia/nemotron-3.5-lightning-30b-a3b'],
+  nvidia: ['nvidia/nemotron-3.5-lightning-30b-a3b', 'meta/llama-3.3-70b-instruct'],
   groq: ['llama-3.3-70b-versatile', 'llama3-70b-8192', 'mixtral-8x7b-32768'],
+  openai: ['gpt-4o', 'gpt-4o-mini', 'o1-preview', 'o3-mini'],
+  anthropic: ['claude-3-7-sonnet-latest', 'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest'],
+  google: ['gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+  openrouter: [
+    'anthropic/claude-3.7-sonnet',
+    'anthropic/claude-3.5-sonnet',
+    'deepseek/deepseek-r1',
+    'meta-llama/llama-3.3-70b-instruct',
+    'google/gemini-2.0-flash-001',
+    'openai/gpt-4o',
+    'mistralai/mistral-large-2411',
+    'qwen/qwen-2.5-72b-instruct',
+  ],
+  deepseek: ['deepseek-chat', 'deepseek-reasoner'],
 };
 
-const SWARM_PROMPT_MODELS: AIPromptModel[] = [
-  { id: 'nvidia/nemotron-3.5-lightning-30b-a3b', name: 'NVIDIA Nemotron 30B', provider: 'nvidia', badge: 'Ultra-Fast' },
-  { id: 'llama-3.3-70b-versatile', name: 'Groq LLaMA 3.3 70B', provider: 'groq', badge: 'Recommended' },
-  { id: 'llama3-70b-8192', name: 'Groq LLaMA 3 70B', provider: 'groq', badge: 'Low Latency' },
-  { id: 'mixtral-8x7b-32768', name: 'Groq Mixtral 8x7B', provider: 'groq', badge: 'Long Context' },
-];
-
 function getProviderForModel(modelId: string): ModelProvider {
-  const found = SWARM_PROMPT_MODELS.find((m) => m.id === modelId);
-  if (found?.provider === 'groq' || found?.provider === 'nvidia') {
-    return found.provider as ModelProvider;
-  }
-  if (modelId.startsWith('nvidia/')) return 'nvidia';
-  return 'groq';
+  return getByokProviderForModel(modelId) as ModelProvider;
 }
 
 const SWARM_MODEL_KEY = 'prism.agentSwarm.selectedModel';
@@ -249,6 +268,18 @@ function formatChatTime(timestamp: number) {
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(timestamp));
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const diff = Date.now() - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+  return formatChatTime(timestamp);
 }
 
 // ── View types ──────────────────────────────────────────────────────────────
@@ -281,27 +312,54 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
   const [pendingRemoveKey, setPendingRemoveKey] = useState<string | null>(null);
 
-  // New agent form
+  // New agent form & BYOK state
   const [objective, setObjective] = useState('');
   const [provider, setProvider] = useState<ModelProvider>('nvidia');
-  const [model, setModel] = useState<string>(SWARM_PROMPT_MODELS[0].id);
+  const [model, setModel] = useState<string>('nvidia/nemotron-3.5-lightning-30b-a3b');
   const [maxAgents, setMaxAgents] = useState(3);
   const [hitl, setHitl] = useState(true);
   const [launching, setLaunching] = useState(false);
   const [runsSubTab, setRunsSubTab] = useState<'agents' | 'chat'>('agents');
 
+  // BYOK & Chat History Launch page state
+  const [showByokModal, setShowByokModal] = useState(false);
+  const [storedKeys, setStoredKeys] = useState<Record<string, string>>({});
+  const [chatSearchQuery, setChatSearchQuery] = useState('');
+  const [launchRightTab, setLaunchRightTab] = useState<'history' | 'byok' | 'config'>('history');
+
+  useEffect(() => {
+    setStoredKeys(getAllStoredApiKeys());
+    const handleByokUpdated = () => {
+      setStoredKeys(getAllStoredApiKeys());
+    };
+    window.addEventListener('prism:byok-updated', handleByokUpdated);
+    window.addEventListener('storage', handleByokUpdated);
+    return () => {
+      window.removeEventListener('prism:byok-updated', handleByokUpdated);
+      window.removeEventListener('storage', handleByokUpdated);
+    };
+  }, []);
+
+  const availablePromptModels = useMemo(() => {
+    return getAllPromptModels(storedKeys);
+  }, [storedKeys]);
+
+  const configuredProviderCount = useMemo(() => {
+    return BYOK_PROVIDERS.filter((p) => Boolean(storedKeys[p.id]?.trim())).length;
+  }, [storedKeys]);
+
   // Load saved model preference
   useEffect(() => {
     try {
       const saved = localStorage.getItem(SWARM_MODEL_KEY);
-      if (saved && SWARM_PROMPT_MODELS.some((m) => m.id === saved)) {
+      if (saved && availablePromptModels.some((m) => m.id === saved)) {
         setModel(saved);
         setProvider(getProviderForModel(saved));
       }
     } catch {
       // ignore storage error
     }
-  }, []);
+  }, [availablePromptModels]);
 
   const handleModelChange = useCallback((newModelId: string, newProvider?: string) => {
     const prov = (newProvider as ModelProvider) || getProviderForModel(newModelId);
@@ -358,13 +416,42 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
     [],
   );
 
+  const allChatMessages = useLiveQuery(
+    () => db.agent_chat_messages.toArray(),
+    [],
+  );
+
+  const sessionMessageCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    if (allChatMessages) {
+      for (const msg of allChatMessages) {
+        counts[msg.sessionId] = (counts[msg.sessionId] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [allChatMessages]);
+
+  const filteredChatSessions = useMemo(() => {
+    if (!chatSessions) return [];
+    if (!chatSearchQuery.trim()) return chatSessions;
+    const query = chatSearchQuery.toLowerCase();
+    return chatSessions.filter((s) => s.title.toLowerCase().includes(query));
+  }, [chatSessions, chatSearchQuery]);
+
+  const resumeSession = useCallback((sessionId: string) => {
+    setActiveSessionId(sessionId);
+    localStorage.setItem(ACTIVE_SWARM_CHAT_KEY, sessionId);
+    setRunsSubTab('chat');
+    setActiveView('runs');
+  }, []);
+
   const currentSessionMessages = useLiveQuery(
     () =>
       activeSessionId
         ? db.agent_chat_messages
-            .where('sessionId')
-            .equals(activeSessionId)
-            .sortBy('createdAt')
+        .where('sessionId')
+        .equals(activeSessionId)
+        .sortBy('createdAt')
         : Promise.resolve([] as AgentChatMessage[]),
     [activeSessionId],
   );
@@ -587,6 +674,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
 
       const launchModel = customModel || model;
       const launchProvider = customProvider || provider || getProviderForModel(launchModel);
+      const byokApiKey = getStoredApiKey(launchProvider);
 
       const payload: CreateAgentPayload = {
         objective: trimmedObjective,
@@ -594,6 +682,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
         model: launchModel,
         max_agents: maxAgents,
         human_in_loop: hitl,
+        api_key: byokApiKey || undefined,
         chat_history: priorMessages.slice(-16).map((message) => ({
           role: message.role,
           content: message.content,
@@ -894,6 +983,30 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
               <form onSubmit={handleLaunch} className="grid h-full grid-cols-1 lg:grid-cols-12 gap-4 min-h-0">
                 {/* Left: Mission Brief AI Prompt Toolbar (lg:col-span-7) */}
                 <div className="lg:col-span-7 flex flex-col min-h-0 h-full">
+                  {/* Quick-resume recent chat chips if any */}
+                  {chatSessions && chatSessions.length > 0 && (
+                    <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-0.5 flex-shrink-0">
+                      <span className="text-[10px] font-mono text-white/40 uppercase tracking-wider flex items-center gap-1 flex-shrink-0">
+                        <MessageSquare className="size-3 text-[#00df81]" />
+                        Recent:
+                      </span>
+                      {chatSessions.slice(0, 4).map((s) => (
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => resumeSession(s.id)}
+                          title={`Resume "${s.title}" (${sessionMessageCounts[s.id] || 0} messages)`}
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono border border-[rgba(255,255,255,0.08)] bg-white/[0.03] hover:border-[rgba(0,223,129,0.35)] hover:bg-[rgba(0,223,129,0.08)] text-white/80 hover:text-white transition-all max-w-[170px] truncate group cursor-pointer"
+                        >
+                          <span className="truncate">{s.title}</span>
+                          <span className="text-[9px] px-1 py-0.2 rounded bg-white/10 text-white/50 group-hover:text-[#00df81]">
+                            {sessionMessageCounts[s.id] || 0}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <AIPrompt
                     value={objective}
                     onChange={setObjective}
@@ -903,9 +1016,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                       handleModelChange(targetModel, targetProvider);
                       handleLaunch(undefined, val, targetModel, targetProvider);
                     }}
-                    models={SWARM_PROMPT_MODELS}
+                    models={availablePromptModels}
                     selectedModel={model}
                     onModelChange={handleModelChange}
+                    onOpenByok={() => setShowByokModal(true)}
                     templates={[
                       { label: 'Research & Map', text: 'Research latest advancements and synthesize an architectural breakdown.' },
                       { label: 'Code Review & Audit', text: 'Audit recent commits, check for edge-case regressions, and formulate fixes.' },
@@ -914,16 +1028,27 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                     headerText="Mission Brief"
                     headerSubtitle="Autonomous Swarm Objective"
                     headerAction={
-                      <span
-                        className="rounded-full px-2.5 py-0.5 text-[10px] font-mono font-semibold"
-                        style={{
-                          border: '1px solid rgba(0,223,129,0.25)',
-                          background: 'rgba(0,223,129,0.08)',
-                          color: 'var(--prism-primary)',
-                        }}
-                      >
-                        {maxAgents} worker{maxAgents > 1 ? 's' : ''} assigned
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowByokModal(true)}
+                          className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono border border-[rgba(0,223,129,0.25)] bg-[rgba(0,223,129,0.08)] text-[#00df81] hover:bg-[rgba(0,223,129,0.18)] transition-all cursor-pointer"
+                          title="Configure API Keys (BYOK)"
+                        >
+                          <KeyRound className="size-2.5" />
+                          BYOK Keys ({configuredProviderCount}/7)
+                        </button>
+                        <span
+                          className="rounded-full px-2.5 py-0.5 text-[10px] font-mono font-semibold"
+                          style={{
+                            border: '1px solid rgba(0,223,129,0.25)',
+                            background: 'rgba(0,223,129,0.08)',
+                            color: 'var(--prism-primary)',
+                          }}
+                        >
+                          {maxAgents} worker{maxAgents > 1 ? 's' : ''} assigned
+                        </span>
+                      </div>
                     }
                     placeholder="Describe the outcome you want the swarm to produce... (e.g. build a data visualization pipeline, audit security, or synthesize documentation)"
                     loading={launching}
@@ -933,116 +1058,370 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   />
                 </div>
 
-                {/* Right: Controls (lg:col-span-5) */}
-                <div className="lg:col-span-5 flex flex-col gap-3 min-h-0 h-full justify-between">
-                  {/* Worker Mesh & Checkpoint */}
-                  <div className="rounded-xl p-3.5 sm:p-4" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
-                    <div className="mb-2.5 flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-semibold text-white">Worker Mesh Size</p>
-                        <p className="text-[10.5px]" style={{ color: 'var(--prism-muted)' }}>Concurrent sub-agent nodes</p>
-                      </div>
-                      <span className="text-sm font-bold font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(0,223,129,0.1)', color: 'var(--prism-primary)' }}>
-                        {maxAgents} Nodes
-                      </span>
+                {/* Right: Launch Page Hub with Chat History, BYOK & Config (lg:col-span-5) */}
+                <div className="lg:col-span-5 flex flex-col min-h-0 h-full rounded-2xl border border-[var(--prism-border-card)] bg-[var(--prism-card)] overflow-hidden shadow-xl">
+                  {/* Segmented Subheader */}
+                  <div className="p-2 border-b border-[var(--prism-border-card)] bg-black/30 flex items-center justify-between gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setLaunchRightTab('history')}
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-lg text-xs font-semibold font-mono flex items-center gap-1.5 transition-all cursor-pointer",
+                          launchRightTab === 'history'
+                            ? "bg-[rgba(0,223,129,0.15)] text-[#00df81] border border-[rgba(0,223,129,0.3)] shadow-[0_0_10px_rgba(0,223,129,0.1)]"
+                            : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                        )}
+                      >
+                        <MessageSquare className="size-3.5" />
+                        Chat History
+                        {chatSessions && chatSessions.length > 0 && (
+                          <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] bg-white/10 text-white/70">
+                            {chatSessions.length}
+                          </span>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setLaunchRightTab('byok')}
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-lg text-xs font-semibold font-mono flex items-center gap-1.5 transition-all cursor-pointer",
+                          launchRightTab === 'byok'
+                            ? "bg-[rgba(0,223,129,0.15)] text-[#00df81] border border-[rgba(0,223,129,0.3)] shadow-[0_0_10px_rgba(0,223,129,0.1)]"
+                            : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                        )}
+                      >
+                        <KeyRound className="size-3.5" />
+                        BYOK Keys
+                        <span className="ml-0.5 px-1.5 py-0.2 rounded-full text-[9px] bg-white/10 text-[#00df81]">
+                          {configuredProviderCount}/7
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setLaunchRightTab('config')}
+                        className={cn(
+                          "px-2.5 py-1.5 rounded-lg text-xs font-semibold font-mono flex items-center gap-1.5 transition-all cursor-pointer",
+                          launchRightTab === 'config'
+                            ? "bg-[rgba(0,223,129,0.15)] text-[#00df81] border border-[rgba(0,223,129,0.3)] shadow-[0_0_10px_rgba(0,223,129,0.1)]"
+                            : "text-white/60 hover:text-white hover:bg-white/[0.04]"
+                        )}
+                      >
+                        <SlidersHorizontal className="size-3.5" />
+                        Config
+                      </button>
                     </div>
-                    <input
-                      type="range"
-                      min={1}
-                      max={3}
-                      step={1}
-                      value={maxAgents}
-                      onChange={(e) => setMaxAgents(Number(e.target.value))}
-                      className="h-1.5 w-full cursor-pointer appearance-none rounded-lg"
-                      style={{ background: 'rgba(255,255,255,0.12)', accentColor: '#00df81' }}
-                    />
-                    <label
-                      className="mt-3 flex cursor-pointer items-center justify-between rounded-lg p-2.5 transition-colors"
-                      style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}
-                    >
-                      <div>
-                        <span className="block text-xs font-semibold text-white">Human Checkpoint</span>
-                        <span className="text-[10.5px]" style={{ color: 'var(--prism-muted)' }}>Require approval before synthesis</span>
-                      </div>
-                      <input
-                        type="checkbox"
-                        checked={hitl}
-                        onChange={(e) => setHitl(e.target.checked)}
-                        className="size-4"
-                        style={{ accentColor: '#00df81' }}
-                      />
-                    </label>
+
+                    {launchRightTab === 'history' && (
+                      <button
+                        type="button"
+                        onClick={() => createNewChat()}
+                        className="px-2 py-1 rounded-md text-[11px] font-mono text-[#00df81] bg-[rgba(0,223,129,0.08)] hover:bg-[rgba(0,223,129,0.18)] transition-colors flex items-center gap-1 cursor-pointer"
+                        title="Start a new chat session"
+                      >
+                        <Plus className="size-3" />
+                        New
+                      </button>
+                    )}
+
+                    {launchRightTab === 'byok' && (
+                      <button
+                        type="button"
+                        onClick={() => setShowByokModal(true)}
+                        className="px-2 py-1 rounded-md text-[11px] font-mono text-[#00df81] bg-[rgba(0,223,129,0.08)] hover:bg-[rgba(0,223,129,0.18)] transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <ExternalLink className="size-3" />
+                        Manage
+                      </button>
+                    )}
                   </div>
 
-                  {/* Tool Integrations: Gmail MCP */}
-                  <div className="rounded-xl p-3.5 sm:p-4" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}>
-                    <div className="mb-2.5 flex items-center justify-between">
-                      <span style={labelStyle} className="!mb-0">Tool Integrations</span>
-                      <span className="text-[10px] font-mono text-white/40">OAuth 2.0</span>
+                  {/* Tab 1: Chat History Content */}
+                  {launchRightTab === 'history' && (
+                    <div className="flex-1 flex flex-col min-h-0">
+                      <div className="p-2.5 border-b border-[var(--prism-border-card)] bg-black/20 flex items-center gap-2 flex-shrink-0">
+                        <Search className="size-3.5 text-white/40 flex-none" />
+                        <input
+                          type="text"
+                          placeholder="Filter chat history..."
+                          value={chatSearchQuery}
+                          onChange={(e) => setChatSearchQuery(e.target.value)}
+                          className="w-full bg-transparent text-xs text-white placeholder:text-white/30 outline-none font-mono"
+                        />
+                        {chatSearchQuery && (
+                          <button
+                            type="button"
+                            onClick={() => setChatSearchQuery('')}
+                            className="text-white/40 hover:text-white cursor-pointer"
+                          >
+                            <X className="size-3" />
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex-1 min-h-0 overflow-y-auto p-2.5 space-y-2">
+                        {filteredChatSessions.length === 0 ? (
+                          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-white/40">
+                            <MessageSquare className="size-8 mb-2 opacity-30 text-[#00df81]" />
+                            <p className="text-xs font-mono text-white/60">
+                              {chatSearchQuery ? 'No matching chats found' : 'No chat sessions yet'}
+                            </p>
+                            <p className="text-[11px] text-white/35 mt-1 max-w-[200px]">
+                              {chatSearchQuery ? 'Try clearing your filter' : 'Launch a mission on the left to start a conversation'}
+                            </p>
+                          </div>
+                        ) : (
+                          filteredChatSessions.map((session) => {
+                            const isCurrent = activeSessionId === session.id;
+                            const msgCount = sessionMessageCounts[session.id] || 0;
+                            return (
+                              <div
+                                key={session.id}
+                                className={cn(
+                                  "group relative rounded-xl p-3 border transition-all cursor-pointer",
+                                  isCurrent
+                                    ? "border-[rgba(0,223,129,0.4)] bg-[rgba(0,223,129,0.06)] shadow-[0_0_12px_rgba(0,223,129,0.08)]"
+                                    : "border-[var(--prism-border-card)] bg-black/30 hover:border-white/20 hover:bg-black/40"
+                                )}
+                                onClick={() => resumeSession(session.id)}
+                              >
+                                <div className="flex items-start justify-between gap-2 mb-1.5">
+                                  <h4 className="text-xs font-semibold text-white group-hover:text-[#00df81] transition-colors truncate flex-1">
+                                    {session.title}
+                                  </h4>
+                                  <span className="flex-none text-[10px] font-mono px-1.5 py-0.2 rounded bg-white/10 text-white/60">
+                                    {msgCount} {msgCount === 1 ? 'msg' : 'msgs'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px] font-mono text-white/40">
+                                  <span className="flex items-center gap-1">
+                                    {isCurrent && (
+                                      <span className="inline-block size-1.5 rounded-full bg-[#00df81]" />
+                                    )}
+                                    {formatRelativeTime(session.updatedAt || session.createdAt)}
+                                  </span>
+                                  <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        resumeSession(session.id);
+                                      }}
+                                      className="px-2 py-0.5 rounded text-[10px] bg-[#00df81]/15 text-[#00df81] hover:bg-[#00df81]/25 transition-colors flex items-center gap-1 cursor-pointer"
+                                    >
+                                      Resume <ArrowUpRight className="size-2.5" />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        deleteChatSession(session.id);
+                                      }}
+                                      title="Delete session"
+                                      className="p-1 rounded text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                                    >
+                                      <Trash2 className="size-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between gap-3 p-3 rounded-lg" style={{ background: 'var(--prism-board)', border: '1px solid var(--prism-border-card)' }}>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-semibold text-white">Google Workspace / Gmail</p>
-                        <p className="text-[11px] truncate" style={{ color: gmailEmail ? 'var(--prism-primary)' : 'var(--prism-muted)' }}>
-                          {gmailEmail ? `Connected: ${gmailEmail}` : 'Inbox access for research & mail tools'}
+                  )}
+
+                  {/* Tab 2: BYOK Keys Content */}
+                  {launchRightTab === 'byok' && (
+                    <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2.5">
+                      <div className="p-2.5 rounded-xl border border-[rgba(0,223,129,0.2)] bg-[rgba(0,223,129,0.05)] text-xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-semibold text-white flex items-center gap-1.5">
+                            <KeyRound className="size-3.5 text-[#00df81]" />
+                            Bring Your Own Key (BYOK)
+                          </span>
+                          <span className="font-mono text-[10px] text-[#00df81]">Direct API Access</span>
+                        </div>
+                        <p className="text-[11px] text-white/60 mt-1 leading-relaxed">
+                          Connect your personal API keys for Groq, NVIDIA, OpenAI, Claude, Gemini, OpenRouter, and DeepSeek. Keys remain in local browser storage.
                         </p>
                       </div>
-                      {gmailEmail ? (
+
+                      <div className="space-y-1.5">
+                        {BYOK_PROVIDERS.map((prov) => {
+                          const userKey = storedKeys[prov.id];
+                          const hasCustom = Boolean(userKey && userKey.trim().length > 3);
+                          const isDefaultAvailable = prov.id === 'nvidia' || prov.id === 'groq';
+
+                          return (
+                            <div
+                              key={prov.id}
+                              className="flex items-center justify-between p-2 rounded-lg border border-[var(--prism-border-card)] bg-black/25 hover:border-white/20 transition-all text-xs"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                <div className="flex items-center justify-center size-6 rounded-md bg-white/[0.04] p-1 flex-none border border-white/[0.06]">
+                                  {getProviderIcon(prov.id)}
+                                </div>
+                                <div className="truncate flex-1">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-medium text-white text-xs">{prov.name}</span>
+                                    <span className="text-[10px] text-white/40 font-mono">({prov.models.length} models)</span>
+                                  </div>
+                                  <div className="text-[10px] font-mono text-white/40 truncate">
+                                    {hasCustom ? (
+                                      <span className="text-[#00df81] font-semibold">{maskApiKey(userKey)}</span>
+                                    ) : isDefaultAvailable ? (
+                                      <span className="text-amber-400/80">Shared Backend Default</span>
+                                    ) : (
+                                      <span>Key required for inference</span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => setShowByokModal(true)}
+                                className="flex-none px-2 py-1 rounded text-[10px] font-mono text-white/70 hover:text-white bg-white/[0.04] hover:bg-white/[0.08] transition-colors border border-white/[0.06] cursor-pointer"
+                              >
+                                {hasCustom ? 'Edit' : 'Configure'}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="pt-1">
                         <button
                           type="button"
-                          onClick={() => {
-                            const uid = getGmailUserId();
-                            if (uid) {
-                              fetch('/api/auth/google/status', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ user_id: uid }),
-                              }).catch(() => {});
-                            }
-                            localStorage.removeItem('prism_gmail_user_id');
-                            localStorage.removeItem('prism_gmail_email');
-                            setGmailEmail(null);
-                          }}
-                          className="rounded-lg px-2.5 py-1 text-[11px] font-mono text-red-400 hover:bg-red-500/10 transition-colors"
+                          onClick={() => setShowByokModal(true)}
+                          className="w-full flex items-center justify-center gap-2 py-2 rounded-xl text-xs font-mono font-bold text-[#06190e] bg-gradient-to-r from-[#00df81] to-[#00b368] shadow-[0_0_16px_rgba(0,223,129,0.25)] hover:shadow-[0_0_22px_rgba(0,223,129,0.4)] transition-all cursor-pointer"
                         >
-                          Disconnect
+                          <KeyRound className="size-3.5" />
+                          Open Full BYOK Key Manager
                         </button>
-                      ) : (
-                        <GradientButton
-                          type="button"
-                          loading={gmailLoading}
-                          disabled={gmailLoading}
-                          variant="emerald"
-                          className="h-8 px-3 text-xs"
-                          onClick={async () => {
-                            setGmailLoading(true);
-                            try {
-                              await connectGmail();
-                            } catch (e) {
-                              console.error(e);
-                            } finally {
-                              setGmailLoading(false);
-                            }
-                          }}
-                        >
-                          {gmailLoading ? 'Connecting...' : 'Connect'}
-                        </GradientButton>
-                      )}
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Architecture spec footer */}
-                  <div className="p-3 rounded-xl flex items-center justify-between text-xs" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--prism-border-card)' }}>
-                    <div className="flex items-center gap-2">
-                      <span className="size-2 rounded-full" style={{ background: backendOnline ? '#00df81' : '#f87171' }} />
-                      <span className="font-mono text-white/60 text-[11px]">
-                        {backendOnline ? 'Distributed Graph Engine Active' : 'Backend Engine Offline'}
-                      </span>
+                  {/* Tab 3: Swarm Config Content */}
+                  {launchRightTab === 'config' && (
+                    <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-3 flex flex-col justify-between">
+                      <div className="space-y-3">
+                        {/* Worker Mesh & Checkpoint */}
+                        <div className="rounded-xl p-3.5" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}>
+                          <div className="mb-2.5 flex items-center justify-between">
+                            <div>
+                              <p className="text-xs font-semibold text-white">Worker Mesh Size</p>
+                              <p className="text-[10.5px]" style={{ color: 'var(--prism-muted)' }}>Concurrent sub-agent nodes</p>
+                            </div>
+                            <span className="text-sm font-bold font-mono px-2 py-0.5 rounded-lg" style={{ background: 'rgba(0,223,129,0.1)', color: 'var(--prism-primary)' }}>
+                              {maxAgents} Nodes
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={1}
+                            max={3}
+                            step={1}
+                            value={maxAgents}
+                            onChange={(e) => setMaxAgents(Number(e.target.value))}
+                            className="h-1.5 w-full cursor-pointer appearance-none rounded-lg"
+                            style={{ background: 'rgba(255,255,255,0.12)', accentColor: '#00df81' }}
+                          />
+                          <label
+                            className="mt-3 flex cursor-pointer items-center justify-between rounded-lg p-2.5 transition-colors"
+                            style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-card)' }}
+                          >
+                            <div>
+                              <span className="block text-xs font-semibold text-white">Human Checkpoint</span>
+                              <span className="text-[10.5px]" style={{ color: 'var(--prism-muted)' }}>Require approval before synthesis</span>
+                            </div>
+                            <input
+                              type="checkbox"
+                              checked={hitl}
+                              onChange={(e) => setHitl(e.target.checked)}
+                              className="size-4"
+                              style={{ accentColor: '#00df81' }}
+                            />
+                          </label>
+                        </div>
+
+                        {/* Tool Integrations: Gmail MCP */}
+                        <div className="rounded-xl p-3.5" style={{ border: '1px solid var(--prism-border-card)', background: 'var(--prism-board)' }}>
+                          <div className="mb-2.5 flex items-center justify-between">
+                            <span style={labelStyle} className="!mb-0">Tool Integrations</span>
+                            <span className="text-[10px] font-mono text-white/40">OAuth 2.0</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-3 p-3 rounded-lg" style={{ background: 'var(--prism-card)', border: '1px solid var(--prism-border-card)' }}>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-semibold text-white">Google Workspace / Gmail</p>
+                              <p className="text-[11px] truncate" style={{ color: gmailEmail ? 'var(--prism-primary)' : 'var(--prism-muted)' }}>
+                                {gmailEmail ? `Connected: ${gmailEmail}` : 'Inbox access for research & mail tools'}
+                              </p>
+                            </div>
+                            {gmailEmail ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const uid = getGmailUserId();
+                                  if (uid) {
+                                    fetch('/api/auth/google/status', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ user_id: uid }),
+                                    }).catch(() => {});
+                                  }
+                                  localStorage.removeItem('prism_gmail_user_id');
+                                  localStorage.removeItem('prism_gmail_email');
+                                  setGmailEmail(null);
+                                }}
+                                className="rounded-lg px-2.5 py-1 text-[11px] font-mono text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+                              >
+                                Disconnect
+                              </button>
+                            ) : (
+                              <GradientButton
+                                type="button"
+                                loading={gmailLoading}
+                                disabled={gmailLoading}
+                                variant="emerald"
+                                className="h-8 px-3 text-xs"
+                                onClick={async () => {
+                                  setGmailLoading(true);
+                                  try {
+                                    await connectGmail();
+                                  } catch (e) {
+                                    console.error(e);
+                                  } finally {
+                                    setGmailLoading(false);
+                                  }
+                                }}
+                              >
+                                {gmailLoading ? 'Connecting...' : 'Connect'}
+                              </GradientButton>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Architecture spec footer */}
+                      <div className="p-3 rounded-xl flex items-center justify-between text-xs" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--prism-border-card)' }}>
+                        <div className="flex items-center gap-2">
+                          <span className="size-2 rounded-full" style={{ background: backendOnline ? '#00df81' : '#f87171' }} />
+                          <span className="font-mono text-white/60 text-[11px]">
+                            {backendOnline ? 'Distributed Graph Engine Active' : 'Backend Engine Offline'}
+                          </span>
+                        </div>
+                        <span className="font-mono text-[10px] text-white/40">
+                          DAG v2.0
+                        </span>
+                      </div>
                     </div>
-                    <span className="font-mono text-[10px] text-white/40">
-                      DAG v2.0
-                    </span>
-                  </div>
+                  )}
                 </div>
               </form>
         </div>
@@ -1164,9 +1543,10 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                   <div className="p-2.5 border-t flex-shrink-0" style={{ borderColor: 'var(--prism-border-card)', background: 'rgba(0,0,0,0.3)' }}>
                     <AIPrompt
                       compact
-                      models={SWARM_PROMPT_MODELS}
+                      models={availablePromptModels}
                       selectedModel={model}
                       onModelChange={handleModelChange}
+                      onOpenByok={() => setShowByokModal(true)}
                       placeholder="Send follow-up objective or prompt to swarm..."
                       loading={launching}
                       onSubmit={(promptVal, selectedModelId, modelProvider) => {
@@ -1762,6 +2142,12 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
           </div>
         </div>
       )}
+      {/* ── BYOK API Key Manager Dialog ── */}
+      <ByokModal
+        isOpen={showByokModal}
+        onClose={() => setShowByokModal(false)}
+        initialProvider={getProviderForModel(model)}
+      />
     </div>
   );
 }

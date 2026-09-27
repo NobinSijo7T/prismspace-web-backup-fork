@@ -14,7 +14,14 @@ export type AgentStatus =
   | 'failed'
   | 'cancelled';
 
-export type ModelProvider = 'groq' | 'nvidia';
+export type ModelProvider =
+  | 'groq'
+  | 'nvidia'
+  | 'openai'
+  | 'anthropic'
+  | 'google'
+  | 'openrouter'
+  | 'deepseek';
 
 export interface SwarmAgent {
   id: string;
@@ -66,6 +73,7 @@ export interface CreateAgentPayload {
   objective: string;
   model?: string;
   provider?: ModelProvider;
+  api_key?: string;
   max_agents?: number;
   human_in_loop?: boolean;
   chat_history?: AgentChatContextMessage[];
@@ -109,8 +117,9 @@ export async function createAgent(payload: CreateAgentPayload): Promise<SwarmAge
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       objective: payload.objective,
-      model: payload.model ?? 'gpt-4o',
-      provider: payload.provider ?? 'openai',
+      model: payload.model ?? 'nvidia/nemotron-3.5-lightning-30b-a3b',
+      provider: payload.provider ?? 'nvidia',
+      api_key: payload.api_key ?? undefined,
       max_agents: payload.max_agents ?? 3,
       human_in_loop: payload.human_in_loop ?? true,
       chat_history: payload.chat_history ?? [],
