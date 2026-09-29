@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ClockStyle } from './Clock';
@@ -12,6 +13,57 @@ import { db, UserProfile } from '@/lib/db';
 import ProfileCard from './ProfileCard';
 import { CosmicButton } from '@/components/ui/cosmic-button';
 import { getModernIconSvgDataUri } from '@/components/ui/ModernUserIcon';
+import { generateLanyardTexture } from '@/lib/generateLanyardTexture';
+
+const Lanyard = dynamic(() => import('@/components/Lanyard'), {
+  ssr: false,
+  loading: () => (
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        minHeight: 580,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 16,
+        background: 'linear-gradient(180deg, rgba(13, 21, 32, 0.6) 0%, rgba(5, 7, 10, 0.9) 100%)',
+        borderRadius: 20,
+      }}
+    >
+      <div
+        style={{
+          width: 220,
+          height: 330,
+          borderRadius: 16,
+          border: '1px solid rgba(0, 223, 129, 0.25)',
+          background: 'radial-gradient(circle at 50% 20%, rgba(0, 223, 129, 0.08) 0%, rgba(10, 16, 24, 0.7) 70%)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 14,
+          padding: 16,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+        }}
+      >
+        <div style={{ width: 48, height: 48, borderRadius: '50%', border: '2px solid #00df81', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>
+          🔥
+        </div>
+        <div style={{ width: 100, height: 12, borderRadius: 6, background: 'rgba(255,255,255,0.1)' }} />
+        <div style={{ width: 140, height: 8, borderRadius: 4, background: 'rgba(255,255,255,0.06)' }} />
+        <div style={{ width: '85%', height: 36, borderRadius: 8, background: 'rgba(0,223,129,0.08)', marginTop: 8 }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(0,223,129,0.2)', borderTopColor: '#00df81', animation: 'spin 0.8s linear infinite' }} />
+        <span style={{ fontFamily: 'JetBrains Mono', fontSize: 11, color: '#64748b', letterSpacing: '0.05em' }}>
+          LOADING 3D BADGE...
+        </span>
+      </div>
+    </div>
+  ),
+});
 
 type SettingsSection = 'clock' | 'themes' | 'stats' | 'quotes' | 'extras' | 'profile';
 type BackgroundMediaType = 'image' | 'video';
@@ -120,9 +172,53 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
   const [tempUsername, setTempUsername] = useState('');
 
   // Profile card extra fields
-  const [cardHandle, setCardHandle] = useState('');
-  const [cardTitle, setCardTitle] = useState('PrismSpace User');
+  const [cardHandle, setCardHandle] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('profile_card_handle') || '' : ''));
+  const [cardTitle, setCardTitle] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('profile_card_title') || 'PrismSpace User' : 'PrismSpace User'));
+  const [cardTagline, setCardTagline] = useState(() => (typeof window !== 'undefined' ? localStorage.getItem('profile_card_tagline') || 'You code it. Now orchestrate.' : 'You code it. Now orchestrate.'));
   const [cardAvatarUrl, setCardAvatarUrl] = useState('');
+  const [cardTags, setCardTags] = useState<string[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('profile_card_tags');
+        if (stored) return JSON.parse(stored);
+      } catch (e) {}
+    }
+    return ['AI/ML', 'Cybersecurity', 'Full-stack'];
+  });
+  const [newTagInput, setNewTagInput] = useState('');
+
+  const handleAddTag = (tagToAdd: string) => {
+    const trimmed = tagToAdd.trim().replace(/^#/, '');
+    if (!trimmed) return;
+    if (cardTags.some((t) => t.toLowerCase() === trimmed.toLowerCase())) return;
+    if (cardTags.length >= 8) return;
+    const updated = [...cardTags, trimmed];
+    setCardTags(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('profile_card_tags', JSON.stringify(updated));
+    }
+    setNewTagInput('');
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const updated = cardTags.filter((t) => t !== tagToRemove);
+    setCardTags(updated);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('profile_card_tags', JSON.stringify(updated));
+    }
+  };
+
+  const lanyardFrontImage = useMemo(() => {
+    if (activeSection !== 'profile' || typeof window === 'undefined') return '';
+    return generateLanyardTexture({
+      name: username,
+      title: cardTitle,
+      tagline: cardTagline,
+      tags: cardTags,
+      handle: cardHandle || username.toLowerCase().replace(/\s+/g, ''),
+      avatar: cardAvatarUrl || (avatar.startsWith('modern:') || !avatar ? '🔥' : avatar),
+    });
+  }, [activeSection, username, cardTitle, cardTagline, cardTags, cardHandle, cardAvatarUrl, avatar]);
 
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -419,31 +515,26 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         }
 
         .sm-logo-wrap {
-          padding: 0 8px;
-          margin-bottom: 28px;
+          padding: 0 6px;
+          margin-bottom: 24px;
           display: flex;
           align-items: center;
-          gap: 10px;
+          justify-content: space-between;
+          gap: 8px;
         }
 
-        .sm-logo-badge {
+        .sm-logo-version {
           font-family: 'JetBrains Mono', monospace;
           font-size: 9px;
-          font-weight: 800;
-          letter-spacing: 0.10em;
-          text-transform: uppercase;
+          font-weight: 700;
+          letter-spacing: 0.04em;
           color: #00df81;
-          background: #000;
-          padding: 3px 8px 4px;
+          background: rgba(0, 223, 129, 0.08);
+          border: 1px solid rgba(0, 223, 129, 0.22);
+          padding: 2px 6px;
           border-radius: 4px;
-        }
-
-        .sm-logo-sub {
-          font-family: 'JetBrains Mono', monospace;
-          font-size: 9px;
-          font-weight: 500;
-          color: #475569;
-          letter-spacing: 0.05em;
+          line-height: 1.2;
+          flex-shrink: 0;
         }
 
         .sm-nav-section-label {
@@ -1175,16 +1266,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         <div className="sm-sidebar">
           <div className="sm-logo-wrap">
             <Image
-              src="/Logo/new_logo.png"
+              src="/Logo/new_logo_wide.png"
               alt="PrismSpace"
-              width={34}
-              height={28}
-              className="object-contain"
+              width={130}
+              height={31}
+              priority
+              className="h-[25px] w-auto object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
             />
-            <div>
-              <div className="sm-logo-badge">PrismSpace</div>
-              <div className="sm-logo-sub">OS v2.0</div>
-            </div>
+            <span className="sm-logo-version">v2.0</span>
           </div>
 
           <div className="sm-nav-section-label">System Config</div>
@@ -1370,7 +1459,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                     <div className="sm-slider-title">Wallpaper Transparency</div>
                     <div className="sm-slider-subtitle">Adjust background opacity live</div>
                   </div>
-                  <span className="sm-slider-value">{wallpaperOpacity}%</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
                   <ExposureSlider min={0} max={100} step={5} value={wallpaperOpacity} onChange={handleWallpaperOpacityChange} accentColor="#00df81" showIndicator={true} />
@@ -1384,7 +1472,6 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                     <div className="sm-slider-title">DevTools Transparency</div>
                     <div className="sm-slider-subtitle">Adjust DevTools panel opacity live</div>
                   </div>
-                  <span className="sm-slider-value">{devtoolsOpacity}%</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', overflow: 'hidden' }}>
                   <ExposureSlider min={10} max={100} step={5} value={devtoolsOpacity} onChange={handleDevtoolsOpacityChange} accentColor="#00df81" showIndicator={true} />
@@ -1488,7 +1575,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               <h2 className="sm-section-title">User Profile</h2>
               <p className="sm-section-desc" style={{ marginBottom: 20 }}>Manage your identity across PrismSpace OS</p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px', gap: 20, alignItems: 'start' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: 24, alignItems: 'start' }}>
                 {/* LEFT: editor */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
@@ -1565,7 +1652,161 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                       </div>
                       <div>
                         <label className="sm-input-label">Title / Role</label>
-                        <input type="text" value={cardTitle} onChange={(e) => setCardTitle(e.target.value)} className="sm-input" placeholder="e.g. Software Engineer" />
+                        <input
+                          type="text"
+                          value={cardTitle}
+                          onChange={(e) => {
+                            setCardTitle(e.target.value);
+                            localStorage.setItem('profile_card_title', e.target.value);
+                          }}
+                          className="sm-input"
+                          placeholder="e.g. Software Engineer"
+                        />
+                      </div>
+                      <div>
+                        <label className="sm-input-label">Tagline</label>
+                        <input
+                          type="text"
+                          value={cardTagline}
+                          onChange={(e) => {
+                            setCardTagline(e.target.value);
+                            localStorage.setItem('profile_card_tagline', e.target.value);
+                          }}
+                          className="sm-input"
+                          placeholder="e.g. You code it. Now orchestrate."
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Profile Tags & Skills */}
+                  <div className="sm-panel">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <div className="sm-panel-title" style={{ margin: 0 }}>Profile Tags & Skills</div>
+                      <span style={{ fontFamily: 'JetBrains Mono', fontSize: 11, color: '#00df81', background: 'rgba(0,223,129,0.1)', padding: '2px 8px', borderRadius: 12, border: '1px solid rgba(0,223,129,0.25)' }}>
+                        {cardTags.length} / 8 tags
+                      </span>
+                    </div>
+                    <p style={{ fontFamily: 'JetBrains Mono', fontSize: 11, color: '#64748b', marginBottom: 12 }}>
+                      Skills, technologies, and specializations printed directly onto your 3D badge.
+                    </p>
+
+                    {/* Active tags */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12, minHeight: 32 }}>
+                      {cardTags.map((tag) => (
+                        <span
+                          key={tag}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 6,
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            border: '1px solid rgba(0, 223, 129, 0.35)',
+                            padding: '4px 10px',
+                            borderRadius: 8,
+                            fontSize: 12,
+                            fontFamily: 'JetBrains Mono',
+                            color: '#e2e8f0',
+                          }}
+                        >
+                          <span style={{ color: '#00df81', fontWeight: 600 }}>#</span>
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveTag(tag)}
+                            title={`Remove ${tag}`}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: '#94a3b8',
+                              cursor: 'pointer',
+                              padding: '0 2px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 14,
+                              lineHeight: 1,
+                              borderRadius: 4,
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
+                            onMouseLeave={(e) => (e.currentTarget.style.color = '#94a3b8')}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                      {cardTags.length === 0 && (
+                        <span style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic', padding: '4px 0' }}>
+                          No tags added yet. Add some below!
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Add Tag Input */}
+                    <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                      <input
+                        type="text"
+                        value={newTagInput}
+                        onChange={(e) => setNewTagInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddTag(newTagInput);
+                          }
+                        }}
+                        placeholder="Add a tag (e.g. Rust, UI/UX, WebGL)..."
+                        className="sm-input"
+                        style={{ flex: 1, fontSize: 12 }}
+                        maxLength={20}
+                      />
+                      <CosmicButton
+                        as="button"
+                        onClick={() => handleAddTag(newTagInput)}
+                        disabled={!newTagInput.trim() || cardTags.length >= 8}
+                        className="h-8 text-xs px-3"
+                      >
+                        + Add
+                      </CosmicButton>
+                    </div>
+
+                    {/* Quick suggestion pills */}
+                    <div>
+                      <div style={{ fontFamily: 'JetBrains Mono', fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                        Suggestions:
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {['React', 'Next.js', 'TypeScript', 'AI/ML', 'Full-stack', 'Python', 'Cybersecurity', 'Rust', 'UI/UX', 'Cloud'].map((suggestion) => {
+                          const isAlreadyAdded = cardTags.some((t) => t.toLowerCase() === suggestion.toLowerCase());
+                          if (isAlreadyAdded) return null;
+                          return (
+                            <button
+                              key={suggestion}
+                              type="button"
+                              onClick={() => handleAddTag(suggestion)}
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.03)',
+                                border: '1px dashed rgba(255, 255, 255, 0.15)',
+                                color: '#94a3b8',
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                fontSize: 11,
+                                fontFamily: 'JetBrains Mono',
+                                cursor: 'pointer',
+                                transition: 'all 0.15s ease',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.borderColor = 'rgba(0, 223, 129, 0.5)';
+                                e.currentTarget.style.color = '#00df81';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                                e.currentTarget.style.color = '#94a3b8';
+                              }}
+                            >
+                              + {suggestion}
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </div>
@@ -1584,39 +1825,45 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                   </div>
                 </div>
 
-                {/* RIGHT: live card preview */}
-                <div style={{ position: 'sticky', top: 0 }}>
-                  <div className="sm-preview-label">
+                {/* RIGHT: live 3D Lanyard card preview */}
+                <div style={{ position: 'sticky', top: 0, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <div className="sm-preview-label" style={{ alignSelf: 'flex-start', marginBottom: 8 }}>
                     <span className="sm-preview-dot" />
-                    Live Preview
+                    Live 3D ID Badge
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'center', transform: 'scale(0.78)', transformOrigin: 'top center' }}>
-                    <ProfileCard
-                      name={username}
-                      handle={cardHandle || username.toLowerCase().replace(/\s+/g, '')}
-                      title={cardTitle}
-                      status="Online"
-                      avatarUrl={
-                        cardAvatarUrl ||
-                        (avatar.startsWith('data:image') || avatar.startsWith('http') || avatar.startsWith('/')
-                          ? avatar
-                          : avatar.startsWith('modern:') || avatar === '👤' || !avatar
-                          ? getModernIconSvgDataUri(avatar)
-                          : `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>${avatar}</text></svg>`)
-                      }
-                      innerGradient="radial-gradient(circle at 50% 12%, rgba(0, 223, 129, 0.16) 0%, rgba(9, 12, 18, 0.96) 65%)"
-                      behindGlowColor="rgba(0, 223, 129, 0.35)"
-                      behindGlowSize="60%"
-                      miniAvatarUrl={
-                        cardAvatarUrl ||
-                        (avatar.startsWith('data:image') || avatar.startsWith('http') || avatar.startsWith('/')
-                          ? avatar
-                          : avatar.startsWith('modern:') || avatar === '👤' || !avatar
-                          ? getModernIconSvgDataUri(avatar)
-                          : undefined)
-                      }
-                      showContactButton={false}
+                  <div
+                    style={{
+                      width: '100%',
+                      maxWidth: 420,
+                      height: 640,
+                      borderRadius: 20,
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      background: 'radial-gradient(ellipse at 50% 12%, rgba(0, 223, 129, 0.06) 0%, rgba(7, 11, 17, 0.95) 75%)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.08)',
+                    }}
+                  >
+                    <Lanyard
+                      frontImage={lanyardFrontImage}
+                      transparent={true}
+                      position={[0, -1.45, 12.2]}
+                      cardScale={3.3}
+                      lanyardWidth={1.3}
                     />
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 10,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontFamily: 'JetBrains Mono',
+                      fontSize: 11,
+                      color: '#64748b',
+                    }}
+                  >
+                    <span style={{ color: '#00df81' }}>●</span> Click &amp; drag badge to swing physics
                   </div>
                 </div>
               </div>

@@ -29,6 +29,7 @@ An AI-powered developer operating environment, browser dashboard, and multi-agen
   - [3. Training Commands](#3-training-commands)
   - [4. Model Testing & Inference Commands](#4-model-testing--inference-commands)
   - [5. Evaluation Commands](#5-evaluation-commands)
+- [Agent OS Tooling](#-agent-os-tooling)
 - [Core Features](#-core-features)
 - [Project Directory Layout](#-project-directory-layout)
 - [Documentation & References](#-documentation--references)
@@ -237,6 +238,68 @@ chmod +x run/*.sh
 
 ---
 
+## 🖥️ Agent OS Tooling
+
+The Hive backend gives agents structured access to the local workspace and operating system. Agents use filesystem tools for files and directories, and the built-in Terminal/OS tool layer for commands and host operations.
+
+### Filesystem and Terminal Tools
+
+- Search filenames and file contents
+- Read, write, edit, create, delete, copy, and move files
+- Inspect directory trees and file metadata
+- Run PowerShell on Windows and the native shell on Linux/macOS
+- Execute builds, tests, scripts, Git commands, and repository utilities
+- Stream command output through the live agent log panel
+
+### Native File Transfers
+
+Copy and move operations use platform-native tools for high throughput:
+
+| Platform | Preferred utility | Behavior |
+|---|---|---|
+| Windows | `robocopy` | Uses `/J`, retries, ETA output, and move flags where appropriate |
+| Linux/macOS | `rsync` | Uses archive mode and `--info=progress2` when available |
+| Any platform fallback | `cp` / Python copy routines | Used when the preferred utility is unavailable |
+
+Transfer progress, the selected utility, the executed command, completion state, and errors are visible in the Agent Swarm Pipeline and Logs views. Active native transfers can be cancelled from the UI.
+
+### Structured OS Operations
+
+The agent can call dedicated tools for:
+
+- Host information, CPU/load, memory, and disk usage
+- Process listing, status checks, stopping, and restarting
+- Windows services and Linux `systemd` services
+- Package-manager detection and package installation through `winget`, Chocolatey, Homebrew, `apt`, `dnf`, or `pacman`
+- Environment-variable inspection and mutation
+- ZIP/TAR archive creation and secure extraction
+- File permission inspection and updates
+- Windows Task Scheduler inspection and management
+- Scheduled-task listing on Linux/macOS
+- Ping and DNS diagnostics
+
+### Approval and Safety
+
+Risky operations pause the agent and appear as an approval request in the UI. This includes process and service changes, package installation, environment mutation, permission changes, scheduled-task changes, archive extraction, destructive filesystem operations, and destructive terminal commands. Structured OS file, archive, and transfer paths are restricted to the workspace; terminal working directories are workspace-bound, native operations have bounded timeouts, and archive extraction rejects path traversal.
+
+The backend endpoint for cancelling an active operation is:
+
+```text
+POST /api/agents/{agent_id}/cancel-operation
+```
+
+### OS Tool Smoke Tests
+
+```powershell
+# Validate Python modules
+python -m py_compile backend\hive_api.py backend\os_tools.py
+
+# Validate the production frontend build
+npm run build
+```
+
+---
+
 ### 2. Machine Learning Environment Setup
 
 From the project root:
@@ -316,6 +379,9 @@ This generates `evaluation_report.json` in the output artifacts directory detail
 - 🎨 **Glassmorphism UI** - Curated themes, live matrix display, custom wallpaper uploads.
 - 🛠️ **23 Developer Utilities** - JSON toolkit, Regex workbench, Crypto utils, SQL Playground (SQLite WASM), Markdown editor, Git reference.
 - 🤖 **Agent Swarm Visualizer** - Real-time visualization of multi-agent state machines, MCP server tools, and DAG execution pipelines.
+- 🖥️ **Agent OS Control Layer** - Structured filesystem, terminal, process, service, package, archive, permission, scheduler, resource, and network tools with approval gates.
+- ⚡ **Native Transfer Engine** - Robocopy on Windows and rsync on Linux/macOS with streamed progress and cancellation.
+- 🛡️ **Per-Operation Approval** - Risky agent actions pause for explicit operator approval before execution.
 - 📝 **Developer Productivity Suite** - Habit tracker, focus timer, checklist manager, decision analyzer.
 - 📊 **System & Telemetry Monitor** - Live tracking of browser environment, system resources, model latencies, and token budgets.
 
@@ -330,7 +396,8 @@ prismspace-web/
 │   ├── globals.css              # Global styles & design tokens
 │   └── page.tsx                 # Main developer dashboard entry point
 ├── backend/                     # Python Hive FastAPI Backend
-│   ├── app.py                   # FastAPI server & MCP router
+│   ├── hive_api.py              # FastAPI server, MCP router, and agent tool loop
+│   ├── os_tools.py              # Cross-platform structured operating-system tools
 │   ├── model_inference.py       # Inference endpoint integration
 │   ├── test_model_inference.py  # Model test suite
 │   └── start.ps1                # Backend startup script

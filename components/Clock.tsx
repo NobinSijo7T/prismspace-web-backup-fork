@@ -8,7 +8,7 @@ export type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'mini
   'westiva' | 'ammonite' | 'crude' | 'zombiess' | 'xolonium' | 'nemoy';
 
 export const clockStyleClasses: Record<ClockStyle, string> = {
-  default: 'font-sans font-black tracking-[-0.05em]',
+  default: 'font-sans font-black tracking-[-0.06em]',  // -0.06em: optically correct at 12rem display scale
   minimal: 'font-sans font-light tracking-[0.1em]',
   serif: 'font-serif font-normal tracking-tight',
   handwritten: 'font-permanentMarker font-normal rotate-[-1deg] tracking-wide',

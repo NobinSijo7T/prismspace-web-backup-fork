@@ -44,6 +44,13 @@
       "ALLOWED_DIRECTORIES": "${ALLOWED_DIRECTORIES}"
     }
   },
+  "terminal": {
+    "transport": "in-process",
+    "command": "internal",
+    "args": [],
+    "description": "Run approved shell commands in the local workspace for search, builds, scripts, and file operations.",
+    "env": {}
+  },
   "sqlite": {
     "transport": "in-process",
     "command": "internal",

@@ -148,7 +148,7 @@ export function AgentCard({ agent, isSelected, onSelect, onRefresh }: AgentCardP
               onClick={handleDelete}
               disabled={deleting}
               title="Remove agent"
-              className="text-white/30 hover:text-red-400 transition-colors text-xs p-1 flex-shrink-0 rounded hover:bg-white/5"
+              className="text-white/30 hover:text-red-400 active:scale-75 transition-all text-xs p-1 flex-shrink-0 rounded hover:bg-white/5"
             >
               {deleting ? '…' : '✕'}
             </button>
@@ -171,8 +171,14 @@ export function AgentCard({ agent, isSelected, onSelect, onRefresh }: AgentCardP
 
         {/* HITL approval buttons */}
         {agent.status === 'awaiting_approval' && (
-          <div className="flex gap-2 mt-3 pt-2" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
-            <StatefulButton
+          <>
+            {agent.pending_approval && (
+              <div className="mt-3 rounded-md px-2 py-1 text-[10px] font-mono text-amber-200" style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)' }}>
+                Approval required: {agent.pending_approval.tool}
+              </div>
+            )}
+            <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--prism-border-card)' }}>
+              <StatefulButton
               onClick={(e) => handleApprove(true, e)}
               loading={approving}
               disabled={approving}
@@ -184,8 +190,8 @@ export function AgentCard({ agent, isSelected, onSelect, onRefresh }: AgentCardP
               }}
             >
               ✓ Approve
-            </StatefulButton>
-            <StatefulButton
+              </StatefulButton>
+              <StatefulButton
               onClick={(e) => handleApprove(false, e)}
               loading={approving}
               disabled={approving}
@@ -197,8 +203,9 @@ export function AgentCard({ agent, isSelected, onSelect, onRefresh }: AgentCardP
               }}
             >
               ✕ Reject
-            </StatefulButton>
-          </div>
+              </StatefulButton>
+            </div>
+          </>
         )}
 
         {/* Result preview */}

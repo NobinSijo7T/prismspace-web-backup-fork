@@ -137,15 +137,17 @@ const panelVariants = {
   center: {
     initial: { scale: 0.95, opacity: 0, y: 14 },
     animate: { scale: 1, opacity: 1, y: 0 },
-    exit: { scale: 0.97, opacity: 0, y: 10 },
+    exit: { scale: 0.97, opacity: 0, y: 14 }, // mirror entry path — exits the same way it arrived
   },
 };
 
+// Critically-damped spring (ratio ≈ 1.0): settles smoothly without snapping dead.
+// Apple default: damping ~1.0, response ~0.35s. Maps to stiffness≈280, damping≈33, mass≈1.
 const springTransition = {
   type: 'spring' as const,
-  stiffness: 300,
-  damping: 30,
-  mass: 0.8,
+  stiffness: 280,
+  damping: 33,
+  mass: 1,
 };
 
 const exitTransition = {
@@ -183,7 +185,8 @@ export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
   };
 
   return (
-    <AnimatePresence mode="wait">
+    // No mode="wait" — panels are interruptible; enter and exit overlap
+    <AnimatePresence>
       {activePanel && config && (() => {
         const Component = config.component;
         const variants = panelVariants[config.position];

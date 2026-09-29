@@ -71,9 +71,11 @@ export default function ProfileDropdown({
   className,
   ...props
 }: ProfileDropdownProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+
   return (
     <div className={cn("relative", className)} {...props}>
-      <DropdownMenu>
+      <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger
           render={
             <button
@@ -90,7 +92,13 @@ export default function ProfileDropdown({
           >
             {data.name}
           </span>
-          <ChevronDown className="hidden h-4 w-4 sm:block" style={{ color: '#94a3b8' }} />
+          <ChevronDown
+            className={cn(
+              "hidden h-4 w-4 sm:block transition-transform duration-200 ease-out",
+              isOpen && "rotate-180"
+            )}
+            style={{ color: '#94a3b8' }}
+          />
         </DropdownMenuTrigger>
 
         <DropdownMenuContent
@@ -103,6 +111,7 @@ export default function ProfileDropdown({
             border: '1px solid rgba(255, 255, 255, 0.08)',
             boxShadow: '0 8px 40px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.04)',
             backdropFilter: 'blur(20px)',
+            transformOrigin: 'bottom right',
           }}
         >
           <div className="flex items-center gap-3 px-2 py-2.5">

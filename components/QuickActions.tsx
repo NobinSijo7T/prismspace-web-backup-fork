@@ -39,7 +39,7 @@ export function QuickActions({
           onClick={onNotepadClick}
           className="prism-btn flex items-center justify-center w-12 h-12 text-slate-300 hover:text-[#00df81] transition-colors"
           title="Notepad"
-          whileHover={{ scale: 1.08, borderColor: '#00df81' }}
+          whileHover={{ scale: 1.04, borderColor: '#00df81' }}
           whileTap={{ scale: 0.95 }}
         >
           <FileEdit size={20} />
@@ -49,7 +49,7 @@ export function QuickActions({
           onClick={onTodoClick}
           className="prism-btn flex items-center justify-center w-12 h-12 text-slate-300 hover:text-[#00df81] transition-colors"
           title="To-Do List"
-          whileHover={{ scale: 1.08, borderColor: '#00df81' }}
+          whileHover={{ scale: 1.04, borderColor: '#00df81' }}
           whileTap={{ scale: 0.95 }}
         >
           <CheckSquare2 size={20} />
@@ -75,7 +75,7 @@ export function QuickActions({
           onClick={toggleFullscreen}
           className="prism-btn flex items-center justify-center w-12 h-12 text-slate-300 hover:text-[#00df81] transition-colors"
           title="Toggle Fullscreen"
-          whileHover={{ scale: 1.08, borderColor: '#00df81' }}
+          whileHover={{ scale: 1.04, borderColor: '#00df81' }}
           whileTap={{ scale: 0.95 }}
         >
           <Maximize2 size={18} />

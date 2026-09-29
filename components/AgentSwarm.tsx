@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,
@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   ChevronDown,
   Clipboard,
+  Copy,
   Cpu,
   ExternalLink,
   Eye,
@@ -225,6 +226,7 @@ import {
   listMcpServers,
   saveMcpToken,
   removeMcpToken,
+  cancelAgentOperation,
   connectGmail,
   gmailStatus,
   getGmailUserId,
@@ -300,6 +302,92 @@ function formatRelativeTime(timestamp: number): string {
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
   return formatChatTime(timestamp);
+}
+
+interface TransferStatus {
+  operation: 'copy' | 'move';
+  percent: number;
+  phase: 'running' | 'complete' | 'failed';
+  method: string;
+  detail: string;
+  command?: string;
+}
+
+function getTransferStatus(lines: string[]): TransferStatus | null {
+  const transferLines = lines.filter((line) => line.includes('[TRANSFER]'));
+  if (!transferLines.length) return null;
+
+  const latest = transferLines[transferLines.length - 1];
+  const operationMatch = latest.match(/\[TRANSFER\]\s+(copy|move)\b/);
+  if (!operationMatch) return null;
+
+  const operation = operationMatch[1] as TransferStatus['operation'];
+  const relevant = transferLines.filter((line) => line.includes(`[TRANSFER] ${operation} `));
+  const percent = relevant.reduce((value, line) => {
+    const match = line.match(/progress\s+(\d{1,3})%/i);
+    return match ? Math.min(100, Number(match[1])) : value;
+  }, 0);
+  const methodMatch = relevant.join('\n').match(/via\s+([\w.-]+)/i) ?? relevant.join('\n').match(/fallback command:\s+([^\r\n]+)/i);
+  const commandMatch = [...relevant].reverse().find((line) => line.includes(' command: '));
+  const phase = latest.includes(' failed ') ? 'failed' : latest.includes(' complete ') ? 'complete' : 'running';
+
+  return {
+    operation,
+    percent: phase === 'complete' ? 100 : percent,
+    phase,
+    method: methodMatch?.[1] ?? 'native copier',
+    detail: latest.replace(/^\[[^\]]+\]\s*\[TRANSFER\]\s*/, ''),
+    command: commandMatch?.split(' command: ')[1],
+  };
+}
+
+function TransferProgress({ status, onCancel }: { status: TransferStatus | null; onCancel?: () => void }) {
+  if (!status) return null;
+  const color = status.phase === 'failed' ? '#f87171' : status.phase === 'complete' ? '#00df81' : '#38bdf8';
+  const label = status.phase === 'failed' ? 'Transfer failed' : status.phase === 'complete' ? 'Transfer complete' : `${status.operation === 'copy' ? 'Copying' : 'Moving'} files`;
+
+  return (
+    <div
+      className="mb-4 rounded-xl p-3"
+      style={{ border: `1px solid ${color}35`, background: `${color}0d` }}
+      role="status"
+      aria-live="polite"
+    >
+      <div className="flex items-center gap-2">
+        <Copy className="size-3.5" style={{ color }} />
+        <span className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color }}>
+          {label}
+        </span>
+        <span className="ml-auto font-mono text-xs" style={{ color }}>
+          {status.percent}%
+        </span>
+      </div>
+      <div className="mt-2 h-1.5 overflow-hidden rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }}>
+        <div
+          className="h-full rounded-full transition-[width] duration-200"
+          style={{ width: `${status.percent}%`, background: color, boxShadow: `0 0 10px ${color}80` }}
+        />
+      </div>
+      <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-white/45">
+        <span className="truncate">{status.method} · {status.detail}</span>
+        <div className="flex min-w-0 items-center gap-2">
+          {status.command && <code className="max-w-[40%] truncate text-white/35" title={status.command}>{status.command}</code>}
+          {status.phase === 'running' && onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-[10px] font-semibold text-red-200 transition-colors hover:bg-red-400/10"
+              style={{ border: '1px solid rgba(248,113,113,0.25)' }}
+              title="Cancel active transfer"
+            >
+              <X className="size-3" />
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // ── View types ──────────────────────────────────────────────────────────────
@@ -833,6 +921,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
   };
 
   const selectedAgent = agents.find((a) => a.id === selectedId);
+  const transferStatus = useMemo(() => getTransferStatus(logLines), [logLines]);
   const selectedMcpToken = mcpTokens.find((token) => token.key === mcpEnvKey);
 
   const currentServerMeta = useMemo(
@@ -1692,15 +1781,25 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                       No swarms yet. Launch a mission to start.
                     </div>
                   )}
-                  {agents.map((agent) => (
-                    <AgentCard
-                      key={agent.id}
-                      agent={agent}
-                      isSelected={selectedId === agent.id}
-                      onSelect={() => setSelectedId(agent.id)}
-                      onRefresh={refresh}
-                    />
-                  ))}
+                  <AnimatePresence mode="popLayout">
+                    {agents.map((agent) => (
+                      <motion.div
+                        key={agent.id}
+                        layout
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, x: -16, scale: 0.97 }}
+                        transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                      >
+                        <AgentCard
+                          agent={agent}
+                          isSelected={selectedId === agent.id}
+                          onSelect={() => setSelectedId(agent.id)}
+                          onRefresh={refresh}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
 
                 <div className={`flex min-h-0 flex-1 flex-col ${runsSubTab === 'chat' ? 'flex' : 'hidden'}`}>
@@ -1907,6 +2006,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                             <span style={{ color: 'var(--prism-muted)' }}>Live log tail</span>
                             <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
                           </div>
+                          <TransferProgress status={transferStatus} onCancel={() => cancelAgentOperation(selectedAgent.id).catch((err) => toast.error(String(err)))} />
                           {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
                           {logLines.map((line, i) => {
                             const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');
@@ -1944,6 +2044,7 @@ export function AgentSwarm({ onClose }: AgentSwarmProps) {
                           <span style={{ color: 'var(--prism-muted)' }}>Execution stream / {selectedAgent.id}</span>
                           <span style={{ color: 'var(--prism-primary)' }}>{selectedAgent.status}</span>
                         </div>
+                        <TransferProgress status={transferStatus} onCancel={() => cancelAgentOperation(selectedAgent.id).catch((err) => toast.error(String(err)))} />
                         {logLines.length === 0 && <p style={{ color: 'rgba(255,255,255,0.3)' }}>Waiting for log output...</p>}
                         {logLines.map((line, i) => {
                           const isError = line.includes('❌') || line.includes('⚠️') || line.includes('failed');

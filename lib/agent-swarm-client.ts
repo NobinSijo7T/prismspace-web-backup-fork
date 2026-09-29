@@ -35,6 +35,12 @@ export interface SwarmAgent {
   updated_at: string;
   result: string | null;
   approved: boolean | null;
+  pending_approval?: {
+    id: string;
+    tool: string;
+    arguments: Record<string, unknown>;
+    reason: string;
+  } | null;
 }
 
 export interface AgentChatContextMessage {
@@ -169,6 +175,13 @@ export async function approveAgent(
 export async function deleteAgent(id: string): Promise<void> {
   const res = await fetch(`${BASE}/agents/${id}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Delete failed: ${res.status}`);
+}
+
+export async function cancelAgentOperation(id: string): Promise<boolean> {
+  const res = await fetch(`${BASE}/agents/${id}/cancel-operation`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Operation cancellation failed: ${res.status}`);
+  const data = await res.json();
+  return Boolean(data.cancelled);
 }
 
 // ── MCP server/token management ─────────────────────────────────────────────

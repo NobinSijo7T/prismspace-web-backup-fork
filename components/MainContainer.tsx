@@ -86,13 +86,15 @@ export function MainContainer() {
       >
         {showGreetings && (
           <motion.div className="text-center mb-2" variants={staggerItem}>
+            {/* h1: primary greeting — heaviest weight + tightest tracking */}
             <h1
               className="font-sans text-[2.4rem] font-[900] tracking-[-0.04em] leading-[1.05] lowercase mb-3 text-white drop-shadow-[0_2px_15px_rgba(0,0,0,0.6)]"
             >
               {quotes.primary}
             </h1>
+            {/* h2: secondary label — slightly lighter (800) to step down the hierarchy */}
             <div className="cutout-box">
-              <h2 className="cutout-text text-[2rem]">
+              <h2 className="cutout-text text-[2rem]" style={{ fontWeight: 800 }}>
                 {quotes.secondary}
               </h2>
             </div>

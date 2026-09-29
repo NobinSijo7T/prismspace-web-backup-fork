@@ -118,7 +118,7 @@ export default function CardFlip({
                   {title}
                 </h3>
                 <p
-                  className="line-clamp-2 text-[12px] font-mono font-[500] tracking-normal transition-all delay-[50ms] duration-500 ease-out group-hover:translate-y-[-4px]"
+                  className="line-clamp-2 text-[12px] font-mono font-[500] tracking-normal transition-all delay-75 duration-500 ease-out group-hover:translate-y-[-4px]"
                   style={{ color: '#94a3b8' }}
                 >
                   {subtitle}

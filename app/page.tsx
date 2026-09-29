@@ -17,9 +17,10 @@ export default function Home() {
   const { activePanel, openPanel, closePanel } = usePanelManager();
 
   useEffect(() => {
+    // Minimal delay — just enough for hydration; no artificial wait
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 700);
+    }, 150);
     return () => clearTimeout(timer);
   }, []);
 
@@ -47,7 +48,15 @@ Timezone: ${Intl.DateTimeFormat().resolvedOptions().timeZone}
       `.trim();
       
       navigator.clipboard.writeText(stats).then(() => {
-        alert('System information copied to clipboard!');
+        // Use the island notification instead of a blocking alert()
+        window.dispatchEvent(new CustomEvent('prism:island-event', {
+          detail: {
+            title: 'System info copied',
+            subtitle: 'Stats saved to clipboard',
+            icon: '📋',
+            duration: 2500,
+          },
+        }));
       });
       return;
     }

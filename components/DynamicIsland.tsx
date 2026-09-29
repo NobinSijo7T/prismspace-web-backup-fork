@@ -78,9 +78,14 @@ function formatDuration(totalSeconds: number): string {
   return `${minutes}:${seconds}`;
 }
 
+// Spring transition for the island — unlike a fixed-duration curve, a spring
+// interpolates from the current on-screen value on interrupt (hover-out mid-expansion
+// reverses from wherever it is rather than snapping to the start position).
 const islandTransition = {
-  duration: 0.32,
-  ease: [0.16, 1, 0.3, 1] as [number, number, number, number],
+  type: 'spring' as const,
+  stiffness: 400,
+  damping: 30,
+  mass: 0.6,
 };
 
 export function DynamicIsland() {

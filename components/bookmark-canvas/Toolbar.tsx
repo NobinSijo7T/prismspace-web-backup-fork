@@ -20,7 +20,7 @@ import { BookmarkIcon } from '@/components/tools/ToolIcons';
 interface ToolbarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
-  searchRef: React.RefObject<HTMLInputElement | null>;
+  searchRef: React.RefObject<HTMLInputElement>;
   categories: string[];
   categoryFilter: string;
   onCategoryChange: (c: string) => void;

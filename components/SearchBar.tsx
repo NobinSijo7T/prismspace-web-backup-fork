@@ -427,9 +427,10 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
     if (m === mode) return;
     setMode(m);
     localStorage.setItem('searchMode', m);
-    setTimeout(() => {
+    // rAF: focus in the next frame (~16ms) instead of an arbitrary 50ms timeout
+    requestAnimationFrame(() => {
       inputRef.current?.focus({ preventScroll: true });
-    }, 50);
+    });
   };
 
   const handleSubmit = useCallback(() => {

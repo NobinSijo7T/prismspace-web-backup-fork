@@ -11,11 +11,13 @@
  *   3. Gmail
  *   4. GitHub
  *   5. Filesystem
- *   6. SQLite (Built-in)
- *   7. Memory Store (Built-in)
+ *   6. Terminal (Built-in)
+ *   7. SQLite (Built-in)
+ *   8. Memory Store (Built-in)
  */
 
 import React, { type ReactNode } from 'react';
+import { TerminalSquare } from 'lucide-react';
 
 export interface McpToolManifest {
   name: string;
@@ -143,6 +145,10 @@ export function MemoryLogo({ className = 'size-5' }: { className?: string }) {
       <circle cx="17" cy="16" r="1.5" fill="#A78BFA" />
     </svg>
   );
+}
+
+export function TerminalLogo({ className = 'size-5' }: { className?: string }) {
+  return <TerminalSquare className={className} strokeWidth={1.75} />;
 }
 
 // ── MCP Server Definitions ───────────────────────────────────────────────────
@@ -454,6 +460,96 @@ export const MCP_SERVER_REGISTRY: Record<string, McpServerMeta> = {
     isBuiltIn: true,
   },
 
+  terminal: {
+    id: 'terminal',
+    name: 'terminal',
+    displayName: 'Terminal',
+    subtitle: 'Native Workspace Command Runner',
+    category: 'workspace',
+    transport: 'in-process',
+    defaultCommand: 'internal',
+    defaultArgs: [],
+    description: 'Run workspace commands for fast searches, builds, scripts, and file transfers.',
+    longDescription:
+      'Runs PowerShell on Windows and the native shell on Linux/macOS. File transfers use Robocopy on Windows and rsync when available, with live progress in the agent execution stream.',
+    primaryEnvKey: '',
+    envKeys: [],
+    capabilities: ['PowerShell / Shell', 'Fast File Transfers', 'Live Progress', 'Workspace Boundaries'],
+    tools: [
+      {
+        name: 'terminal',
+        signature: 'terminal(command, cwd?, timeout?)',
+        description: 'Run a bounded command in the workspace and return its output.',
+        example: '{"tool": "terminal", "arguments": {"command": "rg -n TODO"}}',
+      },
+      {
+        name: 'copy_file',
+        signature: 'copy_file(source, destination)',
+        description: 'Copy files or directories with the fastest available native utility.',
+        example: '{"tool": "copy_file", "arguments": {"source": "assets", "destination": "backup/assets"}}',
+      },
+      {
+        name: 'move_file',
+        signature: 'move_file(source, destination)',
+        description: 'Move files or directories with streamed progress.',
+        example: '{"tool": "move_file", "arguments": {"source": "old.txt", "destination": "archive/old.txt"}}',
+      },
+      {
+        name: 'system_info / disk_usage',
+        signature: 'system_info() / disk_usage()',
+        description: 'Inspect host identity, CPU, memory, load, and workspace disk capacity.',
+        example: '{"tool": "system_info", "arguments": {}}',
+      },
+      {
+        name: 'process tools',
+        signature: 'list_processes(query?) / stop_process(pid)',
+        description: 'Inspect processes and control a target process after approval.',
+        example: '{"tool": "list_processes", "arguments": {"query": "node"}}',
+      },
+      {
+        name: 'service tools',
+        signature: 'list_services() / restart_service(name)',
+        description: 'Inspect and manage Windows services or systemd services after approval.',
+        example: '{"tool": "service_status", "arguments": {"name": "MyService"}}',
+      },
+      {
+        name: 'package tools',
+        signature: 'package_manager() / install_package(package)',
+        description: 'Detect and install packages through winget, Chocolatey, Homebrew, or apt.',
+        example: '{"tool": "package_manager", "arguments": {}}',
+      },
+      {
+        name: 'environment tools',
+        signature: 'get_environment(key) / set_environment(key, value)',
+        description: 'Inspect or change environment values with approval for mutations.',
+        example: '{"tool": "get_environment", "arguments": {"key": "PATH"}}',
+      },
+      {
+        name: 'archive tools',
+        signature: 'create_archive(source, archive) / extract_archive(archive, destination)',
+        description: 'Create ZIP/TAR archives and extract them inside the workspace.',
+        example: '{"tool": "create_archive", "arguments": {"source": "dist", "archive": "dist.zip"}}',
+      },
+      {
+        name: 'network tools',
+        signature: 'ping_host(host) / dns_lookup(host)',
+        description: 'Run bounded connectivity and DNS diagnostics.',
+        example: '{"tool": "dns_lookup", "arguments": {"host": "example.com"}}',
+      },
+      {
+        name: 'scheduled task tools',
+        signature: 'list_scheduled_tasks() / create_scheduled_task(...)',
+        description: 'Inspect and manage Windows Task Scheduler entries.',
+        example: '{"tool": "list_scheduled_tasks", "arguments": {}}',
+      },
+    ],
+    brandColor: '#38BDF8',
+    glowColor: 'rgba(56, 189, 248, 0.35)',
+    badgeText: 'Native Runner',
+    docsUrl: '',
+    isBuiltIn: true,
+  },
+
   sqlite: {
     id: 'sqlite',
     name: 'sqlite',
@@ -637,6 +733,8 @@ export function renderMcpServerIcon(serverId: string, className = 'size-5'): Rea
       return <SqliteLogo className={className} />;
     case 'memory':
       return <MemoryLogo className={className} />;
+    case 'terminal':
+      return <TerminalLogo className={className} />;
     default:
       return <FilesystemLogo className={className} />;
   }

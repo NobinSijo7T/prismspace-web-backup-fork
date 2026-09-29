@@ -232,7 +232,7 @@ export function TodoPanel({ onClose }: TodoPanelProps) {
           background: transparent;
           cursor: pointer;
           position: relative;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.12s ease-out;
           flex-shrink: 0;
         }
 
@@ -241,12 +241,11 @@ export function TodoPanel({ onClose }: TodoPanelProps) {
           background: rgba(0, 223, 129, 0.05);
         }
 
-        .todo-checkbox:checked {
-          background: #00df81;
-          border-color: #00df81;
+        .todo-checkbox:active {
+          transform: scale(0.92);
         }
 
-        .todo-checkbox:checked::after {
+        .todo-checkbox::after {
           content: '';
           position: absolute;
           left: 5px;
@@ -255,7 +254,26 @@ export function TodoPanel({ onClose }: TodoPanelProps) {
           height: 9px;
           border: solid #000000;
           border-width: 0 2px 2px 0;
-          transform: rotate(45deg);
+          transform: rotate(45deg) scale(0.4);
+          opacity: 0;
+          transition: transform 160ms cubic-bezier(0.16, 1, 0.3, 1), opacity 120ms ease-out;
+        }
+
+        .todo-checkbox:checked {
+          background: #00df81;
+          border-color: #00df81;
+        }
+
+        .todo-checkbox:checked::after {
+          transform: rotate(45deg) scale(1);
+          opacity: 1;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .todo-checkbox,
+          .todo-checkbox::after {
+            transition: none !important;
+          }
         }
       `}</style>
 
@@ -659,6 +677,7 @@ export function TodoPanel({ onClose }: TodoPanelProps) {
                           fontFamily: "'Space Grotesk', sans-serif",
                           textDecoration: todo.completed ? 'line-through' : 'none',
                           wordBreak: 'break-word',
+                          transition: 'color 150ms ease, opacity 150ms ease',
                         }}
                       >
                         {todo.text}

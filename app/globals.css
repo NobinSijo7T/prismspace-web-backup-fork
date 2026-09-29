@@ -90,9 +90,10 @@
   body {
     @apply w-screen h-screen overflow-x-hidden overflow-y-auto text-white;
     font-family: 'Space Grotesk', sans-serif;
+    font-optical-sizing: auto;
     color: var(--prism-white);
     background-color: #090c12;
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth removed — overrides native momentum physics and cant be interrupted */
     scrollbar-width: none;
     -ms-overflow-style: none;
   }
@@ -235,7 +236,8 @@
     font-size: clamp(2.5rem, 5vw, 4rem);
     font-weight: 900;
     line-height: 0.92;
-    letter-spacing: -0.05em;
+    /* Tighter tracking at large sizes — glyphs read too far apart as they scale up */
+    letter-spacing: clamp(-0.05em, -0.01em + -0.01 * ((100vw - 320px) / 1280), -0.065em);
     color: var(--prism-primary);
     text-transform: lowercase;
   }
@@ -300,7 +302,8 @@
     border: 1px solid var(--prism-border-card);
     border-radius: var(--prism-radius-lg);
     padding: 10px 14px;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Split transition: avoids repainting all props; hover feels instant */
+    transition: background-color 120ms ease, border-color 120ms ease, box-shadow 200ms ease;
   }
 
   .layer-row:hover,
@@ -331,7 +334,8 @@
     box-shadow: 0 0 10px #00df81;
     border-radius: 999px;
     opacity: 0.95;
-    animation: flowBeamTravel 3s ease-in-out infinite;
+    /* Linear velocity (constant current), opacity handles the fade-in/out at edges */
+    animation: flowBeamTravel 3s linear infinite;
   }
 
   /* Live Status Radar Badge */
@@ -386,13 +390,20 @@
     font-family: 'JetBrains Mono', monospace;
     font-weight: 600;
     font-size: 12px;
-    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    /* Split properties: avoids full repaint of all; hover snaps fast */
+    transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
   }
 
   .prism-btn:hover {
     border-color: var(--prism-primary);
     box-shadow: 0 0 20px var(--prism-primary-glow);
     background: var(--prism-card-active);
+  }
+
+  /* Respond on pointer-down: shrinks instantly, releases with ease */
+  .prism-btn:active {
+    transform: scale(0.96);
+    transition: transform 80ms ease-out, border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
   }
 }
 
@@ -492,15 +503,12 @@
     top: 0%;
     opacity: 0;
   }
-
-  10% {
+  8% {
     opacity: 0.95;
   }
-
-  90% {
+  92% {
     opacity: 0.95;
   }
-
   100% {
     top: calc(100% - 70px);
     opacity: 0;
@@ -522,6 +530,7 @@
 /* ── Reduced Motion ───────────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
+  /* Stop purely decorative looping animations */
   .status-dot-pulse {
     animation: none;
     opacity: 1;
@@ -537,9 +546,24 @@
     animation: none;
   }
 
-  * {
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
+  /* Replace slide/spring transitions with opacity cross-fades — vestibular-safe */
+  /* Do NOT blanket-kill all transitions; color + opacity changes aid comprehension */
+  [data-motion-sensitive] {
+    transition: opacity 200ms ease !important;
+    transform: none !important;
+    animation: none !important;
+  }
+}
+
+/* Reduce translucency for users who prefer solid backgrounds */
+@media (prefers-reduced-transparency: reduce) {
+  .obsidian-glass,
+  .hud-capsule,
+  .glass,
+  .glass-dark {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #090c12 !important;
   }
 }
 
@@ -610,13 +634,25 @@
   box-shadow: 0 0 8px rgba(0, 223, 129, 0.45);
 }
 
-@theme inline {
-  @keyframes rainbow {
+@keyframes rainbow {
   0% {
     background-position: 0%;
-    }
+  }
   100% {
     background-position: 200%;
-    }
   }
+}
+
+.lanyard-wrapper {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 560px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 20px;
+  user-select: none;
 }
