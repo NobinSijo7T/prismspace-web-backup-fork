@@ -214,3 +214,19 @@ The backend deploys only models that pass minimum validation gates. Intent and a
 `intent_classifier.joblib`, `agent_router.joblib`, `model_router.joblib`, `workflow_success_predictor.joblib`, `approval_predictor.joblib`, `latency_predictor.joblib`, `cost_predictor.joblib`, `anomaly_detector.joblib`, `workflow_templates.pkl`, and a FAISS index when FAISS is installed. `training_report.json` records exactly which outputs trained and why any were skipped.
 
 ORPO needs paired `chosen` and `rejected` samples plus a separately selected, licensed language-model checkpoint. The package detects such data and explicitly reports readiness rather than fabricating a reward checkpoint.
+
+## License and contribution boundary
+
+PrismSpace-authored model source code is copyright © 2026 Nobin Sijo
+([NobinSijo7T](https://github.com/NobinSijo7T)) and is licensed under
+[Apache-2.0](../LICENSE). This license applies only to PrismSpace-authored
+code and does not relicense third-party datasets, model weights, checkpoints,
+artifacts, or provider services.
+
+Collaborators may contribute to Dev Space tools as described in
+[CONTRIBUTING.md](../CONTRIBUTING.md). Core AI/model architecture, training,
+weights, artifacts, datasets, routing, governance, and safety behavior are
+maintainer-controlled and require prior written authorization from Nobin Sijo.
+Authorized model contributions must include provenance, version, license,
+evaluation impact, and redistribution terms. Do not commit gated datasets,
+private telemetry, API keys, or uncleared model artifacts.

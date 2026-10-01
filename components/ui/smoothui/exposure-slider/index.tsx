@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 "use client";
 
 import { cn } from "@/lib/utils";
@@ -61,7 +65,8 @@ const ExposureSlider = ({
 
   // Raw drag offset and spring-smoothed version
   const rawX = useMotionValue(0);
-  const x = shouldReduceMotion ? rawX : useSpring(rawX, SPRING_CONFIG);
+  const springX = useSpring(rawX, SPRING_CONFIG);
+  const x = shouldReduceMotion ? rawX : springX;
 
   // Sync rawX when targetValue changes externally
   useEffect(() => {

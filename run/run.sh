@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Copyright 2026 Nobin Sijo (NobinSijo7T).
+# SPDX-License-Identifier: Apache-2.0
 # ==============================================================================
 #  PrismSpace Developer OS - Unified Fullstack Runner (Bash)
 #  Runs both Next.js Frontend and FastAPI Python Backend concurrently

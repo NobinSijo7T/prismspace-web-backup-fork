@@ -1,3 +1,5 @@
+# Copyright 2026 Nobin Sijo (NobinSijo7T).
+# SPDX-License-Identifier: Apache-2.0
 """Prepare target-specific supervised datasets from the curated source folders.
 
 This keeps benchmark labels from being mixed with unrelated corpus metadata.  It

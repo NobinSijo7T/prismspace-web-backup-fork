@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
@@ -1560,7 +1564,7 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
               <p className="sm-section-desc">Telemetry and usage analytics — coming soon</p>
               <div className="sm-panel" style={{ display: 'flex', alignItems: 'center', gap: 14, opacity: 0.5 }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00df81" strokeWidth="1.5"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
-                <span style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#64748b' }}>// Dashboard telemetry panel — under construction</span>
+                <span style={{ fontFamily: 'JetBrains Mono', fontSize: 12, color: '#64748b' }}>{'// Dashboard telemetry panel — under construction'}</span>
               </div>
             </div>
           )}

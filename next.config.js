@@ -8,6 +8,18 @@ try {
 }
 
 const nextConfig = {
+  async headers() {
+    return [
+      {
+        source: '/api/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      },
+      {
+        source: '/dev-space/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, follow' }],
+      },
+    ];
+  },
   ...(isNext16OrAbove ? { turbopack: {} } : {}),
   webpack: (config, { dev }) => {
     config.experiments = {

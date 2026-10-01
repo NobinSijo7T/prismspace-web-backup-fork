@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * app/api/agent-swarm/mcp/route.ts
  * GET  /api/agent-swarm/mcp  - list MCP servers with masked token status
  * POST /api/agent-swarm/mcp  - save/update an MCP token

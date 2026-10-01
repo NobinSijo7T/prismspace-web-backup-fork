@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';

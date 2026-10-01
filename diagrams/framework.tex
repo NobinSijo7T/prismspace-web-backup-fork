@@ -1,9 +1,12 @@
+% Copyright 2026 Nobin Sijo (NobinSijo7T).
+% SPDX-License-Identifier: Apache-2.0
 \documentclass[10pt,a4paper]{article}
 \usepackage[margin=0.5in]{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric,arrows.meta,positioning,calc,fit,backgrounds}
 \usepackage{times}
+\usepackage{pifont}
 
 \pagestyle{empty}
 
@@ -82,25 +85,7 @@
     }
 ]
 
-    % =========================================================================
-    % PANEL 0: FRONTEND UI (USER INTERACTION & CLIENT PRESENTATION)
-    % =========================================================================
-    \node [box, fill=black!5, text width=6.6cm, minimum height=0.92cm] (ui_in) at (-1.8, 7.35) {
-        \textbf{\small\strut [INPUT: User Interaction \& Task Objective]}\\[0.15em]
-        \scriptsize Natural Language Query $\;\vert\;$ Multi-Turn Context $\;\vert\;$ Workspace Files $\;\vert\;$ User Policy
-    };
 
-    \node [box, fill=black!10, text width=6.6cm, minimum height=0.92cm] (ui_out) at (5.4, 7.35) {
-        \textbf{\small\strut [OUTPUT: Streamed UI Delivery \& Artifacts]}\\[0.15em]
-        \scriptsize Real-Time SSE Token Stream $\;\vert\;$ Swarm Telemetry HUD $\;\vert\;$ Verified Deliverables $\;\vert\;$ IndexedDB
-    };
-
-    \draw [{Stealth[scale=0.6]}-{Stealth[scale=0.6]}, line width=0.6pt, black!65] (ui_in.east) -- node[above, font=\fontsize{4.8}{5.8}\selectfont\bfseries, inner sep=1pt]{Client Loop} (ui_out.west);
-
-    \node [dashed_container, fit=(ui_in) (ui_out), inner xsep=0.35cm, inner ysep=0.22cm] (container_ui) {};
-    \node [anchor=south west, font=\fontsize{6.5}{7.5}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] at ($(container_ui.north west)+(0.25, -0.05)$) {
-        [FRONTEND UI] Next.js React 19 Client Application \& Interactive Workspace
-    };
 
     % =========================================================================
     % TOP-LEFT PANEL: DATASET INGESTION & PREPROCESSING (TRAINING PHASE)
@@ -143,7 +128,7 @@
 
     % Top-left container boundary with prominent title annotation badge
     \node [dashed_container, fit=(ds) (sim_const) (prep_box) (feat_box), inner sep=0.25cm] (container_topleft) {};
-    \node [anchor=south west, font=\fontsize{6.5}{7.5}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] at ($(container_topleft.north west)+(0.25, -0.05)$) {
+    \node [anchor=south west, font=\fontsize{6.0}{7.0}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] (badge_topleft) at ($(container_topleft.north west)+(0.25, 0)$) {
         [TRAINING PHASE] Offline Dataset Preprocessing \& Feature Engineering
     };
 
@@ -274,7 +259,7 @@
 
     % Bottom-left container boundary
     \node [dashed_container, fit=(sim_graph_lbl) (eval_lbl) (graph_box_top) (graph_box_bot), inner sep=0.25cm] (container_botleft) {};
-    \node [anchor=south west, font=\fontsize{6.5}{7.5}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] at ($(container_botleft.north west)+(0.25, -0.05)$) {
+    \node [anchor=south west, font=\fontsize{6.0}{7.0}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=4pt, inner ysep=2pt] (badge_botleft) at ($(container_botleft.north west)+(0.25, 0)$) {
         [BACKEND: RUNTIME] Multi-Agent Swarm Orchestration \& Execution
     };
 
@@ -288,7 +273,7 @@
     };
 
     \node [box, fill=white, text width=4.8cm, minimum height=0.82cm] (eval_box) at (6.3, 4.25) {
-        \textbf{Evaluation Metrics}\\[0.15em]
+        \textbf{Evaluation Metrics}\\
         {\scriptsize
         \begin{tabular}{@{}c@{\hspace{0.5em}}c@{}}
         \fbox{\strut Acc / Macro-F1} & \fbox{\strut ROC-AUC / ECE} \\
@@ -303,7 +288,7 @@
     % Layer 1: Intent Classifier
     \node [box, fill=white, text width=4.8cm, minimum height=0.56cm] (l1) at (6.3, 2.25) {
         \textbf{Intent Classifier}\\
-        \scriptsize TF-IDF + Calibrated Head
+        \scriptsize Task Classification via TF-IDF + Calibrated Head
     };
 
     % --- JUNCTION 2: Between Intent Classifier and Model Router ---
@@ -326,7 +311,7 @@
 
     \node [box, fill=white, text width=4.8cm, minimum height=0.56cm, below=0.25cm of l3] (l4) {
         \textbf{Approval Predictor}\\
-        \scriptsize Threshold-Tuned Safety Gate
+        \scriptsize Threshold-Tuned Human-in-the-Loop Safety Gate
     };
 
     \node [box, fill=white, text width=4.8cm, minimum height=0.56cm, below=0.22cm of l4] (jk) {
@@ -339,10 +324,9 @@
         \scriptsize LoRA / PEFT Causal Language Model
     };
 
-    \node [box, fill=black!16, text width=4.8cm, minimum height=0.64cm, below=0.22cm of fc] (sig) {
-        \textbf{[OUTPUT: Policy Decision]}\\[0.08em]
-        \textbf{Orchestration Policy Output}\\
-        \scriptsize Softmax Decision \& DAG Plan Generation
+    \node [box, fill=black!22, text width=4.8cm, minimum height=0.64cm, below=0.22cm of fc] (sig) {
+        {\small\bfseries OUTPUT: Policy Decision \ding{220}}\\[0.06em]
+        \scriptsize Orchestration Policy $\;\vert\;$ Softmax Decision $\;\vert\;$ DAG Plan Generation
     };
 
     % Behind-the-stack vertical shaded backing (matching Figure 4.1 in paper)
@@ -375,7 +359,7 @@
     \draw [line width=0.45pt, black!85] (h1_3.east) -- (h1_3.east -| m_conv1);
     \draw [line width=0.45pt, black!85] (h1_4.east) -- (h1_4.east -| m_conv1);
     \draw [line width=0.6pt, black!85] ($(m_conv1)+(0, 0.28)$) -- ($(m_conv1)+(0, -0.28)$);
-    \draw [arrow] (m_conv1) |- node[pos=0.35, right, font=\fontsize{4.8}{5.8}\selectfont\bfseries, xshift=1pt]{4-Head Attn} ($(l1.north)+(1.25, 0)$);
+    \draw [arrow] (m_conv1) -| node[pos=0.65, right, font=\fontsize{4.6}{5.6}\selectfont\bfseries, xshift=1pt]{4-Head Attn} ($(l1.north)+(1.25, 0)$);
 
     % --- JUNCTION 2 DETAILS ---
     \draw [arrow] (l1.south -| circ2) -- (circ2);
@@ -400,7 +384,7 @@
     \draw [line width=0.45pt, black!85] (h2_3.east) -- (h2_3.east -| m_conv2);
     \draw [line width=0.45pt, black!85] (h2_4.east) -- (h2_4.east -| m_conv2);
     \draw [line width=0.6pt, black!85] ($(m_conv2)+(0, 0.28)$) -- ($(m_conv2)+(0, -0.28)$);
-    \draw [arrow] (m_conv2) |- node[pos=0.35, right, font=\fontsize{4.8}{5.8}\selectfont\bfseries, xshift=1pt]{4-Head Attn} ($(l2.north)+(1.25, 0)$);
+    \draw [arrow] (m_conv2) -| node[pos=0.65, right, font=\fontsize{4.6}{5.6}\selectfont\bfseries, xshift=1pt]{4-Head Attn} ($(l2.north)+(1.25, 0)$);
 
     % --- JUNCTION 3 DETAILS ---
     \draw [arrow] (l2.south -| circ3) -- (circ3);
@@ -425,7 +409,7 @@
     \draw [line width=0.45pt, black!85] (h3_3.east) -- (h3_3.east -| m_conv3);
     \draw [line width=0.45pt, black!85] (h3_4.east) -- (h3_4.east -| m_conv3);
     \draw [line width=0.6pt, black!85] ($(m_conv3)+(0, 0.28)$) -- ($(m_conv3)+(0, -0.28)$);
-    \draw [arrow] (m_conv3) |- node[pos=0.35, right, font=\fontsize{4.8}{5.8}\selectfont\bfseries, xshift=1pt]{4-Head Attn} ($(l3.north)+(1.25, 0)$);
+    \draw [arrow] (m_conv3) -| node[pos=0.65, right, font=\fontsize{4.6}{5.6}\selectfont\bfseries, xshift=1pt] (lbl_attn3) {4-Head Attn} ($(l3.north)+(1.25, 0)$);
 
     % Direct sequential flow from Agent Router through Policy Output
     \draw [arrow] (l3) -- (l4);
@@ -434,11 +418,16 @@
     \draw [arrow] (fc) -- (sig);
 
     % Right container boundary enclosing hdr_right and stack (clean, tight symmetric fit)
-    \node [dashed_container, fit=(hdr_right) (bg_stack), inner sep=0.20cm] (container_right) {};
+    \node [dashed_container, fit=(hdr_right) (bg_stack), inner xsep=0.22cm, inner ysep=0.20cm] (container_right) {};
+    \node [anchor=south west, font=\fontsize{5.2}{6.2}\selectfont\bfseries, fill=white, draw=black!75, line width=0.6pt, rounded corners=2pt, inner xsep=3.5pt, inner ysep=2pt] (badge_right) at ($(container_right.north west)+(0.20, 0)$) {
+        [ML ENGINE] Intelligence Routing, Planning \& Policy Output
+    };
 
     % Sleek horizontal connector arrow and "Model" indicator between Swarm and Intelligence Pipeline
     \node [font=\fontsize{4.8}{5.8}\selectfont\bfseries, rotate=-90, text=black!75] at (3.13, -1.45) {Model};
     \draw [-{Stealth[scale=0.65]}, line width=0.65pt, black!65] (2.90, -1.75) -- (3.36, -1.75);
+
+
 
     % =========================================================================
     % DEDICATED EXPANDED DETAIL CALLOUT PANEL: 4-HEAD ATTENTION ARCHITECTURE
@@ -524,8 +513,34 @@
         \node [draw=black!70, line width=0.65pt, fill=black!2, rounded corners=5pt, fit=(mha_hdr) (mha_in) (mha_norm) (detail_bot_pad), inner xsep=0.25cm, inner ysep=0.20cm] (detail_box) {};
     \end{scope}
 
-    % Master outer dashed boundary enclosing all components
-    \node [dashed_container, line width=0.85pt, fit=(container_topleft) (container_botleft) (container_right) (detail_box), inner sep=0.25cm] (outer_all) {};
+    % Callout connector line from 4-Head Attention to Expanded Detail Panel (zero overlapping, correct downward arrowhead)
+    \coordinate (c_callout_corner1) at (9.40, 0 |- lbl_attn3.east);
+    \coordinate (c_callout_corner2) at (9.40, -6.65);
+    \coordinate (c_callout_target) at (7.60, 0 |- detail_box.north);
+    \draw [draw=black!75, line width=0.75pt, dashed, -{Stealth[scale=0.85]}] 
+        (lbl_attn3.east) -- (c_callout_corner1) -- (c_callout_corner2) -| 
+        (c_callout_target);
+
+    % Master outer dashed boundary enclosing all components and their header badges
+    \node [dashed_container, line width=0.85pt, fit=(container_topleft) (badge_topleft) (container_botleft) (badge_botleft) (container_right) (badge_right) (detail_box) (c_callout_corner1), inner sep=0.28cm] (outer_all) {};
+
+    % =========================================================================
+    % SYSTEM INPUT (TOP) — Overall entry point, positioned above the diagram
+    % =========================================================================
+    \node [box, fill=black!22, text width=15.5cm, minimum height=0.9cm, above=0.65cm of outer_all] (sys_input) {
+        {\normalsize\bfseries \ding{220}~INPUT: User Natural Language Query, Task Objective \& Session Context}\\[0.1em]
+        \scriptsize Chat Prompt $\;\vert\;$ Multi-Turn Conversation History $\;\vert\;$ Workspace Files $\;\vert\;$ User Policy $\;\vert\;$ Agent Instructions
+    };
+    \draw [arrow, line width=1.0pt] (sys_input.south) -- (outer_all.north);
+
+    % =========================================================================
+    % SYSTEM OUTPUT (BOTTOM) — Overall exit point, positioned below the diagram
+    % =========================================================================
+    \node [box, fill=black!22, text width=15.5cm, minimum height=0.9cm, below=0.65cm of outer_all] (sys_output) {
+        {\normalsize\bfseries OUTPUT: Streamed AI Response, Verified Deliverables \& Persisted State~\ding{220}}\\[0.1em]
+        \scriptsize Real-Time SSE Token Stream $\;\vert\;$ Swarm Telemetry HUD $\;\vert\;$ Verified Artifacts $\;\vert\;$ IndexedDB (\texttt{PrismDB}) Persistence $\;\vert\;$ UI Re-render
+    };
+    \draw [arrow, line width=1.0pt] (outer_all.south) -- (sys_output.north);
 
 \end{tikzpicture}
 

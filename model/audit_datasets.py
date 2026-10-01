@@ -1,3 +1,5 @@
+# Copyright 2026 Nobin Sijo (NobinSijo7T).
+# SPDX-License-Identifier: Apache-2.0
 """Dataset readiness audit for reproducible PrismSpace model training."""
 from __future__ import annotations
 

@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * app/api/agent-swarm/agents/[id]/approve/route.ts
  * POST /api/agent-swarm/agents/:id/approve  — human-in-the-loop approve / reject
  */

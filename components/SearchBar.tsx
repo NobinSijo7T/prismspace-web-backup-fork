@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 'use client';
 
 /**
@@ -924,7 +928,7 @@ export function SearchBar({ onAgentSubmit }: SearchBarProps) {
                     <div className="flex-1 min-h-0 overflow-y-auto p-1 space-y-0.5 custom-scrollbar">
                       {filteredModels.length === 0 ? (
                         <div className="py-5 text-center text-[10.5px] font-mono text-white/40">
-                          No models matching "{modelSearchQuery}"
+                          No models matching &quot;{modelSearchQuery}&quot;
                         </div>
                       ) : (
                         filteredModels.map((m) => {

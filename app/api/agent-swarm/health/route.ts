@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * app/api/agent-swarm/health/route.ts
  * Proxies the health check from the Python Agent Swarm backend.
  */

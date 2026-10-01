@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * tests/test_openrouter_byok.mjs
  * ──────────────────────────────
  * Dedicated automated test suite for OpenRouter BYOK (Bring Your Own Key) support in PrismSpace.

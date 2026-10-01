@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * tests/test_byok_and_chat_history.mjs
  * ──────────────────────────────────────
  * Automated test suite for BYOK (Bring Your Own Key) across all 7 AI providers

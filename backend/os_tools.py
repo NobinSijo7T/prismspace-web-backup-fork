@@ -1,3 +1,5 @@
+# Copyright 2026 Nobin Sijo (NobinSijo7T).
+# SPDX-License-Identifier: Apache-2.0
 """Structured cross-platform operating-system tools for Hive agents."""
 
 from __future__ import annotations

@@ -1,5 +1,10 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import Link from 'next/link';
 import CardFlip from './kokonutui/card-flip';
 import {
   WebScraperIcon,
@@ -165,9 +170,9 @@ export function DevSpace({ onToolAction }: DevSpaceProps) {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       >
         <div className="cutout-box">
-          <span className="cutout-text text-[2.5rem]">
+          <h2 className="cutout-text text-[2.5rem]">
             dev space.
-          </span>
+          </h2>
         </div>
       </motion.div>
 
@@ -179,16 +184,8 @@ export function DevSpace({ onToolAction }: DevSpaceProps) {
         whileInView="visible"
         viewport={{ once: true, margin: "-100px" }}
       >
-        {tools.map((tool, index) => (
-          <motion.div
-            key={index}
-            onClick={() => handleCardClick(tool)}
-            className="cursor-pointer w-full flex justify-center"
-            variants={cardVariants}
-            layout
-            whileHover={{ y: -4 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          >
+        {tools.map((tool, index) => {
+          const card = (
             <CardFlip
               icon={tool.icon}
               title={tool.title}
@@ -201,8 +198,36 @@ export function DevSpace({ onToolAction }: DevSpaceProps) {
                 'Feature 4'
               ]}
             />
-          </motion.div>
-        ))}
+          );
+
+          return tool.href ? (
+            <motion.div
+              key={index}
+              className="w-full flex justify-center"
+              variants={cardVariants}
+              layout
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Link href={tool.href} className="block w-full" aria-label={`Open ${tool.title}`}>
+                {card}
+              </Link>
+            </motion.div>
+          ) : (
+            <motion.button
+              key={index}
+              type="button"
+              onClick={() => handleCardClick(tool)}
+              className="cursor-pointer w-full flex justify-center border-0 bg-transparent p-0 text-left"
+              variants={cardVariants}
+              layout
+              whileHover={{ y: -4 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              {card}
+            </motion.button>
+          );
+        })}
       </motion.div>
     </div>
   );

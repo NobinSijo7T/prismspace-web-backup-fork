@@ -1,3 +1,5 @@
+# Copyright 2026 Nobin Sijo (NobinSijo7T).
+# SPDX-License-Identifier: Apache-2.0
 """Generate a seed provider-routing dataset for the PrismSpace provider router.
 
 Maps realistic prompts to the Hive provider best suited for each task type,

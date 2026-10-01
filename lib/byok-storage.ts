@@ -1,4 +1,8 @@
 /**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
+/**
  * lib/byok-storage.ts
  * ────────────────────
  * Bring Your Own Key (BYOK) manager for all AI API providers in PrismSpace.

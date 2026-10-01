@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 export interface LanyardCardData {
   name?: string;
   title?: string;
@@ -298,5 +302,4 @@ export function generateLanyardTexture({
 
   return canvas.toDataURL('image/png');
 }
-
 

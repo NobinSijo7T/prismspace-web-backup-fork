@@ -1,3 +1,5 @@
+% Copyright 2026 Nobin Sijo (NobinSijo7T).
+% SPDX-License-Identifier: Apache-2.0
 \documentclass[10pt,a4paper,landscape]{article}
 \usepackage[margin=0.5in]{geometry}
 \usepackage{xcolor}
@@ -17,7 +19,7 @@
 \begin{document}
 
 \begin{center}
-{\Large \textbf{4.5\quad Browser IndexedDB Architecture \& Database Schema (\texttt{PrismDB})}}\\[0.8em]
+{\Large \textbf{Figure 4.4: Browser IndexedDB Architecture \& Database Schema (\texttt{PrismDB})}}\\[0.8em]
 
 \begin{tikzpicture}[
     auto,
@@ -63,6 +65,14 @@
 ]
 
     % =========================================================================
+    % INPUT: USER DATA ACTIONS
+    % =========================================================================
+    \node [system_box, text width=21.0cm, fill=black!8] (input_node) at (-0.5, 7.35) {
+        \textbf{[INPUT: User-Initiated Data Actions]} $\;\longrightarrow\;$
+        Add / Edit / Delete Records $\;\vert\;$ Agent Chat Messages $\;\vert\;$ Task Completions $\;\vert\;$ Bookmark \& Habit Updates
+    };
+
+    % =========================================================================
     % TOP: REACTIVE ARCHITECTURE FLOW
     % =========================================================================
     
@@ -97,6 +107,9 @@
     % Boundary box for IndexedDB Engine
     \node [draw=black!45, dashed, rounded corners=6pt, line width=0.7pt, fit=(react_ui) (hooks_layer) (dexie_engine), inner sep=0.22cm] (top_boundary) {};
     \node [anchor=west, font=\tiny\bfseries, fill=white] at ($(top_boundary.north west)+(0.3,0)$) {Client-Side Reactive Bridge};
+
+    % Arrow from INPUT node down into React UI components
+    \draw [rel_arrow, line width=0.85pt] (input_node.south -| react_ui.north) -- (react_ui.north);
 
     % =========================================================================
     % BOTTOM: RELATIONAL INDEXEDDB TABLES (PRISMDB)
@@ -244,6 +257,15 @@
     \coordinate (persist_end) at (schema_boundary.north -| dexie_engine.south);
     \draw [rel_arrow, line width=1.1pt] (persist_start) -- 
         node[right, font=\scriptsize\bfseries, align=left, xshift=4pt]{Persists to IndexedDB\\\tiny(Native IDB Transactions)} (persist_end);
+
+    % =========================================================================
+    % OUTPUT: REACTIVE DATA RETURNED TO UI
+    % =========================================================================
+    \node [system_box, text width=14.0cm, fill=black!8, below=0.7cm of schema_boundary] (output_node) {
+        \textbf{[OUTPUT: Reactive Data Stream]} $\;\longrightarrow\;$
+        Live Query Results via \texttt{useLiveQuery()} $\;\vert\;$ Auto-Rendered UI Updates $\;\vert\;$ Verified Persistent State
+    };
+    \draw [rel_arrow] (schema_boundary.south) -- (output_node.north);
 
 \end{tikzpicture}
 

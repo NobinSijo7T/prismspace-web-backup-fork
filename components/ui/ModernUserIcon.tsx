@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 'use client';
 
 import React, { useId } from 'react';
@@ -408,4 +412,3 @@ export function getModernIconSvgDataUri(variant: string = 'cyber'): string {
       return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 36 36'><radialGradient id='cbg' cx='50%' cy='30%' r='70%'><stop offset='0%' stop-color='%230d2818'/><stop offset='60%' stop-color='%2308141e'/><stop offset='100%' stop-color='%2303070d'/></radialGradient><circle cx='18' cy='18' r='18' fill='url(%23cbg)'/><circle cx='18' cy='18' r='16.5' stroke='%2300df81' stroke-opacity='0.25' stroke-width='0.75' stroke-dasharray='3 2'/><path d='M8.5 32.5 C8.5 26.2 13 22.8 18 22.8 C23 22.8 27.5 26.2 27.5 32.5 Z' fill='%231e293b' stroke='%2300df81' stroke-opacity='0.4' stroke-width='0.8'/><path d='M18 22.8 L18 26.5' stroke='%2300df81' stroke-width='1'/><circle cx='18' cy='13.2' r='5.5' fill='%230f172a' stroke='%2300df81' stroke-opacity='0.4' stroke-width='0.8'/><rect x='14' y='12.2' width='8' height='2' rx='1' fill='%2300df81'/><circle cx='15.8' cy='13.2' r='0.55' fill='%23fff'/></svg>`;
   }
 }
-

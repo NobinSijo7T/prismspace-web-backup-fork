@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 'use client';
 
 /**
@@ -355,7 +359,7 @@ export function SwarmModelSelect({
         <div className="max-h-[240px] overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
           {filteredModels.length === 0 ? (
             <div className="py-8 text-center text-xs text-white/40">
-              No models found matching "{searchQuery}"
+              No models found matching &quot;{searchQuery}&quot;
             </div>
           ) : (
             filteredModels.map((m) => {

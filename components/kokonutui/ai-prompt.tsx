@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 "use client";
 
 /**
@@ -596,7 +600,7 @@ export function AIPrompt({
               <div className="max-h-[240px] overflow-y-auto p-1.5 space-y-1 custom-scrollbar">
                 {filteredNormalizedModels.length === 0 ? (
                   <div className="py-8 text-center text-xs text-white/40">
-                    No models matching "{modelSearch}"
+                    No models matching &quot;{modelSearch}&quot;
                   </div>
                 ) : (
                   filteredNormalizedModels.map((m) => {

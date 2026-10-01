@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 export const POMODORO_STATE_KEY = 'prism:pomodoro-state';
 
 export interface PomodoroState {

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -86,17 +90,16 @@ export function MainContainer() {
       >
         {showGreetings && (
           <motion.div className="text-center mb-2" variants={staggerItem}>
-            {/* h1: primary greeting — heaviest weight + tightest tracking */}
-            <h1
+            <h1 className="sr-only">PrismSpace AI developer workspace</h1>
+            <p
               className="font-sans text-[2.4rem] font-[900] tracking-[-0.04em] leading-[1.05] lowercase mb-3 text-white drop-shadow-[0_2px_15px_rgba(0,0,0,0.6)]"
             >
               {quotes.primary}
-            </h1>
-            {/* h2: secondary label — slightly lighter (800) to step down the hierarchy */}
+            </p>
             <div className="cutout-box">
-              <h2 className="cutout-text text-[2rem]" style={{ fontWeight: 800 }}>
+              <p className="cutout-text text-[2rem]" style={{ fontWeight: 800 }}>
                 {quotes.secondary}
-              </h2>
+              </p>
             </div>
           </motion.div>
         )}

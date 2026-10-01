@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 // IndexedDB utility for To-Do List storage
 
 const DB_NAME = 'PrismSpaceTodoDB';

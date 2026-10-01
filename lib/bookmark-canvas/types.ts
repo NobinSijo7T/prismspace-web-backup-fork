@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 // Bookmark Canvas — Shared TypeScript Interfaces
 
 export interface Bookmark {

@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -461,4 +465,3 @@ export function DynamicIsland() {
     </div>
   );
 }
-

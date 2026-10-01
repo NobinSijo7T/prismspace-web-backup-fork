@@ -1,3 +1,7 @@
+/**
+ * Copyright 2026 Nobin Sijo (NobinSijo7T).
+ * SPDX-License-Identifier: Apache-2.0
+ */
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
@@ -567,7 +571,7 @@ export function SQLPlayground({ onClose }: SQLPlaygroundProps) {
 
             {showPresets && (
               <div className="sql-presets-menu">
-                <div className="sql-presets-menu-header">// SAMPLE DATASETS</div>
+                <div className="sql-presets-menu-header">{'// SAMPLE DATASETS'}</div>
                 {SAMPLE_PRESETS.map((p) => (
                   <button
                     key={p.name}

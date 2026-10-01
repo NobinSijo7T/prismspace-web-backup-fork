@@ -9,7 +9,7 @@ An AI-powered developer operating environment, browser dashboard, and multi-agen
 ![Tailwind](https://img.shields.io/badge/Tailwind-3.4-38bdf8)
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
 ![PyTorch](https://img.shields.io/badge/PyTorch-CUDA%2012.6-orange)
-![License](https://img.shields.io/badge/License-ISC-green)
+![License](https://img.shields.io/badge/License-Apache--2.0-green)
 
 ---
 
@@ -455,4 +455,28 @@ prismspace-web/
 
 ## 📝 License
 
-This project is licensed under the **ISC License**.
+Copyright © 2026 Nobin Sijo ([NobinSijo7T](https://github.com/NobinSijo7T)). The original PrismSpace source code is licensed under the **Apache License 2.0**. See [LICENSE](LICENSE).
+
+The repository also contains or references third-party packages, fonts, images, datasets, model artifacts, and hosted AI services with separate terms. Those materials are not relicensed by this notice; see [NOTICE](NOTICE) and [LICENSE_AUDIT.md](LICENSE_AUDIT.md) before redistributing a source archive, container, or trained model.
+
+Dev Space collaboration is open for adding and improving developer tools under the contribution policy in [CONTRIBUTING.md](CONTRIBUTING.md). Core AI models, training data, model artifacts, routing, and safety behavior require prior maintainer authorization.
+
+### Contribution and collaboration mandate
+
+Collaborators have broad project-level access to propose and contribute to existing Dev Space tools, including:
+
+- `public/dev-space/`
+- `components/tools/`
+- `app/dev-space/`
+- supporting tool code in `components/`, `lib/`, and `hooks/`
+
+Contributors may add tools, improve UX, fix bugs, add tests, and improve documentation through normal review. Contributions must preserve third-party notices and disclose copied, generated, AI-assisted, or externally sourced material.
+
+The following areas are maintainer-controlled and require prior written authorization from Nobin Sijo before contribution, modification, retraining, replacement, or redistribution:
+
+- core AI/model architecture and training code under `model/`;
+- model weights, checkpoints, indexes, and serialized artifacts under `model/artifacts*/`;
+- training, validation, and test datasets under `model/datasets/`;
+- model-serving, routing, governance, and safety behavior, including related inference integration.
+
+This is a repository contribution and access policy documented in [CONTRIBUTING.md](CONTRIBUTING.md). It does not modify the standard Apache-2.0 license or grant rights to third-party models, datasets, assets, or services. See [NOTICE](NOTICE) and the [full licensing audit](LICENSE_AUDIT.md) before redistributing the project.
