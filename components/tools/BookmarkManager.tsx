@@ -5,8 +5,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { BookmarkIcon } from './ToolIcons';
+import Image from 'next/image';
 import { Toolbar as KokonutToolbar, type ToolbarItem } from '@/components/kokonutui/toolbar';
 import { Plus, Wand2, FileDown, Code2, RefreshCw } from 'lucide-react';
 
@@ -411,9 +412,12 @@ ${bookmarks.map(b => `<DT><A HREF="${b.url}">${b.title}</A>`).join('\n')}
                       className="bg-[#0f141b] border border-[#283241] rounded-2xl p-4 space-y-3 hover:border-[#3a4658] transition"
                     >
                       <div className="grid grid-cols-[40px_1fr_auto] gap-3 items-center">
-                        <img
+                        <Image
                           src={getFavicon(bookmark.url)}
                           alt=""
+                          width={40}
+                          height={40}
+                          unoptimized
                           className="w-10 h-10 rounded-xl bg-[#1a2330]"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';

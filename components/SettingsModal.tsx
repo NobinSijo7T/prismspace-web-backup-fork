@@ -7,7 +7,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { ClockStyle } from './Clock';
 import { ClockPreview } from './ClockPreview';
 import { AvatarPicker } from './AvatarPicker';
@@ -1439,7 +1439,14 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                       {customMediaType === 'video' ? (
                         <video src={customPreviewUrl} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <img src={customPreviewUrl} alt="Custom wallpaper" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <Image
+                          src={customPreviewUrl}
+                          alt="Custom wallpaper"
+                          width={160}
+                          height={90}
+                          unoptimized
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
                       )}
                       <span className="sm-bg-custom-label">Custom</span>
                     </button>
@@ -1449,7 +1456,13 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
                       {bg.mediaType === 'video' ? (
                         <video src={bg.path} muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <img src={bg.path} alt={bg.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <Image
+                          src={bg.path}
+                          alt={bg.name}
+                          width={160}
+                          height={90}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        />
                       )}
                     </button>
                   ))}

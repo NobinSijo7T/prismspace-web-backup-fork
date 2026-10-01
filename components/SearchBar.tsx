@@ -18,7 +18,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { AgentOrb } from './AgentOrb';
 import {
   BYOK_PROVIDERS,

@@ -5,15 +5,25 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import { motion, AnimatePresence } from 'motion/react';
 import Loader from '@/components/kokonutui/loader';
 import { MainContainer } from '@/components/MainContainer';
 import { DevSpace } from '@/components/DevSpace';
 import { TopLogo } from '@/components/TopLogo';
 import { TopQuote } from '@/components/TopQuote';
 import { QuickActions } from '@/components/QuickActions';
-import { SettingsModal } from '@/components/SettingsModal';
-import { PanelManager, usePanelManager } from '@/components/PanelManager';
+import { usePanelManager } from '@/components/use-panel-manager';
+
+const SettingsModal = dynamic(
+  () => import('@/components/SettingsModal').then((module) => module.SettingsModal),
+  { ssr: false },
+);
+
+const PanelManager = dynamic(
+  () => import('@/components/PanelManager').then((module) => module.PanelManager),
+  { ssr: false },
+);
 
 export default function Home() {
   const [isLoading, setIsLoading] = useState(true);

@@ -6,7 +6,6 @@
 export { BookmarkManager } from './BookmarkManager';
 export { ChecklistManager } from './ChecklistManager';
 export { ColorGenerator } from './ColorGenerator';
-export { MatrixDisplay } from './MatrixDisplay';
 export { NotepadPanel } from './NotepadPanel';
 export { PomodoroTimer } from './PomodoroTimer';
 export { WebScraperTool } from './WebScraperTool';

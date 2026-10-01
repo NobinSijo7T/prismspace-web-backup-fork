@@ -13,7 +13,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import {
   Activity,

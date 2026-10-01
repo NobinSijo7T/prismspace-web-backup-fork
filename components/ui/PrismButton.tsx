@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { motion, type HTMLMotionProps } from 'framer-motion';
+import { motion, type HTMLMotionProps } from 'motion/react';
 import { forwardRef } from 'react';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';

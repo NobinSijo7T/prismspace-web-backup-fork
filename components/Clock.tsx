@@ -5,7 +5,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 export type ClockStyle = 'default' | 'minimal' | 'serif' | 'handwritten' | 'minimal-light' | 
   'serif-condensed' | 'bitcount' | 'corpta' | 'fenotype' | 'nclkemgor' | 

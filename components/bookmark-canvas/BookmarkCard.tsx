@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Image from 'next/image';
 import type { Bookmark } from '@/lib/bookmark-canvas/types';
 import {
   MIN_CARD_WIDTH,
@@ -177,9 +178,12 @@ export const BookmarkCard = memo(function BookmarkCard({
             >
               {bookmark.favicon ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={bookmark.favicon}
                   alt=""
+                  width={16}
+                  height={16}
+                  unoptimized
                   className="w-4 h-4 object-contain"
                   onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                 />

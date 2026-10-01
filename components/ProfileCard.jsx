@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import Image from 'next/image';
 import './ProfileCard.css';
 
 const DEFAULT_INNER_GRADIENT = 'radial-gradient(circle at 50% 8%, rgba(0, 223, 129, 0.12) 0%, rgba(11, 16, 24, 0.94) 65%)';
@@ -408,10 +409,13 @@ const ProfileCardComponent = ({
               >
                 <div className="pc-avatar-inner">
                   {avatarUrl && avatarUrl !== '🔥' ? (
-                    <img
+                    <Image
                       className="pc-avatar-img"
                       src={avatarUrl}
                       alt={`${name || 'User'} avatar`}
+                      width={96}
+                      height={96}
+                      unoptimized
                       loading="lazy"
                       onError={e => {
                         const t = e.target;

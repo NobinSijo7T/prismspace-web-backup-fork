@@ -5,7 +5,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
+import type { PanelType } from './panel-types';
 import { NotepadPanel } from './tools/NotepadPanel';
 import { TodoPanel } from './tools/TodoPanel';
 import { ColorGenerator } from './tools/ColorGenerator';
@@ -13,11 +14,6 @@ import { WebScraperTool } from './tools/WebScraperTool';
 import { PomodoroTimer } from './tools/PomodoroTimer';
 import { SQLPlayground } from './tools/SQLPlayground';
 import { AgentSwarm } from './AgentSwarm';
-
-type PanelType = 'notepad' | 'todo' |
-  'color-gen' | 'prompt-synthesizer' |
-  'writing-assistant' | 'code-explainer' | 'code-translator' | 'decision-analyzer' |
-  'web-scraper' | 'pomodoro-timer' | 'agent-swarm' | 'sql-playground';
 
 interface PanelConfig {
   type: PanelType;
@@ -302,19 +298,4 @@ export function PanelManager({ activePanel, onClose }: PanelManagerProps) {
       })()}
     </AnimatePresence>
   );
-}
-
-// Hook to manage panel state
-export function usePanelManager() {
-  const [activePanel, setActivePanel] = useState<PanelType | null>(null);
-
-  const openPanel = (panel: PanelType) => {
-    setActivePanel(panel);
-  };
-
-  const closePanel = () => {
-    setActivePanel(null);
-  };
-
-  return { activePanel, openPanel, closePanel };
 }

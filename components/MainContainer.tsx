@@ -5,14 +5,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Clock } from './Clock';
 import { SearchBar } from './SearchBar';
+import quotesData from '@/quotes.json';
 
 interface DailyQuotes {
   primary: string;
   secondary: string;
 }
+
+const dailyQuotes = quotesData as Record<string, DailyQuotes>;
 
 const fallbackQuotes: Record<string, DailyQuotes> = {
   sunday: { primary: "Rest and recharge, PRISM", secondary: "User, Serene Sunday!" },
@@ -59,14 +62,7 @@ export function MainContainer() {
     const today = new Date().getDay();
     const currentDay = days[today];
 
-    fetch('/quotes.json')
-      .then((res) => res.json())
-      .then((data) => {
-        setQuotes(data[currentDay] || fallbackQuotes[currentDay]);
-      })
-      .catch(() => {
-        setQuotes(fallbackQuotes[currentDay]);
-      });
+    setQuotes(dailyQuotes[currentDay] || fallbackQuotes[currentDay]);
   }, []);
 
   /**

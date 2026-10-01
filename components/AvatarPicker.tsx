@@ -5,6 +5,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import Image from 'next/image';
 import { ModernUserIcon, ModernIconVariant } from './ui/ModernUserIcon';
 
 interface AvatarPickerProps {
@@ -70,7 +71,14 @@ export function AvatarPicker({ currentAvatar, onAvatarChange }: AvatarPickerProp
         className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-white/20 hover:border-[#00df81]/60 transition-all group shadow-lg"
       >
         {isImage ? (
-          <img src={currentAvatar} alt="Avatar" className="w-full h-full object-cover" />
+          <Image
+            src={currentAvatar}
+            alt="Avatar"
+            width={96}
+            height={96}
+            unoptimized
+            className="w-full h-full object-cover"
+          />
         ) : isModern ? (
           <div className="w-full h-full flex items-center justify-center bg-[#090d16]">
             <ModernUserIcon variant={modernVariant} className="w-full h-full" />

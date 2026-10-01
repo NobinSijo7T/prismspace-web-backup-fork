@@ -5,7 +5,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { usePathname } from 'next/navigation';
 import { AgentOrb } from '@/components/AgentOrb';
 import { getRemainingSeconds, loadPomodoroState } from '@/lib/pomodoro-state';

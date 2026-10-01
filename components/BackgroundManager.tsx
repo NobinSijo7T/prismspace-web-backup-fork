@@ -5,6 +5,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { db } from '@/lib/db';
 
 type BackgroundMediaType = 'image' | 'video';
@@ -131,9 +132,13 @@ export function BackgroundManager() {
   return (
     <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none bg-[#090c12]">
       {bgType === 'image' && bgUrl && (
-        <img
+        <Image
           src={bgUrl}
           alt="Background"
+          fill
+          sizes="100vw"
+          quality={70}
+          unoptimized={bgUrl.startsWith('blob:') || bgUrl.startsWith('data:')}
           className="w-full h-full object-cover transition-opacity duration-300"
           style={{ opacity: opacity / 100 }}
         />

@@ -4,7 +4,7 @@
  */
 'use client';
 
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { FileEdit, CheckSquare2, Maximize2 } from 'lucide-react';
 import ProfileDropdown from '@/components/kokonutui/profile-dropdown';
 import { useUserProfile } from '@/lib/hooks/useUserProfile';

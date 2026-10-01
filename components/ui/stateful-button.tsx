@@ -5,7 +5,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { motion, useAnimate, type HTMLMotionProps } from "motion/react";
 
 export interface StatefulButtonProps extends Omit<HTMLMotionProps<"button">, "children"> {
@@ -27,7 +27,7 @@ export const Button = ({
   const [scope, animate] = useAnimate();
   const prevLoadingRef = useRef(false);
 
-  const animateLoading = async () => {
+  const animateLoading = useCallback(async () => {
     try {
       await animate(
         ".check",
@@ -58,9 +58,9 @@ export const Button = ({
     } catch {
       // Ignore if unmounted
     }
-  };
+  }, [animate]);
 
-  const animateSuccess = async () => {
+  const animateSuccess = useCallback(async () => {
     try {
       await animate(
         ".loader",
@@ -106,9 +106,9 @@ export const Button = ({
     } catch {
       // Ignore if unmounted
     }
-  };
+  }, [animate]);
 
-  const animateReset = async () => {
+  const animateReset = useCallback(async () => {
     try {
       await animate(
         ".loader",
@@ -123,7 +123,7 @@ export const Button = ({
     } catch {
       // Ignore
     }
-  };
+  }, [animate]);
 
   // Sync external loading state prop
   useEffect(() => {
@@ -135,7 +135,7 @@ export const Button = ({
       }
       prevLoadingRef.current = loading;
     }
-  }, [loading]);
+  }, [loading, animateLoading, animateSuccess]);
 
   const handleClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
     if (loading !== undefined) {
