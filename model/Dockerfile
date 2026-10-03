@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir -r /app/model/requirements-api.txt
 COPY model/model_server.py /app/model_server.py
 COPY model/__init__.py /app/model/__init__.py
 COPY backend/model_inference.py /app/backend/model_inference.py
+COPY backend/observability.py /app/backend/observability.py
 RUN mkdir -p /app/model/artifacts
 COPY model/artifacts/agent_router.joblib /app/model/artifacts/agent_router.joblib
 COPY model/artifacts/anomaly_detector.joblib /app/model/artifacts/anomaly_detector.joblib

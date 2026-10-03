@@ -40,6 +40,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from os_tools import DESTRUCTIVE_OS_TOOLS, execute_os_tool
+from observability import install_metrics
 
 # ML Model Inference
 try:
@@ -77,6 +78,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+install_metrics(app)
 
 # ---------------------------------------------------------------------------
 # In-memory store (replace with Hive's persistent storage in production)
