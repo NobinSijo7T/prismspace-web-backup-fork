@@ -501,6 +501,7 @@ prismspace-web/
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** — Deployment guides for Vercel, Netlify, Railway, and AWS.
 - **[POSTHOG.md](POSTHOG.md)** — PostHog configuration, privacy boundaries, and event taxonomy.
 - **[monitoring/README.md](monitoring/README.md)** — Grafana Cloud, Alloy, Render, Railway, and Cloudflare metrics setup.
+- **[DEVOPS.md](DEVOPS.md)** — GitHub Actions CI, security scanning, deployment gates, and production protections.
 
 ### Foundational Research Papers
 - **ORPO**: [Hong et al., 2024 - *ORPO: Monolithic Preference Optimization without Reference Model* (arXiv:2403.07691)](https://arxiv.org/abs/2403.07691)

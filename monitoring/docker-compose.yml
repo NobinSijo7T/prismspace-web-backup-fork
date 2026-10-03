@@ -1,6 +1,8 @@
 services:
   alloy:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     environment:
       GRAFANA_CLOUD_PROMETHEUS_URL: ${GRAFANA_CLOUD_PROMETHEUS_URL}
       GRAFANA_CLOUD_PROMETHEUS_USER: ${GRAFANA_CLOUD_PROMETHEUS_USER}
@@ -12,3 +14,24 @@ services:
       CLOUDFLARE_METRICS_HOST: ${CLOUDFLARE_METRICS_HOST:-tunnel.example.invalid:443}
       CLOUDFLARE_METRICS_TOKEN: ${CLOUDFLARE_METRICS_TOKEN:-}
     restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    volumes:
+      - alloy-data:/var/lib/alloy/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    pids_limit: 128
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:12345/-/ready >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  alloy-data:

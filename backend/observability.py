@@ -39,6 +39,12 @@ def install_metrics(app: FastAPI) -> None:
         x_metrics_token: str | None = Header(default=None),
     ) -> Response:
         expected = os.getenv("METRICS_TOKEN")
+        # A missing token must never silently turn a production metrics
+        # endpoint into a public data export. Configure the token explicitly
+        # on every hosted API before enabling scraping.
+        if not expected:
+            raise HTTPException(status_code=503, detail="Metrics endpoint is not configured")
+
         supplied = x_metrics_token
         if supplied is None and authorization and authorization.lower().startswith("bearer "):
             supplied = authorization[7:].strip()

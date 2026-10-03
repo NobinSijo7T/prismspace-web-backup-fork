@@ -65,6 +65,11 @@ except ImportError:
 
 load_dotenv()  # Load API keys from .env
 
+
+def _allowed_origins() -> list[str]:
+    raw = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3001")
+    return [origin.strip() for origin in raw.split(",") if origin.strip()]
+
 app = FastAPI(
     title="Hive Bridge API",
     description="Multi-Agent Harness for PrismSpace – powered by aden-hive/hive",
@@ -73,7 +78,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
